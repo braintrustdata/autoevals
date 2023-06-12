@@ -1,0 +1,12 @@
+*.pyc
+*.swp
+*.swo
+data
+venv
+env.sh
+.env
+.direnv
+.DS_STORE
+node_modules
+src/*.egg-info/
+dist

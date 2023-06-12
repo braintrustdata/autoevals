@@ -1,0 +1,18 @@
+prompt: |-
+  You are comparing responses to the following instructions.
+
+  [Instruction 1]
+  {{instructions}}
+  [Response 1]
+  {{output}}
+
+  [Instruction 2]
+  {{instructions}}
+  [Response 2]
+  {{expected}}
+
+
+  Is the first response better than the second? You must provide one answer based on your subjective view.
+choice_scores:
+  "Yes": 1.0
+  "No": 0.0

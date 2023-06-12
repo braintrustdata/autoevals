@@ -1,0 +1,15 @@
+prompt: |-
+  You are assessing a submitted answer on a given task based on a criterion. Here is the data:
+  [BEGIN DATA]
+  ***
+  [Task]: {{input}}
+  ***
+  [Submission]: {{output}}
+  ***
+  [Criterion]: {{criteria}}
+  ***
+  [END DATA]
+  Does the submission meet the criterion?
+choice_scores:
+  "Y": 1.0
+  "N": 0.0

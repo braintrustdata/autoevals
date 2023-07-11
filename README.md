@@ -82,7 +82,7 @@ experiment.log(
         "factuality": result.score,
     },
     metadata={
-        "factuality_metadata": result.metadata,
+        "factuality": result.metadata,
     },
 )
 print(experiment.summarize())

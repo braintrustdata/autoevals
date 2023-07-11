@@ -1,4 +1,4 @@
-## AutoEvals
+# AutoEvals
 
 AutoEvals is a tool for quickly and easily evaluating AI model outputs. It comes with a variety of evaluation
 methods, including heuristic (e.g. Levenshtein distance), statistical (e.g. BLEU), and model-based (using LLMs).
@@ -46,12 +46,12 @@ print(result.metadata)
 - Summarization
 - SQL
 - Translation
+- [ ] Fine-tuned binary classifiers
 
-### Other Model-Based
+### Embeddings
 
 - [ ] BERTScore
 - [ ] Ada Embedding distance
-- [ ] Fine-tuned classifiers
 
 ### Heuristic
 

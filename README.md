@@ -3,6 +3,13 @@
 AutoEvals is a tool for quickly and easily evaluating AI model outputs. It comes with a variety of evaluation
 methods, including heuristic (e.g. Levenshtein distance), statistical (e.g. BLEU), and model-based (using LLMs).
 
+Many of the model-based evaluations are adapted from OpenAI's excellent [evals](https://github.com/openai/evals),
+project but are implemented so you can flexibly run them on individual examples, tweak the prompts, and debug
+their outputs.
+
+You can also add your own custom prompts, and use AutoEvals to deal with adding Chain-of-Thought, parsing outputs,
+and managing exceptions.
+
 ## Installation
 
 To install AutoEvals, run the following command:
@@ -34,7 +41,7 @@ print(result.metadata)
 - [ ] Jaccard distance
 - [ ] BLEU
 
-### Model-based Classification
+### Model-Based Classification
 
 - Battle
 - ClosedQA
@@ -45,7 +52,7 @@ print(result.metadata)
 - SQL
 - Translation
 
-### Other model based
+### Other Model-Based
 
 - [ ] Embedding distance
 - [ ] Fine-tuned classifiers

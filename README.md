@@ -105,3 +105,9 @@ response = evaluator(gen_title, original_title, page_content=page_content)
 
 print(f"Score: {response.score}")
 ```
+
+## Typescript / Node Support
+
+Since AutoEvals has a very simple prompt template format, it is easy to support in other languages, like
+Typescript (and eventually others). We'll support an npm package soon, but in the meantime, feel free to
+grab model templates from the [prompt templates](/src/autoevals/templates) directory.

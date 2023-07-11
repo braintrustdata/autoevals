@@ -33,22 +33,19 @@ class Evaluator(ABC):
 
     def eval(self, output, expected=None, **kwargs):
         try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-
-        if loop and loop.is_running():
-            raise RuntimeError(
-                "eval() cannot be called from within an async context. Use Evaluator.eval_async() instead."
-            )
-        else:
-            return asyncio.run(self.eval_async(output, expected, **kwargs))
+            return self._run_eval_sync(output, expected, **kwargs)
+        except Exception as e:
+            return Evaluation(0, error=e)
 
     def __call__(self, output, expected=None, **kwargs):
         return self.eval(output, expected, **kwargs)
 
-    @abstractmethod
     async def _run_eval_async(self, output, expected=None, **kwargs) -> Evaluation:
+        # By default we just run the sync version in a thread
+        return self._run_eval_sync(output, expected, **kwargs)
+
+    @abstractmethod
+    async def _run_eval_sync(self, output, expected=None, **kwargs) -> Evaluation:
         ...
 
 

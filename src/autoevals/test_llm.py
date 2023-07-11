@@ -19,6 +19,7 @@ def diskcache_init(self, llm_name: str):
 DiskCache.__init__ = diskcache_init
 
 
+import asyncio
 import re
 
 import guidance
@@ -109,6 +110,14 @@ def test_llm_classifier():
         print(response.as_json(indent=2))
         assert response.score == 1
         assert response.error is None
+
+
+def test_nested_async():
+    async def nested_async():
+        e = Battle()
+        e(instructions="Add the following numbers: 1, 2, 3", output="7", expected="6")
+
+    asyncio.run(nested_async())
 
 
 def test_battle():

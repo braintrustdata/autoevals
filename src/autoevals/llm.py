@@ -47,10 +47,9 @@ class GuidanceLLMClassifier(Evaluator):
         self.parse_score_fn = parse_score_fn
         self.choice_scores = choice_scores
 
-    async def _run_eval_async(self, output, expected, **kwargs):
+    def _process_response(self, resp):
         metadata = {}
         try:
-            resp = await self.program(output=output, expected=expected, async_mode=True, **kwargs)
             metadata["rationale"] = str(resp)
             metadata["choice"] = self.parse_score_fn(resp)
             score = self.choice_scores[metadata["choice"]]
@@ -60,6 +59,20 @@ class GuidanceLLMClassifier(Evaluator):
             error = e
 
         return Evaluation(score=score, metadata=metadata, error=error)
+
+    async def _run_eval_async(self, output, expected, **kwargs):
+        try:
+            resp = await self.program(output=output, expected=expected, async_mode=True, **kwargs)
+            return self._process_response(resp)
+        except Exception as e:
+            return Evaluation(score=0, error=e)
+
+    def _run_eval_sync(self, output, expected, **kwargs):
+        try:
+            resp = self.program(output=output, expected=expected, async_mode=False, **kwargs)
+            return self._process_response(resp)
+        except Exception as e:
+            return Evaluation(score=0, error=e)
 
 
 @dataclass

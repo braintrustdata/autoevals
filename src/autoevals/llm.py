@@ -10,7 +10,7 @@ from .base import Evaluation, Evaluator
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_TEMPLATES = set(["Battle", "ClosedQA", "Humor", "Fact", "Possible", "Security", "Translation"])
+MODEL_TEMPLATES = set(["Battle", "ClosedQA", "Humor", "Factuality", "Possible", "Security", "Translation"])
 
 
 NO_COT_SUFFIX = """\
@@ -140,16 +140,7 @@ class LLMClassifier(GuidanceLLMClassifier):
         return cls.from_spec(ModelGradedSpec(**spec), **kwargs)
 
 
-def __getattr__(name: str) -> Any:
-    if name not in MODEL_TEMPLATES:
-        return AttributeError
-
-    # convert FooBar to foo_bar
-    template_name = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower() + ".yaml"
-
-    if not os.path.exists(os.path.join(SCRIPT_DIR, "templates", template_name)):
-        raise AttributeError(f"Model template {name} not found")
-
+def _build_template_class(name: str):
     class C(LLMClassifier):
         def __new__(cls, model=None, use_cot=None, max_tokens=None, temperature=None):
             kwargs = {}
@@ -162,9 +153,18 @@ def __getattr__(name: str) -> Any:
             if temperature is not None:
                 kwargs["temperature"] = temperature
 
+            # convert FooBar to foo_bar
+            template_name = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower() + ".yaml"
+
+            if not os.path.exists(os.path.join(SCRIPT_DIR, "templates", template_name)):
+                raise AttributeError(f"Model template {name} not found")
+
             return LLMClassifier.from_spec_file(os.path.join(SCRIPT_DIR, "templates", template_name), **kwargs)
 
     return C
 
 
-__all__ = ["GuidanceLLMClassifier", "LLMClassifier"]
+for model in MODEL_TEMPLATES:
+    globals()[model] = _build_template_class(model)
+
+__all__ = ["GuidanceLLMClassifier", "LLMClassifier"] + list(MODEL_TEMPLATES)

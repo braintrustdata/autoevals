@@ -25,7 +25,7 @@ pip install autoevals
 ```python
 from autoevals.llm import *
 
-evaluator = Fact()
+evaluator = Factuality()
 result = evaluator(
     output="People's Republic of China", expected="China",
     input="Which country has the highest population?"

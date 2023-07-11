@@ -43,7 +43,7 @@ print(result.metadata)
 - Humor
 - Factuality
 - Security
-- [ ] Summarization
+- Summarization
 - SQL
 - Translation
 

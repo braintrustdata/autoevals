@@ -1,0 +1,16 @@
+prompt: |-
+  You are comparing a submitted summary of a given text to an expert summary. Here is the data:
+  [BEGIN DATA]
+  ************
+  [Text]: {{input}}
+  ************
+  A: {{expected}}
+  ************
+  B: {{output}}
+  ************
+  [END DATA]
+
+  Please discuss each summary briefly (one line for pros, one for cons).
+choice_scores:
+  "A": 0
+  "B": 1

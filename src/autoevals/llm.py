@@ -10,7 +10,7 @@ from .base import Evaluation, Evaluator
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_TEMPLATES = set(["Battle", "ClosedQA", "Humor", "Factuality", "Possible", "Security", "Translation"])
+MODEL_TEMPLATES = set(["Battle", "ClosedQA", "Humor", "Factuality", "Possible", "Security", "Summary", "Translation"])
 
 
 NO_COT_SUFFIX = """\

@@ -2,12 +2,14 @@
 
 AutoEvals is a tool for quickly and easily evaluating AI model outputs. It comes with a variety of evaluation
 methods, including heuristic (e.g. Levenshtein distance), statistical (e.g. BLEU), and model-based (using LLMs).
+AutoEvals is developed by the team at [BrainTrust](https://braintrustdata.com/).
 
-Many of the model-based evaluations are adapted from OpenAI's excellent [evals](https://github.com/openai/evals),
+AutoEvals uses a technique called model-graded evaluation for a variety of subjective tasks including fact checking,
+safety, humor, preference, and more. Many of these evaluations are adapted from OpenAI's excellent [evals](https://github.com/openai/evals)
 project but are implemented so you can flexibly run them on individual examples, tweak the prompts, and debug
 their outputs.
 
-You can also add your own custom prompts, and use AutoEvals to deal with adding Chain-of-Thought, parsing outputs,
+You can also add your own custom prompts, and use AutoEvals to easily deal with Chain-of-Thought, parsing outputs,
 and managing exceptions.
 
 ## Installation
@@ -34,13 +36,6 @@ print(result.metadata)
 
 ## Supported Evaluation Methods
 
-### Heuristic
-
-- Levenshtein distance
-
-- [ ] Jaccard distance
-- [ ] BLEU
-
 ### Model-Based Classification
 
 - Battle
@@ -54,8 +49,21 @@ print(result.metadata)
 
 ### Other Model-Based
 
-- [ ] Embedding distance
+- [ ] BERTScore
+- [ ] Ada Embedding distance
 - [ ] Fine-tuned classifiers
+
+### Heuristic
+
+- Levenshtein distance
+- [ ] Jaccard distance
+- [ ] JSON diff
+
+### Statistical
+
+- [ ] BLEU
+- [ ] ROUGE
+- [ ] METEOR
 
 ## Custom Evaluation Prompts
 

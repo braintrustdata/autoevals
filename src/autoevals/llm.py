@@ -167,4 +167,4 @@ def __getattr__(name: str) -> Any:
     return C
 
 
-__all__ = ["GuidanceLLMClassifier", "LLMClassifier"] + list(MODEL_TEMPLATES)
+__all__ = ["GuidanceLLMClassifier", "LLMClassifier"]

@@ -39,6 +39,10 @@ class GuidanceLLMClassifier(Evaluator):
     def __init__(self, program: Union[str, guidance.Program], parse_score_fn, choice_scores):
         if isinstance(program, str):
             program = guidance.Program(program)
+
+        if program.llm is None:
+            raise ValueError("GuidanceLLMClassifier requires an LLM")
+
         self.program = program
         self.parse_score_fn = parse_score_fn
         self.choice_scores = choice_scores
@@ -94,7 +98,7 @@ class LLMClassifier(GuidanceLLMClassifier):
             def parse_score_fn(resp):
                 answer = None
 
-                answers = re.findall("Answer\s*=\s*(.*)", resp["answer"], re.MULTILINE)
+                answers = re.findall(r"Answer\s*=\s*(.*)", resp["answer"], re.MULTILINE)
                 if len(answers) > 0:
                     answer = answers[-1].strip()
                 elif resp["answer"].strip() in choice_strings:

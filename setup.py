@@ -48,6 +48,9 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     package_dir={"": "src"},
+    package_data={
+        '': ['**/*.yaml']
+    },
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.9.0",
     entry_points={},

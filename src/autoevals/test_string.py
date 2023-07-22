@@ -17,4 +17,4 @@ def test_levenshtein():
     evaluator = LevenshteinEvaluator()
     for a, b, expected in cases:
         print(f"[{a}]", f"[{b}]", expected, evaluator(a, b))
-        assert evaluator(a, b) == expected
+        assert evaluator(a, b).score == expected

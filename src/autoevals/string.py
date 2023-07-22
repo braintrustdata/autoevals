@@ -6,9 +6,6 @@ from .base import Evaluation, Evaluator
 
 
 class LevenshteinEvaluator(Evaluator):
-    async def _run_eval_async(self, output, expected=None, **kwargs):
-        return self._run_eval_sync(output, expected, **kwargs)
-
     def _run_eval_sync(self, output, expected=None, **kwargs):
         if expected is None:
             raise ValueError("LevenshteinEvaluator requires an expected value")

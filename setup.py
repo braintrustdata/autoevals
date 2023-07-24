@@ -6,13 +6,13 @@ import setuptools
 dir_name = os.path.abspath(os.path.dirname(__file__))
 
 version_contents = {}
-with open(os.path.join(dir_name, "src", "autoevals", "version.py"), encoding="utf-8") as f:
+with open(os.path.join(dir_name, "py", "autoevals", "version.py"), encoding="utf-8") as f:
     exec(f.read(), version_contents)
 
 with open(os.path.join(dir_name, "README.md"), "r", encoding="utf-8") as f:
     long_description = f.read()
 
-install_requires = ["chevron", "guidance", "openai", "levenshtein", "pyyaml"]
+install_requires = ["chevron", "openai", "levenshtein", "pyyaml"]
 
 extras_require = {
     "dev": [
@@ -47,11 +47,9 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    package_dir={"": "src"},
-    package_data={
-        '': ['**/*.yaml']
-    },
-    packages=setuptools.find_packages(where="src"),
+    package_dir={"": "py"},
+    include_package_data=True,
+    packages=setuptools.find_packages(where="py"),
     python_requires=">=3.9.0",
     entry_points={},
     install_requires=install_requires,

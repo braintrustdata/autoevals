@@ -9,3 +9,4 @@ venv
 node_modules
 src/*.egg-info/
 dist
+.testcache/

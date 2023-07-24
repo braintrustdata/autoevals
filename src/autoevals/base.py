@@ -1,6 +1,4 @@
-import asyncio
 import dataclasses
-import json
 from abc import ABC, abstractmethod
 
 from .util import SerializableDataClass
@@ -45,7 +43,7 @@ class Evaluator(ABC):
         return self._run_eval_sync(output, expected, **kwargs)
 
     @abstractmethod
-    async def _run_eval_sync(self, output, expected=None, **kwargs) -> Evaluation:
+    def _run_eval_sync(self, output, expected=None, **kwargs) -> Evaluation:
         ...
 
 

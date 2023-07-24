@@ -181,7 +181,10 @@ def _build_template_class(name: str):
     return C
 
 
-for model in MODEL_TEMPLATES:
-    globals()[model] = _build_template_class(model)
+def _init_model_templates():
+    for model_template in MODEL_TEMPLATES:
+        globals()[model_template] = _build_template_class(model_template)
 
+
+_init_model_templates()
 __all__ = ["GuidanceLLMClassifier", "LLMClassifier"] + list(MODEL_TEMPLATES)

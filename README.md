@@ -20,15 +20,26 @@ and manage exceptions.
 
 ## Installation
 
-To install AutoEvals, run the following command:
+AutoEvals is distributed as a [Python library on PyPI](https://pypi.org/project/autoevals/) and
+[Node.js library on NPM](https://www.npmjs.com/package/autoevals).
+
+### Python
 
 ```bash
 pip install autoevals
 ```
 
+### Node.js
+
+```bash
+npm install autoevals
+```
+
 ## Example
 
 Use AutoEvals to model-grade an example LLM completion using the [factuality prompt](src/autoevals/templates/factuality.yaml).
+
+### Python
 
 ```python
 from autoevals.llm import *
@@ -48,9 +59,27 @@ print(f"Factuality score: {result.score}")
 print(f"Factuality metadata: {result.metadata['rationale']}")
 ```
 
+### Node.js
+
+```javascript
+import { Factuality } from "autoevals";
+
+(async () => {
+  const input = "Which country has the highest population?";
+  const output = "People's Republic of China";
+  const expected = "China";
+
+  const result = await Factuality({ output, expected, input });
+  console.log(`Factuality score: ${result.score}`);
+  console.log(`Factuality metadata: ${result.metadata.rationale}`);
+})();
+```
+
 ## Using Braintrust with AutoEvals
 
 Once you grade an output using AutoEvals, it's convenient to use [BrainTrust](https://www.braintrustdata.com/docs/libs/python) to log and compare your evaluation results.
+
+### Python
 
 ```python
 from autoevals.llm import *
@@ -88,6 +117,32 @@ experiment.log(
 print(experiment.summarize())
 ```
 
+### Node.js
+
+Create a file named `example.eval.js` (it must end with `.eval.js` or `.eval.js`):
+
+```javascript
+import { Eval } from "braintrust";
+import { Factuality } from "autoevals";
+
+Eval("AutoEvals", {
+  data: () => [
+    {
+      input: "Which country has the highest population?",
+      expected: "China",
+    },
+  ],
+  task: () => "People's Republic of China",
+  scores: [Factuality],
+});
+```
+
+Then, run
+
+```bash
+npx braintrust run example.eval.js
+```
+
 ## Supported Evaluation Methods
 
 ### Model-Based Classification
@@ -122,6 +177,8 @@ print(experiment.summarize())
 ## Custom Evaluation Prompts
 
 AutoEvals supports custom evaluation prompts for model-graded evaluation. To use them, simply pass in a prompt and scoring mechanism:
+
+### Python
 
 ```python
 from autoevals import LLMClassifier
@@ -166,8 +223,39 @@ print(f"Score: {response.score}")
 print(f"Metadata: {response.metadata}")
 ```
 
-## Typescript / Node Support
+### Node.js
 
-Since AutoEvals has a very simple prompt template format, it is easy to support in other languages, like
-Typescript (and eventually others). We'll support an npm package soon, but in the meantime, feel free to
-grab model templates from the [prompt templates](/src/autoevals/templates) directory.
+```javascript
+import { LLMClassifierFromTemplate } from "autoevals";
+
+(async () => {
+  const promptTemplate = `You are a technical project manager who helps software engineers generate better titles for their GitHub issues.
+You will look at the issue description, and pick which of two titles better describes it.
+
+I'm going to provide you with the issue description, and two possible titles.
+
+Issue Description: {{input}}
+
+1: {{output}}
+2: {{expected}}`;
+
+  const choiceScores = { 1: 1, 2: 0 };
+
+  const evaluator = LLMClassifierFromTemplate({
+    promptTemplate,
+    choiceScores,
+    useCoT: false,
+  });
+
+  const input = `As suggested by Nicolo, we should standardize the error responses coming from GoTrue, postgres, and realtime (and any other/future APIs) so that it's better DX when writing a client,
+We can make this change on the servers themselves, but since postgrest and gotrue are fully/partially external may be harder to change, it might be an option to transform the errors within the client libraries/supabase-js, could be messy?
+Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#openapi-specification`;
+  const output = `Standardize error responses from GoTrue, Postgres, and Realtime APIs for better DX`;
+  const expected = `Standardize Error Responses across APIs`;
+
+  const response = await evaluator({ input, output, expected });
+
+  console.log("Score", response.score);
+  console.log("Metadata", response.metadata);
+})();
+```

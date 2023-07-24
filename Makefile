@@ -32,16 +32,33 @@ develop: ${VENV_PRE_COMMIT}
 fixup:
 	pre-commit run --all-files
 
-.PHONY: test build publish clean docs
+.PHONY: test test-py test-js build build-py test-py publish publish-py publish-js clean docs
 
-test:
+test: test-py test-js
+
+test-py:
 	source env.sh && python3 -m pytest
 
-build:
-	source env.sh && python3 -m build
+test-js:
+	npm run test
 
-publish: build
-	source env.sh && python3 -m twine upload dist/autoevals-${SDK_VERSION}*
+build: build-py build-js
+
+build-py:
+	./scripts/prepare_readme.py py
+	source env.sh && python3 -m build --outdir pydist
+	git checkout README.md
+
+build-js:
+	npm run build
+
+publish: publish-py publish-js
+
+publish-py: build-py
+	source env.sh && python3 -m twine upload pydist/autoevals-${SDK_VERSION}*
+
+publish-js: build-js
+	npm publish
 
 clean:
-	source env.sh && rm -rf dist/*
+	source env.sh && rm -rf pydist/* jsdist/*

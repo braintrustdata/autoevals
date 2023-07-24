@@ -7,6 +7,10 @@ venv
 .direnv
 .DS_STORE
 node_modules
-src/*.egg-info/
+py/*.egg-info/
+pydist
+jsdist
 dist
 .testcache/
+autoevals-*.tar.gz
+autoevals-*.tgz

@@ -1,4 +1,4 @@
-from autoevals.string import LevenshteinEvaluator
+from autoevals.string import LevenshteinScorer
 
 
 def test_levenshtein():
@@ -14,7 +14,7 @@ def test_levenshtein():
         ("xabxcdxxefxgx", "1ab2cd34ef5g6", 0.5384615384615384),
     ]
 
-    evaluator = LevenshteinEvaluator()
+    evaluator = LevenshteinScorer()
     for a, b, expected in cases:
         print(f"[{a}]", f"[{b}]", expected, evaluator(a, b))
         assert evaluator(a, b).score == expected

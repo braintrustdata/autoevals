@@ -1,7 +1,7 @@
 import { Scorer } from "./base";
 import levenshtein from "js-levenshtein";
 
-export const LevenshteinScorer: Scorer = (args) => {
+export const LevenshteinScorer: Scorer<string, {}> = (args) => {
   if (args.expected === undefined) {
     throw new Error("LevenshteinScorer requires an expected value");
   }
@@ -15,6 +15,7 @@ export const LevenshteinScorer: Scorer = (args) => {
   }
 
   return {
+    name: "levenshtein",
     score,
   };
 };

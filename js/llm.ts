@@ -9,16 +9,6 @@ import { cachedChatCompletion } from "./oai";
 
 // XXX Make sure the templates get distributed
 const _SCRIPT_DIR = path.dirname(path.resolve(__filename));
-const _MODEL_TEMPLATES = [
-  "Battle",
-  "ClosedQA",
-  "Humor",
-  "Factuality",
-  "Possible",
-  "Security",
-  "Summary",
-  "Translation",
-].reduce((acc, v) => ({ v: true, ...acc }), {});
 
 const NO_COT_SUFFIX = `Answer the question by printing only a single choice from {{__choices}} (without quotes or punctuation) corresponding to the correct answer with no other text.`;
 
@@ -31,18 +21,20 @@ interface LLMArgs {
   temperature?: number;
 }
 
-export type OpenAIClassifierArgs = {
+export type OpenAIClassifierArgs<RenderArgs> = {
+  name: string;
   model: string;
   messages: ChatCompletionRequestMessage[];
   parseScoreFn: (resp: string) => string;
   choiceScores: Record<string, number>;
 } & LLMArgs &
-  Record<string, unknown>;
+  RenderArgs;
 
-export const OpenAIClassifier: Scorer<string, OpenAIClassifierArgs> = async (
-  args
-) => {
+export async function OpenAIClassifier<RenderArgs, Output>(
+  args: ScorerArgs<Output, OpenAIClassifierArgs<RenderArgs>>
+): Promise<Score> {
   const {
+    name,
     output,
     expected,
     messages: messagesArg,
@@ -91,27 +83,31 @@ export const OpenAIClassifier: Scorer<string, OpenAIClassifierArgs> = async (
     });
 
     if (resp.choices.length > 0) {
-      return parseResponse(
-        resp.choices[0].message.content,
-        parseScoreFn,
-        choiceScores
-      );
+      return {
+        name,
+        ...parseResponse(
+          resp.choices[0].message.content,
+          parseScoreFn,
+          choiceScores
+        ),
+      };
     } else {
       throw new Error("Empty response from OpenAI");
     }
   } catch (error) {
     return {
+      name,
       score: 0,
       error,
     };
   }
-};
+}
 
 function parseResponse(
   resp: string,
   parseScoreFn: (resp: string) => string,
   choiceScores: Record<string, number>
-): Score {
+): Omit<Score, "name"> {
   let score = 0;
   let error = undefined;
   const metadata: Record<string, unknown> = {};
@@ -137,28 +133,32 @@ function parseResponse(
   };
 }
 
-export type LLMClassifierArgs = {
+export type LLMClassifierArgs<RenderArgs> = {
   model?: string;
   useCoT?: boolean;
 } & LLMArgs &
-  Record<string, unknown>;
+  RenderArgs;
 
-export function LLMClassifierFromTemplate({
+export function LLMClassifierFromTemplate<RenderArgs>({
+  name,
   promptTemplate,
   choiceScores,
   model = "gpt-3.5-turbo",
   useCoT: useCoTArg,
   temperature,
 }: {
+  name: string;
   promptTemplate: string;
   choiceScores: Record<string, number>;
   model?: string;
   useCoT?: boolean;
   temperature?: number;
-}): Scorer<string, LLMClassifierArgs> {
+}): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
-  return async (args: ScorerArgs<string, LLMClassifierArgs>) => {
-    const useCoT = args.useCoT ?? useCoTArg ?? true;
+  return async (
+    runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>
+  ) => {
+    const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
 
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
@@ -188,6 +188,7 @@ export function LLMClassifierFromTemplate({
     ];
 
     return await OpenAIClassifier({
+      name,
       messages,
       parseScoreFn,
       choiceScores,
@@ -195,7 +196,10 @@ export function LLMClassifierFromTemplate({
       maxTokens,
       temperature,
       __choices: choiceStrings,
-      ...args,
+      ...runtimeArgs,
+
+      // Since the logic is a bit funky for computing this, include
+      // it at the end to prevent overrides
       useCoT,
     });
   };
@@ -209,10 +213,12 @@ export interface ModelGradedSpec {
   temperature?: number;
 }
 
-export function LLMClassifierFromSpec(
+export function LLMClassifierFromSpec<RenderArgs>(
+  name: string,
   spec: ModelGradedSpec
-): Scorer<string, {}> {
+): Scorer<any, LLMClassifierArgs<RenderArgs>> {
   return LLMClassifierFromTemplate({
+    name,
     promptTemplate: spec.prompt,
     choiceScores: spec.choice_scores,
     model: spec.model,
@@ -221,30 +227,38 @@ export function LLMClassifierFromSpec(
   });
 }
 
-export function LLMClassifierFromSpecFile(
+export function LLMClassifierFromSpecFile<RenderArgs>(
+  name: string,
   path: string
-): Scorer<string, LLMClassifierArgs> {
+): Scorer<any, LLMClassifierArgs<RenderArgs>> {
+  // XXX Change python implementation to propagate name
   const doc = yaml.load(fs.readFileSync(path, "utf-8")) as ModelGradedSpec;
-  return LLMClassifierFromSpec(doc);
+  return LLMClassifierFromSpec(name, doc);
 }
 
-function buildLLMClassifier(name: string) {
-  const templateName =
-    name.replace(/(?<!^)(?=[A-Z])/g, "_").toLowerCase() + ".yaml";
-  const templatePath = path.join(_SCRIPT_DIR, "..", "templates", templateName);
+function buildLLMClassifier<RenderArgs>(name: string) {
+  const templateName = name.replace(/(?<!^)(?=[A-Z])/g, "_").toLowerCase();
+  const templatePath = path.join(
+    _SCRIPT_DIR,
+    "..",
+    "templates",
+    templateName + ".yaml"
+  );
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Model template ${name} not found`);
   }
 
-  return LLMClassifierFromSpecFile(templatePath);
+  return LLMClassifierFromSpecFile<RenderArgs>(templateName, templatePath);
 }
 
-export const Battle = buildLLMClassifier("Battle");
-export const ClosedQA = buildLLMClassifier("ClosedQA");
-export const Humor = buildLLMClassifier("Humor");
-export const Factuality = buildLLMClassifier("Factuality");
-export const Possible = buildLLMClassifier("Possible");
-export const Security = buildLLMClassifier("Security");
-export const Summary = buildLLMClassifier("Summary");
-export const Translation = buildLLMClassifier("Translation");
+export const Battle = buildLLMClassifier<{ instructions: string }>("Battle");
+export const ClosedQA = buildLLMClassifier<{ input: string; criteria: any }>(
+  "ClosedQA"
+);
+export const Humor = buildLLMClassifier<{}>("Humor");
+export const Factuality = buildLLMClassifier<{ input: string }>("Factuality");
+export const Possible = buildLLMClassifier<{ input: string }>("Possible");
+export const Security = buildLLMClassifier<{}>("Security");
+export const Summary = buildLLMClassifier<{ input: string }>("Summary");
+export const Translation = buildLLMClassifier<{ input: string }>("Translation");

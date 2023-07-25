@@ -43,6 +43,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
   const output = `Standardize error responses from GoTrue, Postgres, and Realtime APIs for better DX`;
   const expected = `Good title`;
   const score = await OpenAIClassifier({
+    name: "titles",
     output,
     expected,
     messages,
@@ -67,7 +68,8 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
   const originalTitle = `Good title`;
 
   for (const useCoT of [true, false]) {
-    const classifier = LLMClassifierFromTemplate({
+    const classifier = LLMClassifierFromTemplate<{ page_content: string }>({
+      name: "titles",
       promptTemplate: `You are a technical project manager who helps software engineers generate better titles for their GitHub issues.
 You will look at the issue description, and pick which of two titles better describes it.
 

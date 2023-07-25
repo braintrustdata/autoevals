@@ -25,4 +25,6 @@ if __name__ == "__main__":
     readme = re.sub(r"\#+\s*" + remove_header + r"\s*\n", "", readme)
 
     readme = readme.strip()
-    print(readme)
+
+    with open(README_FILE, "w") as f:
+        f.write(readme)

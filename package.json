@@ -1,6 +1,6 @@
 {
   "name": "autoevals",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "description": "Universal library for evaluating AI models",
   "main": "jsdist/index.js",
   "scripts": {

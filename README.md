@@ -119,7 +119,7 @@ print(experiment.summarize())
 
 ### Node.js
 
-autoeval.eval.ts
+Create a file named `example.eval.js` (it must end with `.eval.js` or `.eval.js`):
 
 ```javascript
 import { Eval } from "braintrust";
@@ -135,6 +135,12 @@ Eval("AutoEvals", {
   task: () => "People's Republic of China",
   scores: [Factuality],
 });
+```
+
+Then, run
+
+```bash
+npx braintrust run example.eval.js
 ```
 
 ## Supported Evaluation Methods

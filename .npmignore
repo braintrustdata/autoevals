@@ -16,3 +16,4 @@ autoevals-*.tgz
 .pytest_cache
 .testcache
 env.sh
+scripts

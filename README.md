@@ -178,6 +178,8 @@ npx braintrust run example.eval.js
 
 AutoEvals supports custom evaluation prompts for model-graded evaluation. To use them, simply pass in a prompt and scoring mechanism:
 
+### Python
+
 ```python
 from autoevals import LLMClassifier
 
@@ -220,6 +222,8 @@ response = evaluator(output, expected, input=page_content)
 print(f"Score: {response.score}")
 print(f"Metadata: {response.metadata}")
 ```
+
+### Node.js
 
 ```javascript
 import { LLMClassifierFromTemplate } from "autoevals";

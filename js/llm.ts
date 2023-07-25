@@ -7,7 +7,6 @@ import { Score, Scorer, ScorerArgs } from "./base";
 import { ChatCompletionRequestMessage } from "openai";
 import { cachedChatCompletion } from "./oai";
 
-// XXX Make sure the templates get distributed
 const _SCRIPT_DIR = path.dirname(path.resolve(__filename));
 
 const NO_COT_SUFFIX = `Answer the question by printing only a single choice from {{__choices}} (without quotes or punctuation) corresponding to the correct answer with no other text.`;
@@ -231,7 +230,6 @@ export function LLMClassifierFromSpecFile<RenderArgs>(
   name: string,
   path: string
 ): Scorer<any, LLMClassifierArgs<RenderArgs>> {
-  // XXX Change python implementation to propagate name
   const doc = yaml.load(fs.readFileSync(path, "utf-8")) as ModelGradedSpec;
   return LLMClassifierFromSpec(name, doc);
 }

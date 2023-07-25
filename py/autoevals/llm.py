@@ -88,7 +88,7 @@ class OpenAILLMClassifier(Scorer):
         return [
             {
                 **m,
-                "content": chevron.render(m["content"].strip(), kwargs),
+                "content": chevron.render(m["content"].strip(), kwargs, warn=True),
             }
             for m in self.messages
         ]
@@ -147,8 +147,6 @@ class LLMClassifier(OpenAILLMClassifier):
     ):
         choice_strings = list(choice_scores.keys())
 
-        # XXX we should parse the prompt and make sure it has the right variables, and track the
-        # required inputs (so we can validate them when running the prompt)
         prompt = prompt_template + "\n" + (COT_SUFFIX if use_cot else NO_COT_SUFFIX)
         if use_cot:
 

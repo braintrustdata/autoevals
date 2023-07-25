@@ -18,7 +18,9 @@ if __name__ == "__main__":
     remove_section = "Python" if mode == "js" else "Node.js"
 
     # Remove the whole section
-    readme = re.sub(r"\#+\s*" + remove_section + r"\s*\n.*?((^\#+)|\Z)", r"\1", readme, flags=re.MULTILINE | re.DOTALL)
+    readme = re.sub(
+        r"\#+\s*" + remove_section + r"\s*\n.*?((^\#\#+)|\Z)", r"\1", readme, flags=re.MULTILINE | re.DOTALL
+    )
 
     # Remove the "Python" or "Node.js" header
     remove_header = "Python" if mode == "py" else "Node.js"

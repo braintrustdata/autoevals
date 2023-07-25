@@ -1,6 +1,6 @@
 {
   "name": "autoevals",
-  "version": "0.0.6",
+  "version": "0.0.0",
   "description": "Universal library for evaluating AI models",
   "main": "jsdist/index.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "watch": "tsc --watch",
     "docs": "npx typedoc --options typedoc.json js/index.ts",
     "test": "jest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "./scripts/node_prepublish.py",
+    "postpublish": "./scripts/node_postpublish.py"
   },
   "author": "",
   "license": "MIT",

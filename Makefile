@@ -45,7 +45,9 @@ test-js:
 build: build-py build-js
 
 build-py:
+	./scripts/prepare_readme.py py
 	source env.sh && python3 -m build --outdir pydist
+	git checkout README.md
 
 build-js:
 	npm run build

@@ -6,6 +6,7 @@ from .util import SerializableDataClass
 
 @dataclasses.dataclass
 class Score(SerializableDataClass):
+    name: str
     score: float
     metadata: dict[str, any] = dataclasses.field(default_factory=dict)
     error: Exception = None

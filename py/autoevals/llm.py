@@ -38,6 +38,7 @@ SUPPORTED_MODELS = [
 class OpenAILLMClassifier(Scorer):
     def __init__(
         self,
+        name: str,
         messages: List,
         model,
         parse_score_fn,
@@ -55,6 +56,7 @@ class OpenAILLMClassifier(Scorer):
         if not found:
             raise ValueError(f"Unsupported model: {model}. Currently only supports OpenAI chat models.")
 
+        self.name = name
         self.model = model
         self.messages = messages
         self.parse_score_fn = parse_score_fn
@@ -79,7 +81,7 @@ class OpenAILLMClassifier(Scorer):
             score = 0
             error = e
 
-        return Score(score=score, metadata=metadata, error=error)
+        return Score(name=self.name, score=score, metadata=metadata, error=error)
 
     def _render_messages(self, **kwargs):
         kwargs.update(self.render_args)
@@ -104,7 +106,7 @@ class OpenAILLMClassifier(Scorer):
             else:
                 raise ValueError("Empty response from OpenAI")
         except Exception as e:
-            return Score(score=0, error=e)
+            return Score(name=self.name, score=0, error=e)
 
     def _run_eval_sync(self, output, expected, **kwargs):
         try:
@@ -119,7 +121,7 @@ class OpenAILLMClassifier(Scorer):
             else:
                 raise ValueError("Empty response from OpenAI")
         except Exception as e:
-            return Score(score=0, error=e)
+            return Score(name=self.name, score=0, error=e)
 
 
 @dataclass
@@ -127,13 +129,15 @@ class ModelGradedSpec:
     prompt: str
     choice_scores: dict[str, float]
     model: Optional[str] = None
-    # XXX add the other optional params
+    use_cot: Optional[bool] = None
+    temperature: Optional[float] = None
 
 
 # XXX: Document that prompts are expected to be mustache templates
 class LLMClassifier(OpenAILLMClassifier):
     def __init__(
         self,
+        name,
         prompt_template,
         choice_scores,
         model="gpt-3.5-turbo",
@@ -176,6 +180,7 @@ class LLMClassifier(OpenAILLMClassifier):
         ]
 
         super().__init__(
+            name,
             messages,
             model,
             parse_score_fn,
@@ -186,14 +191,14 @@ class LLMClassifier(OpenAILLMClassifier):
         )
 
     @classmethod
-    def from_spec(cls, spec: ModelGradedSpec, **kwargs):
-        return cls(spec.prompt, spec.choice_scores, **kwargs)
+    def from_spec(cls, name: str, spec: ModelGradedSpec, **kwargs):
+        return cls(name, spec.prompt, spec.choice_scores, **kwargs)
 
     @classmethod
-    def from_spec_file(cls, path: str, **kwargs):
+    def from_spec_file(cls, name: str, path: str, **kwargs):
         with open(path) as f:
             spec = yaml.safe_load(f)
-        return cls.from_spec(ModelGradedSpec(**spec), **kwargs)
+        return cls.from_spec(name, ModelGradedSpec(**spec), **kwargs)
 
 
 def _build_template_class(name: str):
@@ -210,13 +215,13 @@ def _build_template_class(name: str):
                 kwargs["temperature"] = temperature
 
             # convert FooBar to foo_bar
-            template_name = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower() + ".yaml"
+            template_name = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
 
-            template_path = os.path.join(SCRIPT_DIR, "..", "..", "templates", template_name)
+            template_path = os.path.join(SCRIPT_DIR, "..", "..", "templates", template_name + ".yaml")
             if not os.path.exists(template_path):
                 raise AttributeError(f"Model template {name} not found")
 
-            return LLMClassifier.from_spec_file(template_path, **kwargs)
+            return LLMClassifier.from_spec_file(template_name, template_path, **kwargs)
 
     return C
 

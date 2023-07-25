@@ -21,6 +21,7 @@ def test_openai():
         return int(re.findall(r"Winner: (\d+)", grade)[0])
 
     e = OpenAILLMClassifier(
+        "title",
         messages=[
             {
                 "role": "system",
@@ -67,6 +68,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
 def test_llm_classifier():
     for use_cot in [True, False]:
         e = LLMClassifier(
+            "title",
             """
 You are a technical project manager who helps software engineers generate better titles for their GitHub issues.
 You will look at the issue description, and pick which of two titles better describes it.

@@ -17,7 +17,7 @@ class LevenshteinScorer(Scorer):
         if max_len > 0:
             score = 1 - (distance(output, expected) / max_len)
 
-        return Score(score=score)
+        return Score(name="levenshtein", score=score)
 
 
 __all__ = ["LevenshteinScorer"]

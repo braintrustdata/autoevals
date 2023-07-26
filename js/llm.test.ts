@@ -6,7 +6,7 @@ import { ChatCompletionRequestMessage } from "openai";
 
 beforeAll(() => {
   const scriptDir = path.dirname(path.resolve(__filename));
-  setCacheDir(path.join(scriptDir, "../../.testcache"));
+  setCacheDir(path.join(scriptDir, "..", ".testcache"));
 });
 
 test("openai", async () => {

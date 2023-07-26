@@ -1,6 +1,9 @@
 import { Scorer } from "./base";
 import levenshtein from "js-levenshtein";
 
+/**
+ * A simple scorer that uses the Levenshtein distance to compare two strings.
+ */
 export const LevenshteinScorer: Scorer<string, {}> = (args) => {
   if (args.expected === undefined) {
     throw new Error("LevenshteinScorer requires an expected value");

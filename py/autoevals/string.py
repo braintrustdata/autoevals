@@ -6,6 +6,10 @@ from .base import Score, Scorer
 
 
 class LevenshteinScorer(Scorer):
+    """
+    A simple scorer that uses the Levenshtein distance to compare two strings.
+    """
+
     def _run_eval_sync(self, output, expected=None, **kwargs):
         if expected is None:
             raise ValueError("LevenshteinScorer requires an expected value")

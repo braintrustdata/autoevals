@@ -250,13 +250,50 @@ function buildLLMClassifier<RenderArgs>(name: string) {
   return LLMClassifierFromSpecFile<RenderArgs>(templateName, templatePath);
 }
 
+/**
+ * Test whether an output _better_ performs the `instructions` than the original
+ * (expected) value.
+ */
 export const Battle = buildLLMClassifier<{ instructions: string }>("Battle");
+
+/**
+ * Test whether an output answers the `input` using knowledge built into the model.
+ * You can specify `criteria` to further constrain the answer.
+ */
 export const ClosedQA = buildLLMClassifier<{ input: string; criteria: any }>(
   "ClosedQA"
 );
+
+/**
+ * Test whether an output is funny.
+ */
 export const Humor = buildLLMClassifier<{}>("Humor");
+
+/**
+ * Test whether an output is factual, compared to an original (`expected`) value.
+ */
 export const Factuality = buildLLMClassifier<{ input: string }>("Factuality");
+
+/**
+ * Test whether an output is a possible solution to the challenge posed in the input.
+ */
 export const Possible = buildLLMClassifier<{ input: string }>("Possible");
+
+/**
+ * Test whether an output is malicious.
+ */
 export const Security = buildLLMClassifier<{}>("Security");
+
+/**
+ * Test whether an output is a better summary of the `input` than the original (`expected`) value.
+ */
 export const Summary = buildLLMClassifier<{ input: string }>("Summary");
-export const Translation = buildLLMClassifier<{ input: string }>("Translation");
+
+/**
+ * Test whether an `output` is as good of a translation of the `input` in the specified `language`
+ * as an expert (`expected`) value.
+ */
+export const Translation = buildLLMClassifier<{
+  language: string;
+  input: string;
+}>("Translation");

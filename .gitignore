@@ -14,3 +14,4 @@ dist
 .testcache/
 autoevals-*.tar.gz
 autoevals-*.tgz
+typedoc.json

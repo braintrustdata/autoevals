@@ -1,7 +1,7 @@
 import os
 import re
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 import chevron
 import openai
@@ -135,6 +135,10 @@ class ModelGradedSpec:
 
 # XXX: Document that prompts are expected to be mustache templates
 class LLMClassifier(OpenAILLMClassifier):
+    """
+    An LLM-based classifier that wraps `OpenAILLMClassifier` and provides a standard way to
+    apply chain of thought, parse the output, and score the result."""
+
     def __init__(
         self,
         name,
@@ -199,37 +203,82 @@ class LLMClassifier(OpenAILLMClassifier):
         return cls.from_spec(name, ModelGradedSpec(**spec), **kwargs)
 
 
-def _build_template_class(name: str):
-    class C(LLMClassifier):
-        def __new__(cls, model=None, use_cot=None, max_tokens=None, temperature=None):
-            kwargs = {}
-            if model is not None:
-                kwargs["model"] = model
-            if use_cot is not None:
-                kwargs["use_cot"] = use_cot
-            if max_tokens is not None:
-                kwargs["max_tokens"] = max_tokens
-            if temperature is not None:
-                kwargs["temperature"] = temperature
+class SpecFileClassifier(LLMClassifier):
+    def __new__(cls, model=None, use_cot=None, max_tokens=None, temperature=None):
+        kwargs = {}
+        if model is not None:
+            kwargs["model"] = model
+        if use_cot is not None:
+            kwargs["use_cot"] = use_cot
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+        if temperature is not None:
+            kwargs["temperature"] = temperature
 
-            # convert FooBar to foo_bar
-            template_name = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+        # convert FooBar to foo_bar
+        template_name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
-            template_path = os.path.join(SCRIPT_DIR, "..", "..", "templates", template_name + ".yaml")
-            if not os.path.exists(template_path):
-                raise AttributeError(f"Model template {name} not found")
+        template_path = os.path.join(SCRIPT_DIR, "..", "..", "templates", template_name + ".yaml")
+        if not os.path.exists(template_path):
+            raise AttributeError(f"Model template {cls.__name__} not found")
 
-            return LLMClassifier.from_spec_file(template_name, template_path, **kwargs)
-
-    return C
+        return LLMClassifier.from_spec_file(template_name, template_path, **kwargs)
 
 
-# This makes static analysis tools happier
-Battle = _build_template_class("Battle")
-ClosedQA = _build_template_class("ClosedQA")
-Humor = _build_template_class("Humor")
-Factuality = _build_template_class("Factuality")
-Possible = _build_template_class("Possible")
-Security = _build_template_class("Security")
-Summary = _build_template_class("Summary")
-Translation = _build_template_class("Translation")
+class Battle(SpecFileClassifier):
+    """
+    Test whether an output _better_ performs the `instructions` than the original
+    (`expected`) value."""
+
+    pass
+
+
+class ClosedQA(SpecFileClassifier):
+    """
+    Test whether an output answers the `input` using knowledge built into the model. You
+    can specify `criteria` to further constrain the answer."""
+
+    pass
+
+
+class Humor(SpecFileClassifier):
+    """
+    Test whether an output is funny."""
+
+    pass
+
+
+class Factuality(SpecFileClassifier):
+    """
+    Test whether an output is factual, compared to an original (`expected`) value."""
+
+    pass
+
+
+class Possible(SpecFileClassifier):
+    """
+    Test whether an output is a possible solution to the challenge posed in the input."""
+
+    pass
+
+
+class Security(SpecFileClassifier):
+    """
+    Test whether an output is malicious."""
+
+    pass
+
+
+class Summary(SpecFileClassifier):
+    """
+    Test whether an output is a better summary of the `input` than the original (`expected`) value."""
+
+    pass
+
+
+class Translation(SpecFileClassifier):
+    """
+    Test whether an `output` is as good of a translation of the `input` in the specified `language`
+    as an expert (`expected`) value.."""
+
+    pass

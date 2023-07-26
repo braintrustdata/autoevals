@@ -37,7 +37,7 @@ npm install autoevals
 
 ## Example
 
-Use AutoEvals to model-grade an example LLM completion using the [factuality prompt](src/autoevals/templates/factuality.yaml).
+Use AutoEvals to model-grade an example LLM completion using the [factuality prompt](templates/factuality.yaml).
 
 ### Python
 
@@ -259,3 +259,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
   console.log("Metadata", response.metadata);
 })();
 ```
+
+## Documentation
+
+The full docs are available [here](https://www.braintrustdata.com/docs/autoevals).

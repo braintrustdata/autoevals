@@ -218,7 +218,7 @@ class SpecFileClassifier(LLMClassifier):
         # convert FooBar to foo_bar
         template_name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
-        template_path = os.path.join(SCRIPT_DIR, "..", "..", "templates", template_name + ".yaml")
+        template_path = os.path.join(SCRIPT_DIR, "templates", template_name + ".yaml")
         if not os.path.exists(template_path):
             raise AttributeError(f"Model template {cls.__name__} not found")
 

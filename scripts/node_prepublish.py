@@ -5,11 +5,9 @@ import os
 import subprocess
 import sys
 
-
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(SCRIPT_DIR, "..", "py"))
 from autoevals.version import VERSION
-
 
 if __name__ == "__main__":
     package_file = os.path.join(SCRIPT_DIR, "..", "package.json")

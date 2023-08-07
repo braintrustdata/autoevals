@@ -10,7 +10,6 @@ import yaml
 from .base import Score, Scorer
 from .oai import arun_cached_request, run_cached_request
 
-
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 NO_COT_SUFFIX = """\

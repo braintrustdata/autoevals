@@ -1,18 +1,14 @@
+import asyncio
 import os
+import re
 
 from autoevals.oai import set_cache_dir
-
 
 # By default, we use the user's tmp cache directory (e.g. in the Library/Caches dir on macOS)
 # However, we'd like to cache (and commit) the results of our tests, so we monkey patch the library
 # to use a cache directory in the project root.
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 set_cache_dir(os.path.join(_SCRIPT_DIR, "../../.testcache"))
-
-
-import asyncio
-import re
-
 from autoevals.llm import *
 
 
@@ -116,13 +112,21 @@ def test_battle():
     for use_cot in [True, False]:
         print("use_cot", use_cot)
         e = Battle(use_cot=use_cot)
-        response = e(instructions="Add the following numbers: 1, 2, 3", output="600", expected="6")
+        response = e(
+            instructions="Add the following numbers: 1, 2, 3",
+            output="600",
+            expected="6",
+        )
 
         print(response.as_json(indent=2))
         assert response.score == 0
         assert response.error is None
 
-        response = e(instructions="Add the following numbers: 1, 2, 3", output="6", expected="600")
+        response = e(
+            instructions="Add the following numbers: 1, 2, 3",
+            output="6",
+            expected="600",
+        )
 
         print(response.as_json(indent=2))
         assert response.score == (1 if use_cot else 0)

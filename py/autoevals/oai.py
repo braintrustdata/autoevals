@@ -4,7 +4,6 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-
 _CACHE_DIR = None
 _CONN = None
 

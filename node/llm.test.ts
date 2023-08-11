@@ -1,6 +1,6 @@
 import path from "path";
 
-import { Battle, LLMClassifierFromTemplate, OpenAIClassifier } from "./llm";
+import { Battle, LLMClassifierFromTemplate, OpenAIClassifier } from "../js/llm";
 import { ChatCompletionRequestMessage } from "openai";
 import { SQLiteCache } from "./sqlite_cache";
 

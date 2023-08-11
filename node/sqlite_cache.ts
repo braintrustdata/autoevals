@@ -1,5 +1,6 @@
 import { CreateChatCompletionResponse } from "openai";
-import { CachedLLMParams, ChatCache } from "./oai";
+import { CachedLLMParams, ChatCache } from "../js/oai";
+// @ts-ignore
 import * as sqlite3 from "sqlite3";
 import * as fs from 'node:fs';
 import * as path from 'node:path';

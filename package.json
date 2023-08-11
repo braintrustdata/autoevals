@@ -3,6 +3,24 @@
   "version": "0.0.0",
   "description": "Universal library for evaluating AI models",
   "main": "jsdist/bundle.js",
+  "types": "jsdist/index.d.ts",
+  "exports": {
+    "node": {
+      "types": "./jsdist/index.d.ts",
+      "import": "./jsdist/bundle.js",
+      "require": "./jsdist/bundle.cjs"
+    },
+    "browser": {
+      "types": "./jsdist/index.d.ts",
+      "import": "./jsdist/bundle.js",
+      "require": "./jsdist/bundle.cjs"
+    },
+    "default": {
+      "types": "./jsdist/index.d.ts",
+      "import": "./jsdist/bundle.js",
+      "require": "./jsdist/bundle.cjs"
+    }
+  },
   "scripts": {
     "build": "tsc && tsx scripts/bundle-js.ts",
     "watch": "tsc --watch",

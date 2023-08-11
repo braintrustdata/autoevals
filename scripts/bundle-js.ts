@@ -13,3 +13,18 @@ esbuild.build({
     },
     packages: 'external'
 });
+
+
+esbuild.build({
+    entryPoints: ['js/index.ts'],
+    bundle: true,
+    outfile: 'jsdist/bundle.cjs',
+    platform: 'node',
+    target: 'es2017',
+    format: 'cjs',
+    sourcemap: true,
+    loader: {
+        '.yaml': 'text'
+    },
+    packages: 'external'
+});

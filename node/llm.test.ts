@@ -56,6 +56,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
     page_content,
     maxTokens: 500,
     cache,
+    openAiApiKey: process.env.OPENAI_API_KEY!,
   });
 
   expect(score.score).toBe(1);
@@ -91,7 +92,8 @@ Issue Description: {{page_content}}
       output: genTitle,
       expected: originalTitle,
       page_content: pageContent,
-    });
+      openAiApiKey: process.env.OPENAI_API_KEY!,
+  });
 
     expect(response.score).toBe(1);
     expect(response.error).toBeUndefined();
@@ -100,7 +102,8 @@ Issue Description: {{page_content}}
       output: originalTitle,
       expected: genTitle,
       page_content: pageContent,
-    });
+      openAiApiKey: process.env.OPENAI_API_KEY!,
+  });
 
     expect(response.score).toBe(0);
     expect(response.error).toBeUndefined();
@@ -115,7 +118,8 @@ test("battle", async () => {
       instructions: "Add the following numbers: 1, 2, 3",
       output: "600",
       expected: "6",
-    });
+      openAiApiKey: process.env.OPENAI_API_KEY!,
+  });
 
     expect(response.score).toBe(0);
     expect(response.error).toBeUndefined();
@@ -125,7 +129,8 @@ test("battle", async () => {
       instructions: "Add the following numbers: 1, 2, 3",
       output: "6",
       expected: "600",
-    });
+      openAiApiKey: process.env.OPENAI_API_KEY!,
+  });
 
     expect(response.score).toBe(useCoT ? 1 : 0);
     expect(response.error).toBeUndefined();
@@ -135,7 +140,8 @@ test("battle", async () => {
       instructions: "Add the following numbers: 1, 2, 3",
       output: "6",
       expected: "6",
-    });
+      openAiApiKey: process.env.OPENAI_API_KEY!,
+  });
 
     expect(response.score).toBe(0);
     expect(response.error).toBeUndefined();

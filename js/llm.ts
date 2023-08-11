@@ -1,5 +1,5 @@
 import * as yaml from "js-yaml";
-import { render } from "mustache";
+import mustache from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "./base";
 import { ChatCompletionRequestMessage } from "openai";
@@ -15,6 +15,8 @@ const SUPPORTED_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 interface LLMArgs {
   maxTokens?: number;
   temperature?: number;
+  openAiApiKey: string;
+  openAiOrganizationId?: string;
 }
 
 export type OpenAIClassifierArgs<RenderArgs> = {
@@ -41,6 +43,8 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     maxTokens,
     temperature,
     cache,
+    openAiApiKey,
+    openAiOrganizationId,
     ...remainingRenderArgs
   } = args;
 
@@ -70,23 +74,18 @@ export async function OpenAIClassifier<RenderArgs, Output>(
 
   const messages: ChatCompletionRequestMessage[] = messagesArg.map((m) => ({
     ...m,
-    content: m.content && render(m.content, renderArgs),
+    content: m.content && mustache.render(m.content, renderArgs),
   }));
 
   try {
-    const {OPENAI_API_KEY} = process.env;
-
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY not set");
-    }
-
     const resp = await cachedChatCompletion({
       model,
       messages,
       ...extraArgs,
     }, {
       cache,
-      openAiApiKey: OPENAI_API_KEY,
+      openAiApiKey,
+      openAiOrganizationId,
     });
 
     if (resp.choices.length > 0) {

@@ -1,13 +1,10 @@
-import * as path from "path";
-import * as fs from "fs";
 import * as yaml from "js-yaml";
 import { render } from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "./base";
 import { ChatCompletionRequestMessage } from "openai";
-import { cachedChatCompletion } from "./oai";
-
-const _SCRIPT_DIR = path.dirname(path.resolve(__filename));
+import { ChatCache, cachedChatCompletion } from "./oai";
+import { templates } from './templates';
 
 const NO_COT_SUFFIX = `Answer the question by printing only a single choice from {{__choices}} (without quotes or punctuation) corresponding to the correct answer with no other text.`;
 
@@ -26,6 +23,7 @@ export type OpenAIClassifierArgs<RenderArgs> = {
   messages: ChatCompletionRequestMessage[];
   parseScoreFn: (resp: string) => string;
   choiceScores: Record<string, number>;
+  cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
 
@@ -42,6 +40,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     choiceScores,
     maxTokens,
     temperature,
+    cache,
     ...remainingRenderArgs
   } = args;
 
@@ -86,6 +85,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
       messages,
       ...extraArgs,
     }, {
+      cache,
       openAiApiKey: OPENAI_API_KEY,
     });
 
@@ -236,26 +236,20 @@ export function LLMClassifierFromSpec<RenderArgs>(
 
 export function LLMClassifierFromSpecFile<RenderArgs>(
   name: string,
-  path: string
+  templateName: keyof typeof templates
 ): Scorer<any, LLMClassifierArgs<RenderArgs>> {
-  const doc = yaml.load(fs.readFileSync(path, "utf-8")) as ModelGradedSpec;
+  const doc = yaml.load(templates[templateName]) as ModelGradedSpec;
   return LLMClassifierFromSpec(name, doc);
 }
 
 function buildLLMClassifier<RenderArgs>(name: string) {
   const templateName = name.replace(/(?<!^)(?=[A-Z])/g, "_").toLowerCase();
-  const templatePath = path.join(
-    _SCRIPT_DIR,
-    "..",
-    "templates",
-    templateName + ".yaml"
-  );
 
-  if (!fs.existsSync(templatePath)) {
+  if (!(templateName in templates)) {
     throw new Error(`Model template ${name} not found`);
   }
 
-  return LLMClassifierFromSpecFile<RenderArgs>(templateName, templatePath);
+  return LLMClassifierFromSpecFile<RenderArgs>(templateName, templateName as keyof typeof templates);
 }
 
 /**

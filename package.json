@@ -2,9 +2,9 @@
   "name": "autoevals",
   "version": "0.0.0",
   "description": "Universal library for evaluating AI models",
-  "main": "jsdist/index.js",
+  "main": "jsdist/bundle.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsx scripts/bundle-js.ts",
     "watch": "tsc --watch",
     "docs": "npx typedoc --options typedoc.json js/index.ts",
     "test": "jest",
@@ -28,10 +28,12 @@
   },
   "dependencies": {
     "@types/node": "^20.4.4",
+    "esbuild": "^0.19.1",
     "js-levenshtein": "^1.1.6",
     "js-yaml": "^4.1.0",
     "mustache": "^4.2.0",
     "openai": "^3.3.0",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.6",
+    "tsx": "^3.12.7"
   }
 }

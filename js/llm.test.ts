@@ -1,12 +1,15 @@
 import path from "path";
 
 import { Battle, LLMClassifierFromTemplate, OpenAIClassifier } from "./llm";
-import { setCacheDir } from "./oai";
 import { ChatCompletionRequestMessage } from "openai";
+import { SQLiteCache } from "./sqlite_cache";
+
+let cache: SQLiteCache;
 
 beforeAll(() => {
-  const scriptDir = path.dirname(path.resolve(__filename));
-  setCacheDir(path.join(scriptDir, "..", ".testcache"));
+  cache = new SQLiteCache({
+    cacheDir: path.join(path.dirname(path.resolve(__filename)), "..", ".testcache")
+  });
 });
 
 test("openai", async () => {
@@ -52,6 +55,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
     choiceScores: { 1: 1, 2: 0 },
     page_content,
     maxTokens: 500,
+    cache,
   });
 
   expect(score.score).toBe(1);

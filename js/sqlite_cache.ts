@@ -5,6 +5,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 
+// TODO where to put this? separate package? Remove in favor of isomorphic caches?
+
 export class SQLiteCache implements ChatCache {
   private db: sqlite3.Database;
   private cacheDir: string;

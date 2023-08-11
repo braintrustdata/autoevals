@@ -75,17 +75,25 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   }));
 
   try {
+    const {OPENAI_API_KEY} = process.env;
+
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY not set");
+    }
+
     const resp = await cachedChatCompletion({
       model,
       messages,
       ...extraArgs,
+    }, {
+      openAiApiKey: OPENAI_API_KEY,
     });
 
     if (resp.choices.length > 0) {
       return {
         name,
         ...parseResponse(
-          resp.choices[0].message.content,
+          resp.choices[0].message!.content!,
           parseScoreFn,
           choiceScores
         ),

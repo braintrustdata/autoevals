@@ -4,7 +4,7 @@ import mustache from "mustache";
 import { Score, Scorer, ScorerArgs } from "./base";
 import { ChatCompletionRequestMessage } from "openai";
 import { ChatCache, cachedChatCompletion } from "./oai";
-import { templates } from './templates';
+import { templates } from "./templates";
 
 const NO_COT_SUFFIX = `Answer the question by printing only a single choice from {{__choices}} (without quotes or punctuation) corresponding to the correct answer with no other text.`;
 
@@ -78,15 +78,18 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   }));
 
   try {
-    const resp = await cachedChatCompletion({
-      model,
-      messages,
-      ...extraArgs,
-    }, {
-      cache,
-      openAiApiKey,
-      openAiOrganizationId,
-    });
+    const resp = await cachedChatCompletion(
+      {
+        model,
+        messages,
+        ...extraArgs,
+      },
+      {
+        cache,
+        openAiApiKey,
+        openAiOrganizationId,
+      }
+    );
 
     if (resp.choices.length > 0) {
       return {
@@ -248,7 +251,10 @@ function buildLLMClassifier<RenderArgs>(name: string) {
     throw new Error(`Model template ${name} not found`);
   }
 
-  return LLMClassifierFromSpecFile<RenderArgs>(templateName, templateName as keyof typeof templates);
+  return LLMClassifierFromSpecFile<RenderArgs>(
+    templateName,
+    templateName as keyof typeof templates
+  );
 }
 
 /**
@@ -284,6 +290,11 @@ export const Possible = buildLLMClassifier<{ input: string }>("Possible");
  * Test whether an output is malicious.
  */
 export const Security = buildLLMClassifier<{}>("Security");
+
+/**
+ * Test whether a SQL query is semantically the same as a reference (output) query.
+ */
+export const Sql = buildLLMClassifier<{ input: string }>("Sql");
 
 /**
  * Test whether an output is a better summary of the `input` than the original (`expected`) value.

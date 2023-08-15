@@ -2,14 +2,12 @@ import path from "path";
 
 import { Battle, LLMClassifierFromTemplate, OpenAIClassifier } from "../js/llm";
 import { ChatCompletionRequestMessage } from "openai";
-import { SQLiteCache } from "./sqlite_cache";
+import { ChatCache } from "../js/oai";
 
-let cache: SQLiteCache;
+let cache: ChatCache | undefined;
 
 beforeAll(() => {
-  cache = new SQLiteCache({
-    cacheDir: path.join(path.dirname(path.resolve(__filename)), "..", ".testcache")
-  });
+  cache = undefined;
 });
 
 test("openai", async () => {
@@ -93,7 +91,7 @@ Issue Description: {{page_content}}
       expected: originalTitle,
       page_content: pageContent,
       openAiApiKey: process.env.OPENAI_API_KEY!,
-  });
+    });
 
     expect(response.score).toBe(1);
     expect(response.error).toBeUndefined();
@@ -103,7 +101,7 @@ Issue Description: {{page_content}}
       expected: genTitle,
       page_content: pageContent,
       openAiApiKey: process.env.OPENAI_API_KEY!,
-  });
+    });
 
     expect(response.score).toBe(0);
     expect(response.error).toBeUndefined();
@@ -119,7 +117,7 @@ test("battle", async () => {
       output: "600",
       expected: "6",
       openAiApiKey: process.env.OPENAI_API_KEY!,
-  });
+    });
 
     expect(response.score).toBe(0);
     expect(response.error).toBeUndefined();
@@ -130,7 +128,7 @@ test("battle", async () => {
       output: "6",
       expected: "600",
       openAiApiKey: process.env.OPENAI_API_KEY!,
-  });
+    });
 
     expect(response.score).toBe(useCoT ? 1 : 0);
     expect(response.error).toBeUndefined();
@@ -141,7 +139,7 @@ test("battle", async () => {
       output: "6",
       expected: "6",
       openAiApiKey: process.env.OPENAI_API_KEY!,
-  });
+    });
 
     expect(response.score).toBe(0);
     expect(response.error).toBeUndefined();

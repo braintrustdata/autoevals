@@ -6,9 +6,9 @@
   "types": "jsdist/index.d.ts",
   "exports": {
     "node": {
-      "types": "./jsdist/index.d.ts",
-      "import": "./jsdist/bundle.js",
-      "require": "./jsdist/bundle.cjs"
+      "types": "./jsdist/node.d.ts",
+      "import": "./jsdist/node.js",
+      "require": "./jsdist/node.cjs"
     },
     "browser": {
       "types": "./jsdist/index.d.ts",

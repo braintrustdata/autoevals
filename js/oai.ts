@@ -1,23 +1,35 @@
-import { ChatCompletionRequestMessage, Configuration, CreateChatCompletionResponse, OpenAIApi } from "openai";
+import {
+  ChatCompletionRequestMessage,
+  Configuration,
+  CreateChatCompletionResponse,
+  OpenAIApi,
+} from "openai";
+import { Env } from "./env";
 
 export interface CachedLLMParams {
   model: string;
   messages: ChatCompletionRequestMessage[];
   temperature?: number;
   max_tokens?: number;
-};
+}
 
 export interface ChatCache {
   get(params: CachedLLMParams): Promise<CreateChatCompletionResponse | null>;
-  set(params: CachedLLMParams, response: CreateChatCompletionResponse): Promise<void>;
+  set(
+    params: CachedLLMParams,
+    response: CreateChatCompletionResponse
+  ): Promise<void>;
 }
 
 export interface OpenAIAuth {
-  openAiApiKey: string;
+  openAiApiKey?: string;
   openAiOrganizationId?: string;
 }
 
-export async function cachedChatCompletion(params: CachedLLMParams, options: { cache?: ChatCache } & OpenAIAuth): Promise<CreateChatCompletionResponse> {
+export async function cachedChatCompletion(
+  params: CachedLLMParams,
+  options: { cache?: ChatCache } & OpenAIAuth
+): Promise<CreateChatCompletionResponse> {
   const { cache, openAiApiKey, openAiOrganizationId } = options;
 
   const cached = await cache?.get(params);
@@ -25,7 +37,10 @@ export async function cachedChatCompletion(params: CachedLLMParams, options: { c
     return cached;
   }
 
-  const config = new Configuration({ apiKey: openAiApiKey, organization: openAiOrganizationId });
+  const config = new Configuration({
+    apiKey: openAiApiKey || Env.OPENAI_API_KEY,
+    organization: openAiOrganizationId,
+  });
   const openai = new OpenAIApi(config);
 
   if (openai === null) {

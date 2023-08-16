@@ -1,13 +1,10 @@
-import * as path from "path";
-import * as fs from "fs";
 import * as yaml from "js-yaml";
-import { render } from "mustache";
+import mustache from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "./base";
 import { ChatCompletionRequestMessage } from "openai";
-import { cachedChatCompletion } from "./oai";
-
-const _SCRIPT_DIR = path.dirname(path.resolve(__filename));
+import { ChatCache, cachedChatCompletion } from "./oai";
+import { templates } from "./templates";
 
 const NO_COT_SUFFIX = `Answer the question by printing only a single choice from {{__choices}} (without quotes or punctuation) corresponding to the correct answer with no other text.`;
 
@@ -18,6 +15,8 @@ const SUPPORTED_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 interface LLMArgs {
   maxTokens?: number;
   temperature?: number;
+  openAiApiKey?: string;
+  openAiOrganizationId?: string;
 }
 
 export type OpenAIClassifierArgs<RenderArgs> = {
@@ -26,6 +25,7 @@ export type OpenAIClassifierArgs<RenderArgs> = {
   messages: ChatCompletionRequestMessage[];
   parseScoreFn: (resp: string) => string;
   choiceScores: Record<string, number>;
+  cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
 
@@ -42,6 +42,9 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     choiceScores,
     maxTokens,
     temperature,
+    cache,
+    openAiApiKey,
+    openAiOrganizationId,
     ...remainingRenderArgs
   } = args;
 
@@ -71,21 +74,28 @@ export async function OpenAIClassifier<RenderArgs, Output>(
 
   const messages: ChatCompletionRequestMessage[] = messagesArg.map((m) => ({
     ...m,
-    content: m.content && render(m.content, renderArgs),
+    content: m.content && mustache.render(m.content, renderArgs),
   }));
 
   try {
-    const resp = await cachedChatCompletion({
-      model,
-      messages,
-      ...extraArgs,
-    });
+    const resp = await cachedChatCompletion(
+      {
+        model,
+        messages,
+        ...extraArgs,
+      },
+      {
+        cache,
+        openAiApiKey,
+        openAiOrganizationId,
+      }
+    );
 
     if (resp.choices.length > 0) {
       return {
         name,
         ...parseResponse(
-          resp.choices[0].message.content,
+          resp.choices[0].message!.content!,
           parseScoreFn,
           choiceScores
         ),
@@ -228,26 +238,23 @@ export function LLMClassifierFromSpec<RenderArgs>(
 
 export function LLMClassifierFromSpecFile<RenderArgs>(
   name: string,
-  path: string
+  templateName: keyof typeof templates
 ): Scorer<any, LLMClassifierArgs<RenderArgs>> {
-  const doc = yaml.load(fs.readFileSync(path, "utf-8")) as ModelGradedSpec;
+  const doc = yaml.load(templates[templateName]) as ModelGradedSpec;
   return LLMClassifierFromSpec(name, doc);
 }
 
 function buildLLMClassifier<RenderArgs>(name: string) {
   const templateName = name.replace(/(?<!^)(?=[A-Z])/g, "_").toLowerCase();
-  const templatePath = path.join(
-    _SCRIPT_DIR,
-    "..",
-    "templates",
-    templateName + ".yaml"
-  );
 
-  if (!fs.existsSync(templatePath)) {
+  if (!(templateName in templates)) {
     throw new Error(`Model template ${name} not found`);
   }
 
-  return LLMClassifierFromSpecFile<RenderArgs>(templateName, templatePath);
+  return LLMClassifierFromSpecFile<RenderArgs>(
+    templateName,
+    templateName as keyof typeof templates
+  );
 }
 
 /**
@@ -283,6 +290,11 @@ export const Possible = buildLLMClassifier<{ input: string }>("Possible");
  * Test whether an output is malicious.
  */
 export const Security = buildLLMClassifier<{}>("Security");
+
+/**
+ * Test whether a SQL query is semantically the same as a reference (output) query.
+ */
+export const Sql = buildLLMClassifier<{ input: string }>("Sql");
 
 /**
  * Test whether an output is a better summary of the `input` than the original (`expected`) value.

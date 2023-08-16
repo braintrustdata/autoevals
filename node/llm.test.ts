@@ -1,12 +1,13 @@
 import path from "path";
 
-import { Battle, LLMClassifierFromTemplate, OpenAIClassifier } from "./llm";
-import { setCacheDir } from "./oai";
+import { Battle, LLMClassifierFromTemplate, OpenAIClassifier } from "../js/llm";
 import { ChatCompletionRequestMessage } from "openai";
+import { ChatCache } from "../js/oai";
+
+let cache: ChatCache | undefined;
 
 beforeAll(() => {
-  const scriptDir = path.dirname(path.resolve(__filename));
-  setCacheDir(path.join(scriptDir, "..", ".testcache"));
+  cache = undefined;
 });
 
 test("openai", async () => {
@@ -52,6 +53,8 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
     choiceScores: { 1: 1, 2: 0 },
     page_content,
     maxTokens: 500,
+    cache,
+    openAiApiKey: process.env.OPENAI_API_KEY!,
   });
 
   expect(score.score).toBe(1);
@@ -87,6 +90,7 @@ Issue Description: {{page_content}}
       output: genTitle,
       expected: originalTitle,
       page_content: pageContent,
+      openAiApiKey: process.env.OPENAI_API_KEY!,
     });
 
     expect(response.score).toBe(1);
@@ -96,6 +100,7 @@ Issue Description: {{page_content}}
       output: originalTitle,
       expected: genTitle,
       page_content: pageContent,
+      openAiApiKey: process.env.OPENAI_API_KEY!,
     });
 
     expect(response.score).toBe(0);
@@ -111,6 +116,7 @@ test("battle", async () => {
       instructions: "Add the following numbers: 1, 2, 3",
       output: "600",
       expected: "6",
+      openAiApiKey: process.env.OPENAI_API_KEY!,
     });
 
     expect(response.score).toBe(0);
@@ -121,6 +127,7 @@ test("battle", async () => {
       instructions: "Add the following numbers: 1, 2, 3",
       output: "6",
       expected: "600",
+      openAiApiKey: process.env.OPENAI_API_KEY!,
     });
 
     expect(response.score).toBe(useCoT ? 1 : 0);
@@ -131,6 +138,7 @@ test("battle", async () => {
       instructions: "Add the following numbers: 1, 2, 3",
       output: "6",
       expected: "6",
+      openAiApiKey: process.env.OPENAI_API_KEY!,
     });
 
     expect(response.score).toBe(0);

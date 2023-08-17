@@ -1,10 +1,10 @@
 import * as yaml from "js-yaml";
 import mustache from "mustache";
 
-import { Score, Scorer, ScorerArgs } from "./base";
+import { Score, Scorer, ScorerArgs } from "./base.js";
 import { ChatCompletionRequestMessage } from "openai";
-import { ChatCache, cachedChatCompletion } from "./oai";
-import { templates } from "./templates";
+import { ChatCache, cachedChatCompletion } from "./oai.js";
+import { templates } from "./templates.js";
 
 const NO_COT_SUFFIX = `Answer the question by printing only a single choice from {{__choices}} (without quotes or punctuation) corresponding to the correct answer with no other text.`;
 

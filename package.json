@@ -4,6 +4,7 @@
   "description": "Universal library for evaluating AI models",
   "main": "jsdist/bundle.js",
   "types": "jsdist/index.d.ts",
+  "type": "module",
   "exports": {
     "node": {
       "types": "./jsdist/node.d.ts",

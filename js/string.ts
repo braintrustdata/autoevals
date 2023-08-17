@@ -1,4 +1,4 @@
-import { Scorer } from "./base";
+import { Scorer } from "./base.js";
 import levenshtein from "js-levenshtein";
 
 /**

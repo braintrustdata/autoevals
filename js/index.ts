@@ -27,7 +27,7 @@
  * @module autoevals
  */
 
-export * from "./base";
-export * from "./llm";
-export * from "./string";
-export * from './templates';
+export * from "./base.js";
+export * from "./llm.js";
+export * from "./string.js";
+export * from './templates.js';

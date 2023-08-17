@@ -4,7 +4,7 @@ import {
   CreateChatCompletionResponse,
   OpenAIApi,
 } from "openai";
-import { Env } from "./env";
+import { Env } from "./env.js";
 
 export interface CachedLLMParams {
   model: string;

@@ -6,10 +6,10 @@
     "lib": ["es6"],
     "module": "commonjs",
     "target": "es6",
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
   },
   "include": ["js"],
   "exclude": ["node_modules/**"]

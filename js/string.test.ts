@@ -1,4 +1,4 @@
-import { LevenshteinScorer } from "./string";
+import { LevenshteinScorer } from "./string.js";
 
 test("Basic Test", async () => {
   const cases = [

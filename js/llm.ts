@@ -279,7 +279,11 @@ export const Humor = buildLLMClassifier<{}>("Humor");
 /**
  * Test whether an output is factual, compared to an original (`expected`) value.
  */
-export const Factuality = buildLLMClassifier<{ input: string }>("Factuality");
+export const Factuality = buildLLMClassifier<{
+  input: string;
+  output: string;
+  expected: string;
+}>("Factuality");
 
 /**
  * Test whether an output is a possible solution to the challenge posed in the input.

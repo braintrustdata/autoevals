@@ -282,7 +282,7 @@ export const Humor = buildLLMClassifier<{}>("Humor");
 export const Factuality = buildLLMClassifier<{
   input: string;
   output: string;
-  expected: string;
+  expected?: string;
 }>("Factuality");
 
 /**

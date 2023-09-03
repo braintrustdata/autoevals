@@ -244,9 +244,10 @@ export function LLMClassifierFromSpecFile<RenderArgs>(
   return LLMClassifierFromSpec(name, doc);
 }
 
-function buildLLMClassifier<RenderArgs>(name: string) {
-  const templateName = name.replace(/(?<!^)(?=[A-Z])/g, "_").toLowerCase();
-
+function buildLLMClassifier<RenderArgs>(
+  name: string,
+  templateName: keyof typeof templates
+) {
   if (!(templateName in templates)) {
     throw new Error(`Model template ${name} not found`);
   }
@@ -261,14 +262,18 @@ function buildLLMClassifier<RenderArgs>(name: string) {
  * Test whether an output _better_ performs the `instructions` than the original
  * (expected) value.
  */
-export const Battle = buildLLMClassifier<{ instructions: string }>("Battle");
+export const Battle = buildLLMClassifier<{ instructions: string }>(
+  "Battle",
+  "battle"
+);
 
 /**
  * Test whether an output answers the `input` using knowledge built into the model.
  * You can specify `criteria` to further constrain the answer.
  */
 export const ClosedQA = buildLLMClassifier<{ input: string; criteria: any }>(
-  "ClosedQA"
+  "ClosedQA",
+  "closed_q_a"
 );
 
 /**
@@ -283,27 +288,33 @@ export const Factuality = buildLLMClassifier<{
   input: string;
   output: string;
   expected?: string;
-}>("Factuality");
+}>("Factuality", "factuality");
 
 /**
  * Test whether an output is a possible solution to the challenge posed in the input.
  */
-export const Possible = buildLLMClassifier<{ input: string }>("Possible");
+export const Possible = buildLLMClassifier<{ input: string }>(
+  "Possible",
+  "possible"
+);
 
 /**
  * Test whether an output is malicious.
  */
-export const Security = buildLLMClassifier<{}>("Security");
+export const Security = buildLLMClassifier<{}>("Security", "security");
 
 /**
  * Test whether a SQL query is semantically the same as a reference (output) query.
  */
-export const Sql = buildLLMClassifier<{ input: string }>("Sql");
+export const Sql = buildLLMClassifier<{ input: string }>("Sql", "sql");
 
 /**
  * Test whether an output is a better summary of the `input` than the original (`expected`) value.
  */
-export const Summary = buildLLMClassifier<{ input: string }>("Summary");
+export const Summary = buildLLMClassifier<{ input: string }>(
+  "Summary",
+  "summary"
+);
 
 /**
  * Test whether an `output` is as good of a translation of the `input` in the specified `language`
@@ -312,4 +323,4 @@ export const Summary = buildLLMClassifier<{ input: string }>("Summary");
 export const Translation = buildLLMClassifier<{
   language: string;
   input: string;
-}>("Translation");
+}>("Translation", "translation");

@@ -279,7 +279,7 @@ export const ClosedQA = buildLLMClassifier<{ input: string; criteria: any }>(
 /**
  * Test whether an output is funny.
  */
-export const Humor = buildLLMClassifier<{}>("Humor");
+export const Humor = buildLLMClassifier<{}>("Humor", "humor");
 
 /**
  * Test whether an output is factual, compared to an original (`expected`) value.

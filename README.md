@@ -262,4 +262,4 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
 
 ## Documentation
 
-The full docs are available [here](https://www.braintrustdata.com/docs/autoevals).
+The full docs are available [here](https://www.braintrustdata.com/docs/autoevals/overview).

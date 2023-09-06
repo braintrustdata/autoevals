@@ -156,7 +156,7 @@ class LLMClassifier(OpenAILLMClassifier):
             def parse_score_fn(resp):
                 answer = None
 
-                answers = re.findall(r"Answer\s*=\s*(.*)", resp, re.MULTILINE)
+                answers = re.findall(r"Answer\s*[=:]\s*(.*)", resp, re.MULTILINE)
                 if len(answers) > 0:
                     answer = answers[-1].strip()
                 elif resp.strip() in choice_strings:

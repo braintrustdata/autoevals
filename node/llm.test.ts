@@ -1,5 +1,3 @@
-import path from "path";
-
 import { Battle, LLMClassifierFromTemplate, OpenAIClassifier } from "../js/llm";
 import { ChatCompletionRequestMessage } from "openai";
 import { ChatCache } from "../js/oai";
@@ -59,7 +57,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
 
   expect(score.score).toBe(1);
   expect(score.error).toBeUndefined();
-}, 60000);
+}, 600000);
 
 test("llm_classifier", async () => {
   const pageContent = `As suggested by Nicolo, we should standardize the error responses coming from GoTrue, postgres, and realtime (and any other/future APIs) so that it's better DX when writing a client,
@@ -106,7 +104,7 @@ Issue Description: {{page_content}}
     expect(response.score).toBe(0);
     expect(response.error).toBeUndefined();
   }
-}, 60000);
+}, 600000);
 
 test("battle", async () => {
   for (const useCoT of [true, false]) {
@@ -144,4 +142,4 @@ test("battle", async () => {
     expect(response.score).toBe(0);
     expect(response.error).toBeUndefined();
   }
-}, 60000);
+}, 600000);

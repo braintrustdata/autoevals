@@ -1,5 +1,5 @@
 # Source: https://github.com/marketplace/actions/pre-commit
-name: pre-commit
+name: lint
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  pre-commit:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

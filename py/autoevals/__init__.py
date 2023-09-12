@@ -30,5 +30,7 @@ print(f"Factuality metadata: {result.metadata['rationale']}")
 """
 
 from .base import *
+from .json import *
 from .llm import *
+from .number import *
 from .string import *

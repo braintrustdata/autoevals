@@ -1,19 +1,19 @@
 import json
 
 from .base import Score, Scorer
-from .number import NumericDifference
+from .number import NumericDiff
 from .string import Levenshtein
 
 
 class JSONDiff(Scorer):
     """
     A simple scorer that compares JSON objects, using a customizable comparison method for strings
-    (defaults to Levenshtein) and numbers (defaults to NumericDifference).
+    (defaults to Levenshtein) and numbers (defaults to NumericDiff).
     """
 
     def __init__(self, string_scorer: Scorer = None, number_scorer: Scorer = None):
         self.string_scorer = string_scorer or Levenshtein()
-        self.number_scorer = number_scorer or NumericDifference()
+        self.number_scorer = number_scorer or NumericDiff()
 
     def _run_eval_sync(self, output, expected=None, **kwargs):
         return Score(name=self._name(), score=self.json_diff(output, expected))
@@ -40,7 +40,8 @@ class JSONDiff(Scorer):
         elif o1 is None or o2 is None:
             return 0
         else:
-            return self.string_scorer.eval(json.dumps(o1, sort_keys=True), json.dumps(o2, sort_keys=True)).score
+            kwargs = {"separators": (",", ":"), "sort_keys": True}
+            return self.string_scorer.eval(json.dumps(o1, **kwargs), json.dumps(o2, **kwargs)).score
 
 
 __all__ = ["JSONDiff"]

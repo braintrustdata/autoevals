@@ -1,4 +1,4 @@
-from autoevals.number import NumericDifference
+from autoevals.number import NumericDiff
 from autoevals.string import LevenshteinScorer
 
 
@@ -24,7 +24,7 @@ def test_levenshtein():
 def test_numeric():
     cases = [(0, 0, 1), (0, 1, 0), (1, 2, 0.5), (1.0, 2.0, 0.5)]
 
-    evaluator = NumericDifference()
+    evaluator = NumericDiff()
     for a, b, expected in cases:
         print(f"[{a}]", f"[{b}]", expected, evaluator(a, b))
         assert evaluator(a, b).score == expected

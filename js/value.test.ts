@@ -1,6 +1,7 @@
+import { NumericDiff } from "./number.js";
 import { LevenshteinScorer } from "./string.js";
 
-test("Basic Test", async () => {
+test("Levenshtein Test", async () => {
   const cases = [
     { a: "", b: "", expected: 1 },
     { a: "", b: "a", expected: 0 },
@@ -15,6 +16,20 @@ test("Basic Test", async () => {
 
   for (const { a, b, expected } of cases) {
     const score = (await LevenshteinScorer({ output: a, expected: b })).score;
+    expect(score).toBeCloseTo(expected);
+  }
+});
+
+test("Numeric Test", async () => {
+  const cases = [
+    { a: 0, b: 0, expected: 1 },
+    { a: 0, b: 1, expected: 0 },
+    { a: 1, b: 2, expected: 0.5 },
+    { a: 1.0, b: 2.0, expected: 0.5 },
+  ];
+
+  for (const { a, b, expected } of cases) {
+    const score = (await NumericDiff({ output: a, expected: b })).score;
     expect(score).toBeCloseTo(expected);
   }
 });

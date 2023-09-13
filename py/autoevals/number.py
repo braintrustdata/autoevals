@@ -1,7 +1,7 @@
 from .base import Score, Scorer
 
 
-class NumericDifference(Scorer):
+class NumericDiff(Scorer):
     """
     A simple scorer that compares numbers by computing the percentage difference of the smaller number
     from the larger one.
@@ -18,4 +18,4 @@ class NumericDifference(Scorer):
         return Score(name=self._name(), score=score)
 
 
-__all__ = ["NumericDifference"]
+__all__ = ["NumericDiff"]

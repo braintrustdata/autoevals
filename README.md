@@ -265,7 +265,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
 
 There is nothing particularly novel about the evaluation methods in this library. They are all well-known and well-documented. However, there are a few things that are particularly difficult when evaluating in practice:
 
-- Normalizing metrics between 0 and 1 is tough. For example, check out the calculation in [number.py][/py/autoevals/number.py] to see how it's done for numeric differences.
+- Normalizing metrics between 0 and 1 is tough. For example, check out the calculation in [number.py](/py/autoevals/number.py) to see how it's done for numeric differences.
 - Parsing the outputs on model-graded evaluations is also challenging. There are frameworks that do this, but it's hard to
   debug one output at a time, propagate errors, and tweak the prompts. AutoEvals makes these tasks easy.
 - Collecting metrics behind a uniform interface makes it easy to swap out evaluation methods and compare them. Prior to AutoEvals, we couldn't find an open source library where you can simply pass in `input`, `output`, and `expected` values through a bunch of different evaluation methods.

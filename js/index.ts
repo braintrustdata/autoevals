@@ -30,4 +30,6 @@
 export * from "./base.js";
 export * from "./llm.js";
 export * from "./string.js";
+export * from "./number.js";
+export * from "./json.js";
 export * from "./templates.js";

@@ -1,0 +1,25 @@
+# Modified from https://github.com/actions/starter-workflows/blob/main/ci/python-app.yml
+name: python
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools build twine
+          python -m pip install -e .[dev]
+      - name: Test with pytest
+        run: |
+          pytest

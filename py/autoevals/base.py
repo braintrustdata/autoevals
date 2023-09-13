@@ -28,13 +28,13 @@ class Scorer(ABC):
         try:
             return await self._run_eval_async(output, expected, **kwargs)
         except Exception as e:
-            return Score(0, error=e)
+            return Score(name=self._name(), score=0, error=e)
 
     def eval(self, output, expected=None, **kwargs):
         try:
             return self._run_eval_sync(output, expected, **kwargs)
         except Exception as e:
-            return Score(0, error=e)
+            return Score(name=self._name(), score=0, error=e)
 
     def __call__(self, output, expected=None, **kwargs):
         return self.eval(output, expected, **kwargs)
@@ -42,6 +42,9 @@ class Scorer(ABC):
     async def _run_eval_async(self, output, expected=None, **kwargs) -> Score:
         # By default we just run the sync version in a thread
         return self._run_eval_sync(output, expected, **kwargs)
+
+    def _name(self) -> str:
+        self.__class__.__name__
 
     @abstractmethod
     def _run_eval_sync(self, output, expected=None, **kwargs) -> Score:

@@ -5,7 +5,7 @@ from autoevals.base import Score
 from .base import Score, Scorer
 
 
-class LevenshteinScorer(Scorer):
+class Levenshtein(Scorer):
     """
     A simple scorer that uses the Levenshtein distance to compare two strings.
     """
@@ -21,7 +21,10 @@ class LevenshteinScorer(Scorer):
         if max_len > 0:
             score = 1 - (distance(output, expected) / max_len)
 
-        return Score(name="levenshtein", score=score)
+        return Score(name=self._name(), score=score)
 
 
-__all__ = ["LevenshteinScorer"]
+LevenshteinScorer = Levenshtein  # backcompat
+
+
+__all__ = ["LevenshteinScorer", "Levenshtein"]

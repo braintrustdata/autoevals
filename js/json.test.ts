@@ -9,8 +9,8 @@ test("JSON String Test", async () => {
     { a: "a", b: "b", expected: 0 },
     { a: "ab", b: "ac", expected: 0.5 },
     { a: "ac", b: "bc", expected: 0.5 },
-    { a: "abc", b: "axc", expected: 0.6666666666666667 },
-    { a: "xabxcdxxefxgx", b: "1ab2cd34ef5g6", expected: 0.5384615384615384 },
+    { a: "abc", b: "axc", expected: 0.66667 },
+    { a: "xabxcdxxefxgx", b: "1ab2cd34ef5g6", expected: 0.53846 },
   ];
 
   for (const { a, b, expected } of cases) {
@@ -28,7 +28,7 @@ test("JSON Object Test", async () => {
     { a: [], b: [], expected: 1 },
     { a: {}, b: {}, expected: 1 },
     { a: { a: 1 }, b: { a: 1 }, expected: 1 },
-    { a: { a: 1 }, b: { a: 2 }, expected: 0.5 },
+    { a: { a: 1 }, b: { a: 2 }, expected: 0.66667 },
     { a: { a: 1 }, b: ["a", 1], expected: 0.5714285714285714 },
     { a: { a: 1 }, b: { b: { a: 1 } }, expected: 0 },
     { a: { a: 1 }, b: { a: null }, expected: 0 },

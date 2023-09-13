@@ -1,3 +1,5 @@
+from pytest import approx
+
 from autoevals.json import JSONDiff
 
 
@@ -10,14 +12,14 @@ def test_string_as_json():
         ("a", "b", 0),
         ("ab", "ac", 0.5),
         ("ac", "bc", 0.5),
-        ("abc", "axc", 0.6666666666666667),
-        ("xabxcdxxefxgx", "1ab2cd34ef5g6", 0.5384615384615384),
+        ("abc", "axc", 0.66667),
+        ("xabxcdxxefxgx", "1ab2cd34ef5g6", 0.53846),
     ]
 
     evaluator = JSONDiff()
     for a, b, expected in cases:
         print(f"[{a}]", f"[{b}]", expected, evaluator(a, b))
-        assert evaluator(a, b).score == expected
+        assert evaluator(a, b).score == approx(expected, abs=1e-4)
 
 
 def test_json():
@@ -28,7 +30,7 @@ def test_json():
         ([], [], 1),
         ({}, {}, 1),
         ({"a": 1}, {"a": 1}, 1),
-        ({"a": 1}, {"a": 2}, 0.5),
+        ({"a": 1}, {"a": 2}, 0.66667),
         ({"a": 1}, ["a", 1], 0.5714285714285714),
         ({"a": 1}, {"b": {"a": 1}}, 0),
         ({"a": 1}, {"a": None}, 0),
@@ -42,4 +44,4 @@ def test_json():
     evaluator = JSONDiff()
     for a, b, expected in cases:
         print(f"[{a}]", f"[{b}]", expected, evaluator(a, b))
-        assert evaluator(a, b).score == expected
+        assert evaluator(a, b).score == approx(expected, 1e-4)

@@ -24,11 +24,13 @@ test("Numeric Test", async () => {
   const cases = [
     { a: 0, b: 0, expected: 1 },
     { a: 0, b: 1, expected: 0 },
-    { a: 1, b: 2, expected: 0.5 },
-    { a: 1.0, b: 2.0, expected: 0.5 },
+    { a: 1, b: 2, expected: 0.66667 },
+    { a: 1.0, b: 2.0, expected: 0.66667 },
+    { a: -1, b: 2, expected: 0 },
   ];
 
   for (const { a, b, expected } of cases) {
+    console.log(a, b, expected);
     const score = (await NumericDiff({ output: a, expected: b })).score;
     expect(score).toBeCloseTo(expected);
   }

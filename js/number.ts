@@ -1,8 +1,7 @@
 import { Scorer } from "./base.js";
 
 /**
- * A simple scorer that compares numbers by computing the percentage difference of the smaller number
- * from the larger one.
+ * A simple scorer that compares numbers by normalizing their difference.
  */
 export const NumericDiff: Scorer<number, {}> = (args) => {
   const { output, expected } = args;
@@ -15,8 +14,7 @@ export const NumericDiff: Scorer<number, {}> = (args) => {
     output === 0 && expected === 0
       ? 1
       : 1 -
-        Math.abs(expected - output) /
-          Math.max(Math.abs(expected), Math.abs(output));
+        Math.abs(expected - output) / (Math.abs(expected) + Math.abs(output));
 
   return {
     name: "NumericDiff",

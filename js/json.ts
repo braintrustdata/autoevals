@@ -83,17 +83,17 @@ async function jsonDiff(
   }
 }
 
-function isObject(obj: any): obj is { [key: string]: any } {
-  return typeof obj === "object" && obj !== null && !isArray(obj);
+function isObject(value: any): value is { [key: string]: any } {
+  return value instanceof Object && !(value instanceof Array);
 }
 
-function isArray(obj: any): obj is Array<unknown> {
-  return "[object Array]" === Object.prototype.toString.call(obj);
+function isArray(value: any): value is Array<unknown> {
+  return value instanceof Array;
 }
 
 // https://gist.github.com/davidfurlong/463a83a33b70a3b6618e97ec9679e490
 const replacer = (key: string, value: any) =>
-  value instanceof Object && !(value instanceof Array)
+  isObject(value)
     ? Object.keys(value)
         .sort()
         .reduce((sorted: { [key: string]: any }, key) => {

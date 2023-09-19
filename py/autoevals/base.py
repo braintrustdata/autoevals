@@ -20,7 +20,7 @@ class Score(SerializableDataClass):
 
     def __post_init__(self):
         if self.score < 0 or self.score > 1:
-            raise ValueError("score must be between 0 and 1")
+            raise ValueError(f"score ({self.score}) must be between 0 and 1")
 
 
 class Scorer(ABC):
@@ -44,7 +44,7 @@ class Scorer(ABC):
         return self._run_eval_sync(output, expected, **kwargs)
 
     def _name(self) -> str:
-        self.__class__.__name__
+        return self.__class__.__name__
 
     @abstractmethod
     def _run_eval_sync(self, output, expected=None, **kwargs) -> Score:

@@ -4,6 +4,8 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
+from .util import current_span, traced
+
 _CACHE_DIR = None
 _CONN = None
 
@@ -26,6 +28,25 @@ def open_cache():
     return _CONN
 
 
+def log_openai_request(span, input_args, response, **kwargs):
+    span = span or current_span()
+    if not span:
+        return
+
+    input = input_args.pop("messages")
+    span.log(
+        metrics={
+            "tokens": response["usage"]["total_tokens"],
+            "prompt_tokens": response["usage"]["prompt_tokens"],
+            "completion_tokens": response["usage"]["completion_tokens"],
+        },
+        metadata={**input_args, **kwargs},
+        input=input,
+        output=response["choices"][0],
+    )
+
+
+@traced(name="OpenAI Completion")
 def run_cached_request(Completion=None, **kwargs):
     if Completion is None:
         # OpenAI is very slow to import, so we only do it if we need it
@@ -38,16 +59,20 @@ def run_cached_request(Completion=None, **kwargs):
     cursor = conn.cursor()
     resp = cursor.execute("""SELECT response FROM "cache" WHERE params=?""", [param_key]).fetchone()
     if resp:
-        return json.loads(resp[0])
+        cached = True
+        resp = json.loads(resp[0])
+    else:
+        resp = Completion.create(**kwargs).to_dict()
 
-    resp = Completion.create(**kwargs).to_dict()
+        cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
+        conn.commit()
 
-    cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
-    conn.commit()
+    log_openai_request(current_span(), kwargs, resp, cached=cached)
 
     return resp
 
 
+@traced(name="OpenAI Completion")
 async def arun_cached_request(Completion=None, **kwargs):
     if Completion is None:
         # OpenAI is very slow to import, so we only do it if we need it
@@ -59,12 +84,16 @@ async def arun_cached_request(Completion=None, **kwargs):
     conn = open_cache()
     cursor = conn.cursor()
     resp = cursor.execute("""SELECT response FROM "cache" WHERE params=?""", [param_key]).fetchone()
+    cached = False
     if resp:
-        return json.loads(resp[0])
+        resp = json.loads(resp[0])
+        cached = True
+    else:
+        resp = (await Completion.acreate(**kwargs)).to_dict()
 
-    resp = (await Completion.acreate(**kwargs)).to_dict()
+        cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
+        conn.commit()
 
-    cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
-    conn.commit()
+    log_openai_request(current_span(), kwargs, resp, cached=cached)
 
     return resp

@@ -253,7 +253,7 @@ function buildLLMClassifier<RenderArgs>(
   }
 
   return LLMClassifierFromSpecFile<RenderArgs>(
-    templateName,
+    name,
     templateName as keyof typeof templates
   );
 }

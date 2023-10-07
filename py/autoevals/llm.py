@@ -9,6 +9,7 @@ import yaml
 
 from .base import Score, Scorer
 from .oai import arun_cached_request, run_cached_request
+from .util import current_span
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -69,6 +70,9 @@ class OpenAILLMClassifier(Scorer):
         if render_args:
             self.render_args.update(render_args)
 
+    def _name(self):
+        return self.name
+
     def _process_response(self, resp):
         metadata = {}
         try:
@@ -93,6 +97,7 @@ class OpenAILLMClassifier(Scorer):
         ]
 
     async def _run_eval_async(self, output, expected, **kwargs):
+        validity_score = 1
         try:
             resp = await arun_cached_request(
                 openai.ChatCompletion,
@@ -105,9 +110,13 @@ class OpenAILLMClassifier(Scorer):
             else:
                 raise ValueError("Empty response from OpenAI")
         except Exception as e:
+            validity_score = 0
             return Score(name=self.name, score=0, error=e)
+        finally:
+            current_span().log(scores={f"{self._name()} parsed": validity_score})
 
     def _run_eval_sync(self, output, expected, **kwargs):
+        validity_score = 1
         try:
             resp = run_cached_request(
                 openai.ChatCompletion,
@@ -120,7 +129,10 @@ class OpenAILLMClassifier(Scorer):
             else:
                 raise ValueError("Empty response from OpenAI")
         except Exception as e:
+            validity_score = 0
             return Score(name=self.name, score=0, error=e)
+        finally:
+            current_span().log(scores={f"{self._name()} parsed": validity_score})
 
 
 @dataclass
@@ -221,7 +233,7 @@ class SpecFileClassifier(LLMClassifier):
         if not os.path.exists(template_path):
             raise AttributeError(f"Model template {cls.__name__} not found")
 
-        return LLMClassifier.from_spec_file(template_name, template_path, **kwargs)
+        return LLMClassifier.from_spec_file(cls.__name__, template_path, **kwargs)
 
 
 class Battle(SpecFileClassifier):

@@ -1,8 +1,11 @@
+import asyncio
 import json
 import os
 import sqlite3
-import tempfile
+import time
 from pathlib import Path
+
+import backoff
 
 from .util import current_span, traced
 
@@ -58,11 +61,21 @@ def run_cached_request(Completion=None, **kwargs):
     conn = open_cache()
     cursor = conn.cursor()
     resp = cursor.execute("""SELECT response FROM "cache" WHERE params=?""", [param_key]).fetchone()
+    cached = False
+    retries = 0
     if resp:
         cached = True
         resp = json.loads(resp[0])
     else:
-        resp = Completion.create(**kwargs).to_dict()
+        sleep_time = 0.1
+        while retries < 20:
+            try:
+                resp = Completion.create(**kwargs).to_dict()
+                break
+            except openai.RateLimitError:
+                sleep_time *= 1.5
+                time.sleep(sleep_time)
+                retries += 1
 
         cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
         conn.commit()
@@ -85,15 +98,24 @@ async def arun_cached_request(Completion=None, **kwargs):
     cursor = conn.cursor()
     resp = cursor.execute("""SELECT response FROM "cache" WHERE params=?""", [param_key]).fetchone()
     cached = False
+    retries = 0
     if resp:
         resp = json.loads(resp[0])
         cached = True
     else:
-        resp = (await Completion.acreate(**kwargs)).to_dict()
+        sleep_time = 0.1
+        while retries < 100:
+            try:
+                resp = (await Completion.acreate(**kwargs)).to_dict()
+                break
+            except openai.RateLimitError:
+                sleep_time *= 1.5
+                await asyncio.sleep(sleep_time)
+                retries += 1
 
         cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
         conn.commit()
 
-    log_openai_request(current_span(), kwargs, resp, cached=cached)
+    log_openai_request(current_span(), kwargs, resp, cached=cached, retries=retries)
 
     return resp

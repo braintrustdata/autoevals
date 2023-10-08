@@ -132,7 +132,7 @@ function parseResponse(
     }
   } catch (e: unknown) {
     score = 0;
-    error = e;
+    error = `${e}`;
   }
 
   return {

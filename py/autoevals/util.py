@@ -31,7 +31,7 @@ class NoOpSpan:
 
 def current_span():
     try:
-        from braintrust import current_span as _get_current_span
+        from braintrust.logger import current_span as _get_current_span
 
         return _get_current_span()
     except ImportError as e:
@@ -40,8 +40,11 @@ def current_span():
 
 def traced(f=None, **span_kwargs):
     try:
-        from braintrust import traced as _traced
+        from braintrust.logger import traced as _traced
 
         return _traced(f, **span_kwargs)
     except ImportError:
-        return f
+        if f is None:
+            return lambda f: f
+        else:
+            return f

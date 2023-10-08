@@ -51,10 +51,10 @@ def log_openai_request(span, input_args, response, **kwargs):
 
 @traced(name="OpenAI Completion")
 def run_cached_request(Completion=None, **kwargs):
-    if Completion is None:
-        # OpenAI is very slow to import, so we only do it if we need it
-        import openai
+    # OpenAI is very slow to import, so we only do it if we need it
+    import openai
 
+    if Completion is None:
         Completion = openai.Completion
 
     param_key = json.dumps(kwargs)
@@ -72,7 +72,7 @@ def run_cached_request(Completion=None, **kwargs):
             try:
                 resp = Completion.create(**kwargs).to_dict()
                 break
-            except openai.RateLimitError:
+            except openai.error.RateLimitError:
                 sleep_time *= 1.5
                 time.sleep(sleep_time)
                 retries += 1
@@ -87,10 +87,10 @@ def run_cached_request(Completion=None, **kwargs):
 
 @traced(name="OpenAI Completion")
 async def arun_cached_request(Completion=None, **kwargs):
-    if Completion is None:
-        # OpenAI is very slow to import, so we only do it if we need it
-        import openai
+    # OpenAI is very slow to import, so we only do it if we need it
+    import openai
 
+    if Completion is None:
         Completion = openai.Completion
 
     param_key = json.dumps(kwargs)
@@ -108,7 +108,7 @@ async def arun_cached_request(Completion=None, **kwargs):
             try:
                 resp = (await Completion.acreate(**kwargs)).to_dict()
                 break
-            except openai.RateLimitError:
+            except openai.error.RateLimitError:
                 sleep_time *= 1.5
                 await asyncio.sleep(sleep_time)
                 retries += 1

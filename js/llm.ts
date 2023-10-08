@@ -107,7 +107,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     return {
       name,
       score: 0,
-      error,
+      error: `${error}`,
     };
   }
 }

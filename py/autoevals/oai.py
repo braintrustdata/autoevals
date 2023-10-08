@@ -5,8 +5,6 @@ import sqlite3
 import time
 from pathlib import Path
 
-import backoff
-
 from .util import current_span, traced
 
 _CACHE_DIR = None

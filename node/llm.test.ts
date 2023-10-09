@@ -28,8 +28,8 @@ Issue Description: {{page_content}}
 1: {{output}}
 2: {{expected}}
 
-Please discuss each title briefly (one line for pros, one for cons), and then pick which one you think more accurately
-summarizes the issue by calling the select_choice function`,
+Please discuss each title briefly (one line for pros, one for cons), and then answer the question by calling
+the select_choice function with "1" or "2".`,
     },
   ];
 

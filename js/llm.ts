@@ -36,7 +36,7 @@ const FUNCTION_RESPONSE_SCHEMA = {
 const CLASSIFICATION_FUNCTIONS = [
   {
     name: "select_choice",
-    description: "Apply selected choice",
+    description: "Call this function to select a choice.",
     parameters: FUNCTION_RESPONSE_SCHEMA,
   },
 ];

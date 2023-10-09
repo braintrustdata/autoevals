@@ -42,7 +42,7 @@ class FunctionResponse(BaseModel):
 CLASSIFICATION_FUNCTIONS = [
     {
         "name": "select_choice",
-        "description": "Apply selected choice",
+        "description": "Call this function to select a choice.",
         "parameters": FunctionResponse.model_json_schema(),
     }
 ]
@@ -82,6 +82,7 @@ class OpenAILLMClassifier(Scorer):
             self.render_args.update(render_args)
 
     def _process_response(self, resp):
+        print(resp)
         metadata = {}
         try:
             metadata["rationale"] = str(resp["content"])

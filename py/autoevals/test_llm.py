@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 
+from autoevals.llm import build_classification_functions
 from autoevals.oai import set_cache_dir
 
 # By default, we use the user's tmp cache directory (e.g. in the Library/Caches dir on macOS)
@@ -38,6 +39,7 @@ the select_choice function with "1" or "2".""",
         ],
         model="gpt-3.5-turbo",
         choice_scores={"1": 1, "2": 0},
+        classification_functions=build_classification_functions(useCoT=True),
         max_tokens=500,
     )
 
@@ -125,7 +127,7 @@ def test_battle():
         )
 
         print(response.as_json(indent=2))
-        assert response.score == 0
+        assert response.score == (1 if use_cot else 0)
         assert response.error is None
 
         response = e(instructions="Add the following numbers: 1, 2, 3", output="6", expected="6")

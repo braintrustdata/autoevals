@@ -1,4 +1,9 @@
-import { Battle, LLMClassifierFromTemplate, OpenAIClassifier } from "../js/llm";
+import {
+  Battle,
+  LLMClassifierFromTemplate,
+  OpenAIClassifier,
+  buildClassificationFunctions,
+} from "../js/llm";
 import { ChatCompletionRequestMessage } from "openai";
 import { ChatCache } from "../js/oai";
 
@@ -49,6 +54,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
     model: "gpt-3.5-turbo",
     parseScoreFn: parseBestTitle,
     choiceScores: { "1": 1, "2": 0 },
+    classificationFunctions: buildClassificationFunctions(true),
     page_content,
     maxTokens: 500,
     cache,
@@ -128,7 +134,7 @@ test("battle", async () => {
       openAiApiKey: process.env.OPENAI_API_KEY!,
     });
 
-    expect(response.score).toBe(0);
+    expect(response.score).toBe(useCoT ? 1 : 0);
     expect(response.error).toBeUndefined();
 
     response = await Battle({

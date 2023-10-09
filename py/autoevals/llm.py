@@ -22,9 +22,9 @@ choice from {{__choices}}.
 )
 
 COT_SUFFIX = """\
-Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid
-simply stating the correct answer at the outset. Then select only a single choice by calling the
-`select_choice` function with a single choice from {{__choices}}.
+Answer the question by calling the `select_choice` with your reasoning in a step-by-step matter to be
+sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a
+single choice by setting the `choice` parameter to a single choice from {{__choices}}.
 """.strip().replace(
     "\n", " "
 )
@@ -35,17 +35,26 @@ SUPPORTED_MODELS = [
 ]
 
 
-class FunctionResponse(BaseModel):
+class PlainResponse(BaseModel):
     choice: str = Field(..., description="The choice")
 
 
-CLASSIFICATION_FUNCTIONS = [
-    {
-        "name": "select_choice",
-        "description": "Call this function to select a choice.",
-        "parameters": FunctionResponse.model_json_schema(),
-    }
-]
+class CoTResponse(BaseModel):
+    reasons: List[str] = Field(
+        ...,
+        description="Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.",
+    )
+    choice: str = Field(..., description="The choice")
+
+
+def build_classification_functions(useCoT):
+    return [
+        {
+            "name": "select_choice",
+            "description": "Call this function to select a choice.",
+            "parameters": CoTResponse.model_json_schema() if useCoT else PlainResponse.model_json_schema(),
+        }
+    ]
 
 
 class OpenAILLMClassifier(Scorer):
@@ -55,6 +64,7 @@ class OpenAILLMClassifier(Scorer):
         messages: List,
         model,
         choice_scores,
+        classification_functions,
         render_args=None,
         max_tokens=None,
         temperature=None,
@@ -72,6 +82,7 @@ class OpenAILLMClassifier(Scorer):
         self.model = model
         self.messages = messages
         self.choice_scores = choice_scores
+        self.classification_functions = classification_functions
 
         self.extra_args = {"temperature": temperature or 0}
         if max_tokens:
@@ -82,13 +93,14 @@ class OpenAILLMClassifier(Scorer):
             self.render_args.update(render_args)
 
     def _process_response(self, resp):
-        print(resp)
         metadata = {}
         try:
-            metadata["rationale"] = str(resp["content"])
+            args = json.loads(resp["function_call"]["arguments"])
+            if "reasons" in args:
+                metadata["rationale"] = "\n".join(args["reasons"])
             if "function_call" not in resp:
                 raise ValueError("No function call found in response")
-            metadata["choice"] = json.loads(resp["function_call"]["arguments"])["choice"].strip()
+            metadata["choice"] = args["choice"].strip()
             score = self.choice_scores[metadata["choice"]]
             error = None
         except Exception as e:
@@ -113,7 +125,7 @@ class OpenAILLMClassifier(Scorer):
                 openai.ChatCompletion,
                 model=self.model,
                 messages=self._render_messages(output=output, expected=expected, **kwargs),
-                functions=CLASSIFICATION_FUNCTIONS,
+                functions=self.classification_functions,
                 **self.extra_args,
             )
             if len(resp["choices"]) > 0:
@@ -129,7 +141,7 @@ class OpenAILLMClassifier(Scorer):
                 openai.ChatCompletion,
                 model=self.model,
                 messages=self._render_messages(output=output, expected=expected, **kwargs),
-                functions=CLASSIFICATION_FUNCTIONS,
+                functions=self.classification_functions,
                 **self.extra_args,
             )
             if len(resp["choices"]) > 0:
@@ -180,6 +192,7 @@ class LLMClassifier(OpenAILLMClassifier):
             messages,
             model,
             choice_scores,
+            classification_functions=build_classification_functions(use_cot),
             max_tokens=max_tokens,
             temperature=temperature,
             render_args={"__choices": choice_strings},

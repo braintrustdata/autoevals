@@ -3,6 +3,7 @@ import mustache from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "./base.js";
 import {
+  ChatCompletionFunctions,
   ChatCompletionRequestMessage,
   ChatCompletionResponseMessage,
 } from "openai";
@@ -13,7 +14,7 @@ const NO_COT_SUFFIX =
   "Answer the question by calling the `select_choice` function with a single choice from {{__choices}}.";
 
 const COT_SUFFIX =
-  "Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Then select only a single choice by calling the `select_choice` function with a single choice from {{__choices}}.";
+  "Answer the question by calling the `select_choice` with your reasoning in a step-by-step matter to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a single choice by setting the `choice` parameter to a single choice from {{__choices}}.";
 
 const SUPPORTED_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 
@@ -24,7 +25,7 @@ interface LLMArgs {
   openAiOrganizationId?: string;
 }
 
-const FUNCTION_RESPONSE_SCHEMA = {
+const PLAIN_RESPONSE_SCHEMA = {
   properties: {
     choice: { description: "The choice", title: "Choice", type: "string" },
   },
@@ -33,19 +34,38 @@ const FUNCTION_RESPONSE_SCHEMA = {
   type: "object",
 };
 
-const CLASSIFICATION_FUNCTIONS = [
-  {
-    name: "select_choice",
-    description: "Call this function to select a choice.",
-    parameters: FUNCTION_RESPONSE_SCHEMA,
+const COT_RESPONSE_SCHEMA = {
+  properties: {
+    reasons: {
+      description:
+        "Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.",
+      items: { type: "string" },
+      title: "Reasons",
+      type: "array",
+    },
+    choice: { description: "The choice", title: "Choice", type: "string" },
   },
-];
+  required: ["reasons", "choice"],
+  title: "CoTResponse",
+  type: "object",
+};
+
+export function buildClassificationFunctions(useCoT: boolean) {
+  return [
+    {
+      name: "select_choice",
+      description: "Call this function to select a choice.",
+      parameters: useCoT ? COT_RESPONSE_SCHEMA : PLAIN_RESPONSE_SCHEMA,
+    },
+  ];
+}
 
 export type OpenAIClassifierArgs<RenderArgs> = {
   name: string;
   model: string;
   messages: ChatCompletionRequestMessage[];
   choiceScores: Record<string, number>;
+  classificationFunctions: ChatCompletionFunctions[];
   cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
@@ -60,6 +80,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     messages: messagesArg,
     model,
     choiceScores,
+    classificationFunctions,
     maxTokens,
     temperature,
     cache,
@@ -102,7 +123,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
       {
         model,
         messages,
-        functions: CLASSIFICATION_FUNCTIONS,
+        functions: classificationFunctions,
         ...extraArgs,
       },
       {
@@ -200,6 +221,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       name,
       messages,
       choiceScores,
+      classificationFunctions: buildClassificationFunctions(useCoT),
       model,
       maxTokens,
       temperature,

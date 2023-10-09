@@ -38,13 +38,13 @@ def current_span():
         return NoOpSpan()
 
 
-def traced(f=None, **span_kwargs):
+def traced(*span_args, **span_kwargs):
     try:
         from braintrust.logger import traced as _traced
 
-        return _traced(f, **span_kwargs)
+        return _traced(*span_args, **span_kwargs)
     except ImportError:
-        if f is None:
-            return lambda f: f
-        else:
+        if len(span_args) == 1 and len(span_kwargs) == 0 and callable(span_args[0]):
             return f
+        else:
+            return lambda f: f

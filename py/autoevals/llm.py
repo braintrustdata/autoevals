@@ -126,6 +126,7 @@ class OpenAILLMClassifier(Scorer):
                 model=self.model,
                 messages=self._render_messages(output=output, expected=expected, **kwargs),
                 functions=self.classification_functions,
+                function_call={"name": "select_choice"},
                 **self.extra_args,
             )
             if len(resp["choices"]) > 0:
@@ -142,6 +143,7 @@ class OpenAILLMClassifier(Scorer):
                 model=self.model,
                 messages=self._render_messages(output=output, expected=expected, **kwargs),
                 functions=self.classification_functions,
+                function_call={"name": "select_choice"},
                 **self.extra_args,
             )
             if len(resp["choices"]) > 0:

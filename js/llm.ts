@@ -124,6 +124,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
         model,
         messages,
         functions: classificationFunctions,
+        function_call: { name: "select_choice" },
         ...extraArgs,
       },
       {

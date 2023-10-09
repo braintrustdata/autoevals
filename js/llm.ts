@@ -2,13 +2,18 @@ import * as yaml from "js-yaml";
 import mustache from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "./base.js";
-import { ChatCompletionRequestMessage } from "openai";
+import {
+  ChatCompletionRequestMessage,
+  ChatCompletionResponseMessage,
+} from "openai";
 import { ChatCache, cachedChatCompletion } from "./oai.js";
 import { templates } from "./templates.js";
 
-const NO_COT_SUFFIX = `Answer the question by printing only a single choice from {{__choices}} (without quotes or punctuation) corresponding to the correct answer with no other text.`;
+const NO_COT_SUFFIX =
+  "Answer the question by calling the `select_choice` function with a single choice from {{__choices}}.";
 
-const COT_SUFFIX = `Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Then print only a single choice from {{__choices}} (without quotes or punctuation) on its own line corresponding to the correct answer. At the end, repeat just the answer by itself on a new line formatted as "Answer=X"`;
+const COT_SUFFIX =
+  "Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Then select only a single choice by calling the `select_choice` function with a single choice from {{__choices}}.";
 
 const SUPPORTED_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 
@@ -19,11 +24,27 @@ interface LLMArgs {
   openAiOrganizationId?: string;
 }
 
+const FUNCTION_RESPONSE_SCHEMA = {
+  properties: {
+    choice: { description: "The choice", title: "Choice", type: "string" },
+  },
+  required: ["choice"],
+  title: "FunctionResponse",
+  type: "object",
+};
+
+const CLASSIFICATION_FUNCTIONS = [
+  {
+    name: "select_choice",
+    description: "Apply selected choice",
+    parameters: FUNCTION_RESPONSE_SCHEMA,
+  },
+];
+
 export type OpenAIClassifierArgs<RenderArgs> = {
   name: string;
   model: string;
   messages: ChatCompletionRequestMessage[];
-  parseScoreFn: (resp: string) => string;
   choiceScores: Record<string, number>;
   cache?: ChatCache;
 } & LLMArgs &
@@ -38,7 +59,6 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     expected,
     messages: messagesArg,
     model,
-    parseScoreFn,
     choiceScores,
     maxTokens,
     temperature,
@@ -82,6 +102,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
       {
         model,
         messages,
+        functions: CLASSIFICATION_FUNCTIONS,
         ...extraArgs,
       },
       {
@@ -94,11 +115,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     if (resp.choices.length > 0) {
       return {
         name,
-        ...parseResponse(
-          resp.choices[0].message!.content!,
-          parseScoreFn,
-          choiceScores
-        ),
+        ...parseResponse(resp.choices[0].message!, choiceScores),
       };
     } else {
       throw new Error("Empty response from OpenAI");
@@ -113,17 +130,16 @@ export async function OpenAIClassifier<RenderArgs, Output>(
 }
 
 function parseResponse(
-  resp: string,
-  parseScoreFn: (resp: string) => string,
+  resp: ChatCompletionResponseMessage,
   choiceScores: Record<string, number>
 ): Omit<Score, "name"> {
   let score = 0;
   let error = undefined;
   const metadata: Record<string, unknown> = {};
   try {
-    metadata["rationale"] = `${resp}`;
+    metadata["rationale"] = `${resp.content}`;
 
-    const choice = parseScoreFn(resp);
+    const choice = JSON.parse(resp.function_call!.arguments!)["choice"].trim();
     metadata["choice"] = choice;
     if (choiceScores[choice] !== undefined) {
       score = choiceScores[choice];
@@ -172,23 +188,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
-    let maxTokens = undefined;
-    let parseScoreFn = (resp: string) => resp.trim();
-    if (useCoT) {
-      parseScoreFn = (resp: string) => {
-        const answers = [...resp.matchAll(/Answer\s*=\s*(.*)/g)];
-        if (answers && answers.length > 0) {
-          return answers[answers.length - 1][1].trim();
-        } else if (choiceStrings.includes(resp.trim())) {
-          return resp.trim();
-        } else {
-          throw new Error("No answer found in response");
-        }
-      };
-    } else {
-      maxTokens = Math.max(...choiceStrings.map((c) => c.length));
-    }
-
+    let maxTokens = 512;
     const messages: ChatCompletionRequestMessage[] = [
       {
         role: "user",
@@ -199,7 +199,6 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     return await OpenAIClassifier({
       name,
       messages,
-      parseScoreFn,
       choiceScores,
       model,
       maxTokens,

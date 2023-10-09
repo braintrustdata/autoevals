@@ -1,4 +1,5 @@
 import {
+  ChatCompletionFunctions,
   ChatCompletionRequestMessage,
   Configuration,
   CreateChatCompletionResponse,
@@ -9,6 +10,7 @@ import { Env } from "./env.js";
 export interface CachedLLMParams {
   model: string;
   messages: ChatCompletionRequestMessage[];
+  functions?: ChatCompletionFunctions[];
   temperature?: number;
   max_tokens?: number;
 }

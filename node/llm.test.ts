@@ -25,11 +25,11 @@ You will look at the issue description, and pick which of two titles better desc
 
 Issue Description: {{page_content}}
 
-Title 1: {{output}}
-Title 2: {{expected}}
+1: {{output}}
+2: {{expected}}
 
 Please discuss each title briefly (one line for pros, one for cons), and then pick which one you think more accurately
-summarizes the issue by writing "Winner: 1" or "Winner: 2", and then a short rationale for your choice`,
+summarizes the issue by calling the select_choice function`,
     },
   ];
 
@@ -48,7 +48,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
     messages,
     model: "gpt-3.5-turbo",
     parseScoreFn: parseBestTitle,
-    choiceScores: { 1: 1, 2: 0 },
+    choiceScores: { "1": 1, "2": 0 },
     page_content,
     maxTokens: 500,
     cache,
@@ -128,7 +128,7 @@ test("battle", async () => {
       openAiApiKey: process.env.OPENAI_API_KEY!,
     });
 
-    expect(response.score).toBe(useCoT ? 1 : 0);
+    expect(response.score).toBe(0);
     expect(response.error).toBeUndefined();
 
     response = await Battle({

@@ -1,11 +1,13 @@
+import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Annotated, List, Optional
+from typing import List, Optional
 
 import chevron
 import openai
 import yaml
+from pydantic import BaseModel, Field
 
 from .base import Score, Scorer
 from .oai import arun_cached_request, run_cached_request
@@ -13,17 +15,16 @@ from .oai import arun_cached_request, run_cached_request
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 NO_COT_SUFFIX = """\
-Answer the question by printing only a single choice from {{__choices}} (without quotes or punctuation)
-corresponding to the correct answer with no other text.
+Answer the question by calling the `select_choice` function with a single
+choice from {{__choices}}.
 """.strip().replace(
     "\n", " "
 )
 
 COT_SUFFIX = """\
 Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid
-simply stating the correct answer at the outset. Then print only a single choice from {{__choices}} (without
-quotes or punctuation) on its own line corresponding to the correct answer. At the end, repeat just the
-answer by itself on a new line formatted as "Answer=X"
+simply stating the correct answer at the outset. Then select only a single choice by calling the
+`select_choice` function with a single choice from {{__choices}}.
 """.strip().replace(
     "\n", " "
 )
@@ -34,13 +35,25 @@ SUPPORTED_MODELS = [
 ]
 
 
+class FunctionResponse(BaseModel):
+    choice: str = Field(..., description="The choice")
+
+
+CLASSIFICATION_FUNCTIONS = [
+    {
+        "name": "select_choice",
+        "description": "Apply selected choice",
+        "parameters": FunctionResponse.model_json_schema(),
+    }
+]
+
+
 class OpenAILLMClassifier(Scorer):
     def __init__(
         self,
         name: str,
         messages: List,
         model,
-        parse_score_fn,
         choice_scores,
         render_args=None,
         max_tokens=None,
@@ -58,7 +71,6 @@ class OpenAILLMClassifier(Scorer):
         self.name = name
         self.model = model
         self.messages = messages
-        self.parse_score_fn = parse_score_fn
         self.choice_scores = choice_scores
 
         self.extra_args = {"temperature": temperature or 0}
@@ -72,8 +84,10 @@ class OpenAILLMClassifier(Scorer):
     def _process_response(self, resp):
         metadata = {}
         try:
-            metadata["rationale"] = str(resp)
-            metadata["choice"] = self.parse_score_fn(resp)
+            metadata["rationale"] = str(resp["content"])
+            if "function_call" not in resp:
+                raise ValueError("No function call found in response")
+            metadata["choice"] = json.loads(resp["function_call"]["arguments"])["choice"].strip()
             score = self.choice_scores[metadata["choice"]]
             error = None
         except Exception as e:
@@ -98,10 +112,11 @@ class OpenAILLMClassifier(Scorer):
                 openai.ChatCompletion,
                 model=self.model,
                 messages=self._render_messages(output=output, expected=expected, **kwargs),
+                functions=CLASSIFICATION_FUNCTIONS,
                 **self.extra_args,
             )
             if len(resp["choices"]) > 0:
-                return self._process_response(resp["choices"][0]["message"]["content"])
+                return self._process_response(resp["choices"][0]["message"])
             else:
                 raise ValueError("Empty response from OpenAI")
         except Exception as e:
@@ -113,10 +128,11 @@ class OpenAILLMClassifier(Scorer):
                 openai.ChatCompletion,
                 model=self.model,
                 messages=self._render_messages(output=output, expected=expected, **kwargs),
+                functions=CLASSIFICATION_FUNCTIONS,
                 **self.extra_args,
             )
             if len(resp["choices"]) > 0:
-                return self._process_response(resp["choices"][0]["message"]["content"])
+                return self._process_response(resp["choices"][0]["message"])
             else:
                 raise ValueError("Empty response from OpenAI")
         except Exception as e:
@@ -151,28 +167,6 @@ class LLMClassifier(OpenAILLMClassifier):
         choice_strings = list(choice_scores.keys())
 
         prompt = prompt_template + "\n" + (COT_SUFFIX if use_cot else NO_COT_SUFFIX)
-        if use_cot:
-
-            def parse_score_fn(resp):
-                answer = None
-
-                answers = re.findall(r"Answer\s*[=:]\s*(.*)", resp, re.MULTILINE)
-                if len(answers) > 0:
-                    answer = answers[-1].strip()
-                elif resp.strip() in choice_strings:
-                    answer = resp.strip()
-
-                if answer is None:
-                    raise ValueError("No answer found in response")
-
-                return answer
-
-        else:
-            max_tokens = max(len(c) for c in choice_strings)
-
-            def parse_score_fn(resp):
-                return resp.strip()
-
         messages = [
             {
                 "role": "user",
@@ -184,7 +178,6 @@ class LLMClassifier(OpenAILLMClassifier):
             name,
             messages,
             model,
-            parse_score_fn,
             choice_scores,
             max_tokens=max_tokens,
             temperature=temperature,

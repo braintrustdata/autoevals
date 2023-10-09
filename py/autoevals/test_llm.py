@@ -13,9 +13,6 @@ from autoevals.llm import *
 
 
 def test_openai():
-    def parse_best_title(grade):
-        return int(re.findall(r"Winner: (\d+)", grade)[0])
-
     e = OpenAILLMClassifier(
         "title",
         messages=[
@@ -32,16 +29,15 @@ I'm going to provide you with the issue description, and two possible titles.
 
 Issue Description: {{page_content}}
 
-Title 1: {{output}}
-Title 2: {{expected}}
+1: {{output}}
+2: {{expected}}
 
 Please discuss each title briefly (one line for pros, one for cons), and then pick which one you think more accurately
-summarizes the issue by writing "Winner: 1" or "Winner: 2", and then a short rationale for your choice.""",
+summarizes the issue by calling the select_choice function.""",
             },
         ],
         model="gpt-3.5-turbo",
-        parse_score_fn=parse_best_title,
-        choice_scores={1: 1, 2: 0},
+        choice_scores={"1": 1, "2": 0},
         max_tokens=500,
     )
 
@@ -129,7 +125,7 @@ def test_battle():
         )
 
         print(response.as_json(indent=2))
-        assert response.score == (1 if use_cot else 0)
+        assert response.score == 0
         assert response.error is None
 
         response = e(instructions="Add the following numbers: 1, 2, 3", output="6", expected="6")

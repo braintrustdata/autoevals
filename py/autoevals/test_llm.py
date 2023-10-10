@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 
+from autoevals.llm import build_classification_functions
 from autoevals.oai import set_cache_dir
 
 # By default, we use the user's tmp cache directory (e.g. in the Library/Caches dir on macOS)
@@ -13,9 +14,6 @@ from autoevals.llm import *
 
 
 def test_openai():
-    def parse_best_title(grade):
-        return int(re.findall(r"Winner: (\d+)", grade)[0])
-
     e = OpenAILLMClassifier(
         "title",
         messages=[
@@ -32,16 +30,16 @@ I'm going to provide you with the issue description, and two possible titles.
 
 Issue Description: {{page_content}}
 
-Title 1: {{output}}
-Title 2: {{expected}}
+1: {{output}}
+2: {{expected}}
 
-Please discuss each title briefly (one line for pros, one for cons), and then pick which one you think more accurately
-summarizes the issue by writing "Winner: 1" or "Winner: 2", and then a short rationale for your choice.""",
+Please discuss each title briefly (one line for pros, one for cons), and then answer the question by calling
+the select_choice function with "1" or "2".""",
             },
         ],
         model="gpt-3.5-turbo",
-        parse_score_fn=parse_best_title,
-        choice_scores={1: 1, 2: 0},
+        choice_scores={"1": 1, "2": 0},
+        classification_functions=build_classification_functions(useCoT=True),
         max_tokens=500,
     )
 

@@ -1,6 +1,8 @@
 import {
+  ChatCompletionFunctions,
   ChatCompletionRequestMessage,
   Configuration,
+  CreateChatCompletionRequestFunctionCall,
   CreateChatCompletionResponse,
   OpenAIApi,
 } from "openai";
@@ -9,6 +11,8 @@ import { Env } from "./env.js";
 export interface CachedLLMParams {
   model: string;
   messages: ChatCompletionRequestMessage[];
+  functions?: ChatCompletionFunctions[];
+  function_call?: CreateChatCompletionRequestFunctionCall;
   temperature?: number;
   max_tokens?: number;
 }

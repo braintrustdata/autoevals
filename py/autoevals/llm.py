@@ -1,11 +1,13 @@
+import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Annotated, List, Optional
+from typing import List, Optional
 
 import chevron
 import openai
 import yaml
+from pydantic import BaseModel, Field
 
 from .base import Score, Scorer
 from .oai import arun_cached_request, run_cached_request
@@ -14,17 +16,15 @@ from .util import current_span
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 NO_COT_SUFFIX = """\
-Answer the question by printing only a single choice from {{__choices}} (without quotes or punctuation)
-corresponding to the correct answer with no other text.
+Answer the question by calling `select_choice` with a single choice from {{__choices}}.
 """.strip().replace(
     "\n", " "
 )
 
 COT_SUFFIX = """\
-Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid
-simply stating the correct answer at the outset. Then print only a single choice from {{__choices}} (without
-quotes or punctuation) on its own line corresponding to the correct answer. At the end, repeat just the
-answer by itself on a new line formatted as "Answer=X"
+Answer the question by calling `select_choice` with your reasoning in a step-by-step matter to be
+sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a
+single choice by setting the `choice` parameter to a single choice from {{__choices}}.
 """.strip().replace(
     "\n", " "
 )
@@ -35,14 +35,36 @@ SUPPORTED_MODELS = [
 ]
 
 
+class PlainResponse(BaseModel):
+    choice: str = Field(..., description="The choice")
+
+
+class CoTResponse(BaseModel):
+    reasons: List[str] = Field(
+        ...,
+        description="Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.",
+    )
+    choice: str = Field(..., description="The choice")
+
+
+def build_classification_functions(useCoT):
+    return [
+        {
+            "name": "select_choice",
+            "description": "Call this function to select a choice.",
+            "parameters": CoTResponse.model_json_schema() if useCoT else PlainResponse.model_json_schema(),
+        }
+    ]
+
+
 class OpenAILLMClassifier(Scorer):
     def __init__(
         self,
         name: str,
         messages: List,
         model,
-        parse_score_fn,
         choice_scores,
+        classification_functions,
         render_args=None,
         max_tokens=None,
         temperature=None,
@@ -59,8 +81,8 @@ class OpenAILLMClassifier(Scorer):
         self.name = name
         self.model = model
         self.messages = messages
-        self.parse_score_fn = parse_score_fn
         self.choice_scores = choice_scores
+        self.classification_functions = classification_functions
 
         self.extra_args = {"temperature": temperature or 0}
         if max_tokens:
@@ -76,8 +98,12 @@ class OpenAILLMClassifier(Scorer):
     def _process_response(self, resp):
         metadata = {}
         try:
-            metadata["rationale"] = str(resp)
-            metadata["choice"] = self.parse_score_fn(resp)
+            args = json.loads(resp["function_call"]["arguments"])
+            if "reasons" in args:
+                metadata["rationale"] = "\n".join(args["reasons"])
+            if "function_call" not in resp:
+                raise ValueError("No function call found in response")
+            metadata["choice"] = args["choice"].strip()
             score = self.choice_scores[metadata["choice"]]
             error = None
         except Exception as e:
@@ -103,10 +129,12 @@ class OpenAILLMClassifier(Scorer):
                 openai.ChatCompletion,
                 model=self.model,
                 messages=self._render_messages(output=output, expected=expected, **kwargs),
+                functions=self.classification_functions,
+                function_call={"name": "select_choice"},
                 **self.extra_args,
             )
             if len(resp["choices"]) > 0:
-                return self._process_response(resp["choices"][0]["message"]["content"])
+                return self._process_response(resp["choices"][0]["message"])
             else:
                 raise ValueError("Empty response from OpenAI")
         except Exception as e:
@@ -122,10 +150,12 @@ class OpenAILLMClassifier(Scorer):
                 openai.ChatCompletion,
                 model=self.model,
                 messages=self._render_messages(output=output, expected=expected, **kwargs),
+                functions=self.classification_functions,
+                function_call={"name": "select_choice"},
                 **self.extra_args,
             )
             if len(resp["choices"]) > 0:
-                return self._process_response(resp["choices"][0]["message"]["content"])
+                return self._process_response(resp["choices"][0]["message"])
             else:
                 raise ValueError("Empty response from OpenAI")
         except Exception as e:
@@ -163,28 +193,6 @@ class LLMClassifier(OpenAILLMClassifier):
         choice_strings = list(choice_scores.keys())
 
         prompt = prompt_template + "\n" + (COT_SUFFIX if use_cot else NO_COT_SUFFIX)
-        if use_cot:
-
-            def parse_score_fn(resp):
-                answer = None
-
-                answers = re.findall(r"Answer\s*[=:]\s*(.*)", resp, re.MULTILINE)
-                if len(answers) > 0:
-                    answer = answers[-1].strip()
-                elif resp.strip() in choice_strings:
-                    answer = resp.strip()
-
-                if answer is None:
-                    raise ValueError("No answer found in response")
-
-                return answer
-
-        else:
-            max_tokens = max(len(c) for c in choice_strings)
-
-            def parse_score_fn(resp):
-                return resp.strip()
-
         messages = [
             {
                 "role": "user",
@@ -196,8 +204,8 @@ class LLMClassifier(OpenAILLMClassifier):
             name,
             messages,
             model,
-            parse_score_fn,
             choice_scores,
+            classification_functions=build_classification_functions(use_cot),
             max_tokens=max_tokens,
             temperature=temperature,
             render_args={"__choices": choice_strings},

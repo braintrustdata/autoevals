@@ -11,10 +11,10 @@ import { ChatCache, cachedChatCompletion } from "./oai.js";
 import { templates } from "./templates.js";
 
 const NO_COT_SUFFIX =
-  "Answer the question by calling the `select_choice` function with a single choice from {{__choices}}.";
+  "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
 
 const COT_SUFFIX =
-  "Answer the question by calling the `select_choice` with your reasoning in a step-by-step matter to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a single choice by setting the `choice` parameter to a single choice from {{__choices}}.";
+  "Answer the question by calling `select_choice` with your reasoning in a step-by-step matter to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a single choice by setting the `choice` parameter to a single choice from {{__choices}}.";
 
 const SUPPORTED_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 

@@ -15,14 +15,13 @@ from .oai import arun_cached_request, run_cached_request
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 NO_COT_SUFFIX = """\
-Answer the question by calling the `select_choice` function with a single
-choice from {{__choices}}.
+Answer the question by calling `select_choice` with a single choice from {{__choices}}.
 """.strip().replace(
     "\n", " "
 )
 
 COT_SUFFIX = """\
-Answer the question by calling the `select_choice` with your reasoning in a step-by-step matter to be
+Answer the question by calling `select_choice` with your reasoning in a step-by-step matter to be
 sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a
 single choice by setting the `choice` parameter to a single choice from {{__choices}}.
 """.strip().replace(

@@ -45,6 +45,6 @@ def traced(*span_args, **span_kwargs):
         return _traced(*span_args, **span_kwargs)
     except ImportError:
         if len(span_args) == 1 and len(span_kwargs) == 0 and callable(span_args[0]):
-            return f
+            return span_args[0]
         else:
             return lambda f: f

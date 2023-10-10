@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from .base import Score, Scorer
 from .oai import arun_cached_request, run_cached_request
+from .util import current_span
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -91,6 +92,9 @@ class OpenAILLMClassifier(Scorer):
         if render_args:
             self.render_args.update(render_args)
 
+    def _name(self):
+        return self.name
+
     def _process_response(self, resp):
         metadata = {}
         try:
@@ -118,39 +122,43 @@ class OpenAILLMClassifier(Scorer):
             for m in self.messages
         ]
 
+    def _request_args(self, output, expected, **kwargs):
+        return dict(
+            Completion=openai.ChatCompletion,
+            model=self.model,
+            messages=self._render_messages(output=output, expected=expected, **kwargs),
+            functions=self.classification_functions,
+            function_call={"name": "select_choice"},
+            **self.extra_args,
+        )
+
+    def _postprocess_response(self, resp):
+        if len(resp["choices"]) > 0:
+            return self._process_response(resp["choices"][0]["message"])
+        else:
+            raise ValueError("Empty response from OpenAI")
+
     async def _run_eval_async(self, output, expected, **kwargs):
+        validity_score = 1
         try:
-            resp = await arun_cached_request(
-                openai.ChatCompletion,
-                model=self.model,
-                messages=self._render_messages(output=output, expected=expected, **kwargs),
-                functions=self.classification_functions,
-                function_call={"name": "select_choice"},
-                **self.extra_args,
+            return self._postprocess_response(
+                await arun_cached_request(**self._request_args(output, expected, **kwargs))
             )
-            if len(resp["choices"]) > 0:
-                return self._process_response(resp["choices"][0]["message"])
-            else:
-                raise ValueError("Empty response from OpenAI")
         except Exception as e:
+            validity_score = 0
             return Score(name=self.name, score=0, error=e)
+        finally:
+            current_span().log(scores={f"{self._name()} parsed": validity_score})
 
     def _run_eval_sync(self, output, expected, **kwargs):
+        validity_score = 1
         try:
-            resp = run_cached_request(
-                openai.ChatCompletion,
-                model=self.model,
-                messages=self._render_messages(output=output, expected=expected, **kwargs),
-                functions=self.classification_functions,
-                function_call={"name": "select_choice"},
-                **self.extra_args,
-            )
-            if len(resp["choices"]) > 0:
-                return self._process_response(resp["choices"][0]["message"])
-            else:
-                raise ValueError("Empty response from OpenAI")
+            return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
         except Exception as e:
+            validity_score = 0
             return Score(name=self.name, score=0, error=e)
+        finally:
+            current_span().log(scores={f"{self._name()} parsed": validity_score})
 
 
 @dataclass
@@ -229,7 +237,7 @@ class SpecFileClassifier(LLMClassifier):
         if not os.path.exists(template_path):
             raise AttributeError(f"Model template {cls.__name__} not found")
 
-        return LLMClassifier.from_spec_file(template_name, template_path, **kwargs)
+        return LLMClassifier.from_spec_file(cls.__name__, template_path, **kwargs)
 
 
 class Battle(SpecFileClassifier):

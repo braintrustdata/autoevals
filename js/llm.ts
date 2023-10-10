@@ -146,7 +146,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     return {
       name,
       score: 0,
-      error,
+      error: `${error}`,
     };
   }
 }
@@ -170,7 +170,7 @@ function parseResponse(
     }
   } catch (e: unknown) {
     score = 0;
-    error = e;
+    error = `${e}`;
   }
 
   return {
@@ -275,7 +275,7 @@ function buildLLMClassifier<RenderArgs>(
   }
 
   return LLMClassifierFromSpecFile<RenderArgs>(
-    templateName,
+    name,
     templateName as keyof typeof templates
   );
 }

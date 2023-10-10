@@ -122,21 +122,28 @@ class OpenAILLMClassifier(Scorer):
             for m in self.messages
         ]
 
+    def _request_args(self, output, expected, **kwargs):
+        return dict(
+            Completion=openai.ChatCompletion,
+            model=self.model,
+            messages=self._render_messages(output=output, expected=expected, **kwargs),
+            functions=self.classification_functions,
+            function_call={"name": "select_choice"},
+            **self.extra_args,
+        )
+
+    def _postprocess_response(self, resp):
+        if len(resp["choices"]) > 0:
+            return self._process_response(resp["choices"][0]["message"])
+        else:
+            raise ValueError("Empty response from OpenAI")
+
     async def _run_eval_async(self, output, expected, **kwargs):
         validity_score = 1
         try:
-            resp = await arun_cached_request(
-                openai.ChatCompletion,
-                model=self.model,
-                messages=self._render_messages(output=output, expected=expected, **kwargs),
-                functions=self.classification_functions,
-                function_call={"name": "select_choice"},
-                **self.extra_args,
+            return self._postprocess_response(
+                await arun_cached_request(**self._request_args(self, output, expected, kwargs))
             )
-            if len(resp["choices"]) > 0:
-                return self._process_response(resp["choices"][0]["message"])
-            else:
-                raise ValueError("Empty response from OpenAI")
         except Exception as e:
             validity_score = 0
             return Score(name=self.name, score=0, error=e)
@@ -146,18 +153,7 @@ class OpenAILLMClassifier(Scorer):
     def _run_eval_sync(self, output, expected, **kwargs):
         validity_score = 1
         try:
-            resp = run_cached_request(
-                openai.ChatCompletion,
-                model=self.model,
-                messages=self._render_messages(output=output, expected=expected, **kwargs),
-                functions=self.classification_functions,
-                function_call={"name": "select_choice"},
-                **self.extra_args,
-            )
-            if len(resp["choices"]) > 0:
-                return self._process_response(resp["choices"][0]["message"])
-            else:
-                raise ValueError("Empty response from OpenAI")
+            return self._postprocess_response(run_cached_request(**self._request_args(self, output, expected, kwargs)))
         except Exception as e:
             validity_score = 0
             return Score(name=self.name, score=0, error=e)

@@ -29,8 +29,8 @@ def open_cache():
     return _CONN
 
 
-def log_openai_request(span, input_args, response, **kwargs):
-    span = span or current_span()
+def log_openai_request(input_args, response, **kwargs):
+    span = current_span()
     if not span:
         return
 
@@ -78,7 +78,7 @@ def run_cached_request(Completion=None, **kwargs):
         cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
         conn.commit()
 
-    log_openai_request(current_span(), kwargs, resp, cached=cached)
+    log_openai_request(kwargs, resp, cached=cached)
 
     return resp
 
@@ -114,6 +114,6 @@ async def arun_cached_request(Completion=None, **kwargs):
         cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
         conn.commit()
 
-    log_openai_request(current_span(), kwargs, resp, cached=cached, retries=retries)
+    log_openai_request(kwargs, resp, cached=cached, retries=retries)
 
     return resp

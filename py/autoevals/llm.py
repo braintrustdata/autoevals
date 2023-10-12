@@ -7,7 +7,6 @@ from typing import List, Optional
 import chevron
 import openai
 import yaml
-from pydantic import BaseModel, Field
 
 from .base import Score, Scorer
 from .oai import arun_cached_request, run_cached_request
@@ -35,16 +34,27 @@ SUPPORTED_MODELS = [
 ]
 
 
-class PlainResponse(BaseModel):
-    choice: str = Field(..., description="The choice")
+PLAIN_RESPONSE_SCHEMA = {
+    "properties": {"choice": {"description": "The choice", "title": "Choice", "type": "string"}},
+    "required": ["choice"],
+    "title": "PlainResponse",
+    "type": "object",
+}
 
-
-class CoTResponse(BaseModel):
-    reasons: List[str] = Field(
-        ...,
-        description="Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.",
-    )
-    choice: str = Field(..., description="The choice")
+COT_RESPONSE_SCHEMA = {
+    "properties": {
+        "reasons": {
+            "description": "Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.",
+            "items": {"type": "string"},
+            "title": "Reasons",
+            "type": "array",
+        },
+        "choice": {"description": "The choice", "title": "Choice", "type": "string"},
+    },
+    "required": ["reasons", "choice"],
+    "title": "CoTResponse",
+    "type": "object",
+}
 
 
 def build_classification_functions(useCoT):
@@ -52,7 +62,7 @@ def build_classification_functions(useCoT):
         {
             "name": "select_choice",
             "description": "Call this function to select a choice.",
-            "parameters": CoTResponse.model_json_schema() if useCoT else PlainResponse.model_json_schema(),
+            "parameters": COT_RESPONSE_SCHEMA if useCoT else PLAIN_RESPONSE_SCHEMA,
         }
     ]
 

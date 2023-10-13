@@ -10,7 +10,8 @@ prompt: |-
   ************
   [END DATA]
 
-  Please discuss each summary briefly (one line for pros, one for cons).
+  Compare summary A with summary B. Ignore any differences in style, grammar, or punctuation.
+  Determine which summary better describes the original text.
 choice_scores:
   "A": 0
   "B": 1

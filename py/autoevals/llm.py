@@ -78,18 +78,21 @@ class OpenAILLMClassifier(Scorer):
         render_args=None,
         max_tokens=None,
         temperature=None,
+        engine=None
     ):
         found = False
-        for m in SUPPORTED_MODELS:
-            # Prefixes are ok, because they are just time snapshots
-            if model.startswith(m):
-                found = True
-                break
-        if not found:
-            raise ValueError(f"Unsupported model: {model}. Currently only supports OpenAI chat models.")
+        if engine is None:
+            for m in SUPPORTED_MODELS:
+                # Prefixes are ok, because they are just time snapshots
+                if model.startswith(m):
+                    found = True
+                    break
+            if not found:
+                raise ValueError(f"Unsupported model: {model}. Currently only supports OpenAI chat models.")
 
         self.name = name
         self.model = model
+        self.engine = engine
         self.messages = messages
         self.choice_scores = choice_scores
         self.classification_functions = classification_functions
@@ -136,6 +139,7 @@ class OpenAILLMClassifier(Scorer):
         return dict(
             Completion=openai.ChatCompletion,
             model=self.model,
+            engine=self.engine,
             messages=self._render_messages(output=output, expected=expected, **kwargs),
             functions=self.classification_functions,
             function_call={"name": "select_choice"},
@@ -176,6 +180,7 @@ class ModelGradedSpec:
     prompt: str
     choice_scores: dict[str, float]
     model: Optional[str] = None
+    engine: Optional[str] = None
     use_cot: Optional[bool] = None
     temperature: Optional[float] = None
 
@@ -195,6 +200,7 @@ class LLMClassifier(OpenAILLMClassifier):
         use_cot=True,
         max_tokens=512,
         temperature=0,
+        engine=None
     ):
         choice_strings = list(choice_scores.keys())
 
@@ -214,12 +220,13 @@ class LLMClassifier(OpenAILLMClassifier):
             classification_functions=build_classification_functions(use_cot),
             max_tokens=max_tokens,
             temperature=temperature,
+            engine=engine,
             render_args={"__choices": choice_strings},
         )
 
     @classmethod
     def from_spec(cls, name: str, spec: ModelGradedSpec, **kwargs):
-        return cls(name, spec.prompt, spec.choice_scores, **kwargs)
+        return cls(name, spec.prompt, spec.choice_scores,  **kwargs)
 
     @classmethod
     def from_spec_file(cls, name: str, path: str, **kwargs):
@@ -229,10 +236,12 @@ class LLMClassifier(OpenAILLMClassifier):
 
 
 class SpecFileClassifier(LLMClassifier):
-    def __new__(cls, model=None, use_cot=None, max_tokens=None, temperature=None):
+    def __new__(cls, model=None, engine=None, use_cot=None, max_tokens=None, temperature=None):
         kwargs = {}
         if model is not None:
             kwargs["model"] = model
+        if engine is not None:
+            kwargs["engine"] = engine
         if use_cot is not None:
             kwargs["use_cot"] = use_cot
         if max_tokens is not None:

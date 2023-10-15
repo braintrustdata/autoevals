@@ -32,8 +32,8 @@ declare global {
   var __inherited_braintrust_state: any;
 }
 export function currentSpan() {
-  if (__inherited_braintrust_state) {
-    return __inherited_braintrust_state.currentSpan.getStore();
+  if (globalThis.__inherited_braintrust_state) {
+    return globalThis.__inherited_braintrust_state.currentSpan.getStore();
   } else {
     return new NoopSpan();
   }

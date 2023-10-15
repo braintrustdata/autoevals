@@ -8,6 +8,7 @@ import {
   ChatCompletionCreateParams,
   ChatCompletionMessage,
 } from "openai/resources/index.mjs";
+import { currentSpan } from "./util.js";
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
@@ -76,78 +77,111 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     name,
     output,
     expected,
-    messages: messagesArg,
-    model,
-    choiceScores,
-    classificationFunctions,
-    maxTokens,
-    temperature,
-    cache,
     openAiApiKey,
     openAiOrganizationId,
-    ...remainingRenderArgs
+    ...remaining
   } = args;
 
-  let found = false;
-  for (const m of SUPPORTED_MODELS) {
-    if (model.startsWith(m)) {
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    throw new Error(
-      `Unsupported model: ${model}. Currently only supports OpenAI chat models.`
-    );
-  }
-
-  const extraArgs = {
-    temperature: temperature || 0,
-    max_tokens: maxTokens,
-  };
-
-  const renderArgs = {
-    output,
-    expected,
-    ...remainingRenderArgs,
-  };
-
-  const messages: ChatCompletionMessage[] = messagesArg.map((m) => ({
-    ...m,
-    content: m.content && mustache.render(m.content, renderArgs),
-  }));
-
-  try {
-    const resp = await cachedChatCompletion(
-      {
-        model,
-        messages,
-        functions: classificationFunctions,
-        function_call: { name: "select_choice" },
-        ...extraArgs,
-      },
-      {
-        cache,
-        openAiApiKey,
-        openAiOrganizationId,
-      }
-    );
-
-    if (resp.choices.length > 0) {
-      return {
-        name,
-        ...parseResponse(resp.choices[0].message!, choiceScores),
-      };
-    } else {
-      throw new Error("Empty response from OpenAI");
-    }
-  } catch (error) {
-    return {
+  return currentSpan().startSpanWithCallback(
+    {
       name,
-      score: 0,
-      error: `${error}`,
-    };
-  }
+      event: {
+        input: {
+          output,
+          expected,
+        },
+        metadata: remaining,
+      },
+    },
+    async (span: any) => {
+      const {
+        messages: messagesArg,
+        model,
+        choiceScores,
+        classificationFunctions,
+        maxTokens,
+        temperature,
+        cache,
+        ...remainingRenderArgs
+      } = remaining;
+
+      let found = false;
+      for (const m of SUPPORTED_MODELS) {
+        if (model.startsWith(m)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        throw new Error(
+          `Unsupported model: ${model}. Currently only supports OpenAI chat models.`
+        );
+      }
+
+      const extraArgs = {
+        temperature: temperature || 0,
+        max_tokens: maxTokens,
+      };
+
+      const renderArgs = {
+        output,
+        expected,
+        ...remainingRenderArgs,
+      };
+
+      const messages: ChatCompletionMessage[] = messagesArg.map((m) => ({
+        ...m,
+        content: m.content && mustache.render(m.content, renderArgs),
+      }));
+
+      let ret = null;
+      let validityScore = 1;
+      try {
+        const resp = await cachedChatCompletion(
+          {
+            model,
+            messages,
+            functions: classificationFunctions,
+            function_call: { name: "select_choice" },
+            ...extraArgs,
+          },
+          {
+            cache,
+            openAiApiKey,
+            openAiOrganizationId,
+          }
+        );
+
+        if (resp.choices.length > 0) {
+          ret = {
+            name,
+            ...parseResponse(resp.choices[0].message!, choiceScores),
+          };
+        } else {
+          throw new Error("Empty response from OpenAI");
+        }
+      } catch (error) {
+        validityScore = 0;
+        ret = {
+          name,
+          score: 0,
+          error: `${error}`,
+        };
+      }
+
+      const { metadata, ...finalOutput } = ret;
+
+      span.log({
+        output: finalOutput,
+        metadata,
+        scores: {
+          [`${name} parsed`]: validityScore,
+        },
+      });
+
+      return ret;
+    }
+  );
 }
 
 function parseResponse(

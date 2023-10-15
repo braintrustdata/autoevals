@@ -1,10 +1,10 @@
+import { ChatCompletionMessage } from "openai/resources/index.mjs";
 import {
   Battle,
   LLMClassifierFromTemplate,
   OpenAIClassifier,
   buildClassificationFunctions,
 } from "../js/llm";
-import { ChatCompletionRequestMessage } from "openai";
 import { ChatCache } from "../js/oai";
 
 let cache: ChatCache | undefined;
@@ -18,7 +18,7 @@ test("openai", async () => {
     return grade.match(/Winner: (\d+)/)![1];
   };
 
-  const messages: ChatCompletionRequestMessage[] = [
+  const messages: ChatCompletionMessage[] = [
     {
       role: "system",
       content: `You are a technical project manager who helps software engineers generate better titles for their GitHub issues.

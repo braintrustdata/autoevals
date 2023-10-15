@@ -2,13 +2,12 @@ import * as yaml from "js-yaml";
 import mustache from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "./base.js";
-import {
-  ChatCompletionFunctions,
-  ChatCompletionRequestMessage,
-  ChatCompletionResponseMessage,
-} from "openai";
 import { ChatCache, cachedChatCompletion } from "./oai.js";
 import { templates } from "./templates.js";
+import {
+  ChatCompletionCreateParams,
+  ChatCompletionMessage,
+} from "openai/resources/index.mjs";
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
@@ -63,9 +62,9 @@ export function buildClassificationFunctions(useCoT: boolean) {
 export type OpenAIClassifierArgs<RenderArgs> = {
   name: string;
   model: string;
-  messages: ChatCompletionRequestMessage[];
+  messages: ChatCompletionMessage[];
   choiceScores: Record<string, number>;
-  classificationFunctions: ChatCompletionFunctions[];
+  classificationFunctions: ChatCompletionCreateParams.Function[];
   cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
@@ -113,7 +112,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     ...remainingRenderArgs,
   };
 
-  const messages: ChatCompletionRequestMessage[] = messagesArg.map((m) => ({
+  const messages: ChatCompletionMessage[] = messagesArg.map((m) => ({
     ...m,
     content: m.content && mustache.render(m.content, renderArgs),
   }));
@@ -152,7 +151,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
 }
 
 function parseResponse(
-  resp: ChatCompletionResponseMessage,
+  resp: ChatCompletionMessage,
   choiceScores: Record<string, number>
 ): Omit<Score, "name"> {
   let score = 0;
@@ -160,7 +159,7 @@ function parseResponse(
   const metadata: Record<string, unknown> = {};
   try {
     const args = JSON.parse(resp.function_call!.arguments!);
-    metadata["rationale"] = args["reasons"].join("\n");
+    metadata["rationale"] = args["reasons"]?.join("\n");
     const choice = args["choice"].trim();
     metadata["choice"] = choice;
     if (choiceScores[choice] !== undefined) {
@@ -211,7 +210,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
     let maxTokens = 512;
-    const messages: ChatCompletionRequestMessage[] = [
+    const messages: ChatCompletionMessage[] = [
       {
         role: "user",
         content: prompt,

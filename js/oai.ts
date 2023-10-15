@@ -1,28 +1,23 @@
 import {
-  ChatCompletionFunctions,
-  ChatCompletionRequestMessage,
-  Configuration,
-  CreateChatCompletionRequestFunctionCall,
-  CreateChatCompletionResponse,
-  OpenAIApi,
-} from "openai";
+  ChatCompletion,
+  ChatCompletionCreateParams,
+  ChatCompletionMessage,
+} from "openai/resources/index.mjs";
 import { Env } from "./env.js";
+import { OpenAI } from "openai";
 
 export interface CachedLLMParams {
   model: string;
-  messages: ChatCompletionRequestMessage[];
-  functions?: ChatCompletionFunctions[];
-  function_call?: CreateChatCompletionRequestFunctionCall;
+  messages: ChatCompletionMessage[];
+  functions?: ChatCompletionCreateParams.Function[];
+  function_call?: ChatCompletionCreateParams.FunctionCallOption;
   temperature?: number;
   max_tokens?: number;
 }
 
 export interface ChatCache {
-  get(params: CachedLLMParams): Promise<CreateChatCompletionResponse | null>;
-  set(
-    params: CachedLLMParams,
-    response: CreateChatCompletionResponse
-  ): Promise<void>;
+  get(params: CachedLLMParams): Promise<ChatCompletion | null>;
+  set(params: CachedLLMParams, response: ChatCompletion): Promise<void>;
 }
 
 export interface OpenAIAuth {
@@ -33,7 +28,7 @@ export interface OpenAIAuth {
 export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth
-): Promise<CreateChatCompletionResponse> {
+): Promise<ChatCompletion> {
   const { cache, openAiApiKey, openAiOrganizationId } = options;
 
   const cached = await cache?.get(params);
@@ -41,20 +36,18 @@ export async function cachedChatCompletion(
     return cached;
   }
 
-  const config = new Configuration({
+  const openai = new OpenAI({
     apiKey: openAiApiKey || Env.OPENAI_API_KEY,
     organization: openAiOrganizationId,
   });
-  const openai = new OpenAIApi(config);
 
   if (openai === null) {
     throw new Error("OPENAI_API_KEY not set");
   }
 
-  const completion = await openai.createChatCompletion(params);
-  const data = completion.data;
+  const completion = await openai.chat.completions.create(params);
 
-  await cache?.set(params, data);
+  await cache?.set(params, completion);
 
-  return data;
+  return completion;
 }

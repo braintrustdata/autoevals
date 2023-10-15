@@ -160,7 +160,7 @@ function parseResponse(
   const metadata: Record<string, unknown> = {};
   try {
     const args = JSON.parse(resp.function_call!.arguments!);
-    metadata["rationale"] = args["reasons"].join("\n");
+    metadata["rationale"] = args["reasons"]?.join("\n");
     const choice = args["choice"].trim();
     metadata["choice"] = choice;
     if (choiceScores[choice] !== undefined) {

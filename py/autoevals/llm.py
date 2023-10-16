@@ -80,16 +80,6 @@ class OpenAILLMClassifier(Scorer):
         temperature=None,
         engine=None
     ):
-        found = False
-        if engine is None:
-            for m in SUPPORTED_MODELS:
-                # Prefixes are ok, because they are just time snapshots
-                if model.startswith(m):
-                    found = True
-                    break
-            if not found:
-                raise ValueError(f"Unsupported model: {model}. Currently only supports OpenAI chat models.")
-
         self.name = name
         self.model = model
         self.engine = engine

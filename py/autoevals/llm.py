@@ -78,7 +78,7 @@ class OpenAILLMClassifier(Scorer):
         render_args=None,
         max_tokens=None,
         temperature=None,
-        engine=None
+        engine=None,
     ):
         self.name = name
         self.model = model
@@ -190,7 +190,7 @@ class LLMClassifier(OpenAILLMClassifier):
         use_cot=True,
         max_tokens=512,
         temperature=0,
-        engine=None
+        engine=None,
     ):
         choice_strings = list(choice_scores.keys())
 
@@ -216,7 +216,7 @@ class LLMClassifier(OpenAILLMClassifier):
 
     @classmethod
     def from_spec(cls, name: str, spec: ModelGradedSpec, **kwargs):
-        return cls(name, spec.prompt, spec.choice_scores,  **kwargs)
+        return cls(name, spec.prompt, spec.choice_scores, **kwargs)
 
     @classmethod
     def from_spec_file(cls, name: str, path: str, **kwargs):

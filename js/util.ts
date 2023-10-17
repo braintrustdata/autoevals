@@ -3,6 +3,7 @@ export class NoopSpan {
   public id: string;
   public span_id: string;
   public root_span_id: string;
+  public kind: "span" = "span";
 
   constructor() {
     this.id = "";
@@ -12,19 +13,19 @@ export class NoopSpan {
 
   public log(_: any) {}
 
-  public startSpan(_: any) {
+  public startSpan(_0: string, _1?: any) {
     return this;
   }
 
-  public startSpanWithCallback<R>(_: any, callback: (span: any) => R): R {
+  public traced<R>(_0: string, callback: (span: any) => R, _1: any): R {
     return callback(this);
   }
 
-  public end(args?: { endTime?: number }): number {
+  public end(args?: any): number {
     return args?.endTime ?? new Date().getTime() / 1000;
   }
 
-  public close(args?: { endTime?: number }): number {
+  public close(args?: any): number {
     return this.end(args);
   }
 }

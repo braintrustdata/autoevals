@@ -1,28 +1,25 @@
 import {
-  ChatCompletionFunctions,
-  ChatCompletionRequestMessage,
-  Configuration,
-  CreateChatCompletionRequestFunctionCall,
-  CreateChatCompletionResponse,
-  OpenAIApi,
-} from "openai";
+  ChatCompletion,
+  ChatCompletionCreateParams,
+  ChatCompletionMessage,
+} from "openai/resources/index.mjs";
+import { OpenAI } from "openai";
+
 import { Env } from "./env.js";
+import { currentSpan } from "./util.js";
 
 export interface CachedLLMParams {
   model: string;
-  messages: ChatCompletionRequestMessage[];
-  functions?: ChatCompletionFunctions[];
-  function_call?: CreateChatCompletionRequestFunctionCall;
+  messages: ChatCompletionMessage[];
+  functions?: ChatCompletionCreateParams.Function[];
+  function_call?: ChatCompletionCreateParams.FunctionCallOption;
   temperature?: number;
   max_tokens?: number;
 }
 
 export interface ChatCache {
-  get(params: CachedLLMParams): Promise<CreateChatCompletionResponse | null>;
-  set(
-    params: CachedLLMParams,
-    response: CreateChatCompletionResponse
-  ): Promise<void>;
+  get(params: CachedLLMParams): Promise<ChatCompletion | null>;
+  set(params: CachedLLMParams, response: ChatCompletion): Promise<void>;
 }
 
 export interface OpenAIAuth {
@@ -33,28 +30,45 @@ export interface OpenAIAuth {
 export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth
-): Promise<CreateChatCompletionResponse> {
+): Promise<ChatCompletion> {
   const { cache, openAiApiKey, openAiOrganizationId } = options;
 
-  const cached = await cache?.get(params);
-  if (cached) {
-    return cached;
-  }
+  return await currentSpan().traced("OpenAI Completion", async (span: any) => {
+    let cached = false;
+    let ret = await cache?.get(params);
+    if (ret) {
+      cached = true;
+    } else {
+      const openai = new OpenAI({
+        apiKey: openAiApiKey || Env.OPENAI_API_KEY,
+        organization: openAiOrganizationId,
+      });
 
-  const config = new Configuration({
-    apiKey: openAiApiKey || Env.OPENAI_API_KEY,
-    organization: openAiOrganizationId,
+      if (openai === null) {
+        throw new Error("OPENAI_API_KEY not set");
+      }
+
+      const completion = await openai.chat.completions.create(params);
+
+      await cache?.set(params, completion);
+      ret = completion;
+    }
+
+    const { messages, ...rest } = params;
+    span.log({
+      input: messages,
+      metadata: {
+        ...rest,
+        cached,
+      },
+      output: ret.choices[0],
+      metrics: {
+        tokens: ret.usage?.total_tokens,
+        prompt_tokens: ret.usage?.prompt_tokens,
+        completion_tokens: ret.usage?.completion_tokens,
+      },
+    });
+
+    return ret;
   });
-  const openai = new OpenAIApi(config);
-
-  if (openai === null) {
-    throw new Error("OPENAI_API_KEY not set");
-  }
-
-  const completion = await openai.createChatCompletion(params);
-  const data = completion.data;
-
-  await cache?.set(params, data);
-
-  return data;
 }

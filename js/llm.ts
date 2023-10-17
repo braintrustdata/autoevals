@@ -2,13 +2,13 @@ import * as yaml from "js-yaml";
 import mustache from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "./base.js";
-import {
-  ChatCompletionFunctions,
-  ChatCompletionRequestMessage,
-  ChatCompletionResponseMessage,
-} from "openai";
 import { ChatCache, cachedChatCompletion } from "./oai.js";
 import { templates } from "./templates.js";
+import {
+  ChatCompletionCreateParams,
+  ChatCompletionMessage,
+} from "openai/resources/index.mjs";
+import { currentSpan } from "./util.js";
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
@@ -63,9 +63,9 @@ export function buildClassificationFunctions(useCoT: boolean) {
 export type OpenAIClassifierArgs<RenderArgs> = {
   name: string;
   model: string;
-  messages: ChatCompletionRequestMessage[];
+  messages: ChatCompletionMessage[];
   choiceScores: Record<string, number>;
-  classificationFunctions: ChatCompletionFunctions[];
+  classificationFunctions: ChatCompletionCreateParams.Function[];
   cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
@@ -77,6 +77,12 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     name,
     output,
     expected,
+    openAiApiKey,
+    openAiOrganizationId,
+    ...remaining
+  } = args;
+
+  const {
     messages: messagesArg,
     model,
     choiceScores,
@@ -84,10 +90,8 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     maxTokens,
     temperature,
     cache,
-    openAiApiKey,
-    openAiOrganizationId,
     ...remainingRenderArgs
-  } = args;
+  } = remaining;
 
   let found = false;
   for (const m of SUPPORTED_MODELS) {
@@ -113,11 +117,13 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     ...remainingRenderArgs,
   };
 
-  const messages: ChatCompletionRequestMessage[] = messagesArg.map((m) => ({
+  const messages: ChatCompletionMessage[] = messagesArg.map((m) => ({
     ...m,
     content: m.content && mustache.render(m.content, renderArgs),
   }));
 
+  let ret = null;
+  let validityScore = 1;
   try {
     const resp = await cachedChatCompletion(
       {
@@ -135,7 +141,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     );
 
     if (resp.choices.length > 0) {
-      return {
+      ret = {
         name,
         ...parseResponse(resp.choices[0].message!, choiceScores),
       };
@@ -143,16 +149,19 @@ export async function OpenAIClassifier<RenderArgs, Output>(
       throw new Error("Empty response from OpenAI");
     }
   } catch (error) {
-    return {
+    validityScore = 0;
+    ret = {
       name,
       score: 0,
       error: `${error}`,
     };
   }
+
+  return ret;
 }
 
 function parseResponse(
-  resp: ChatCompletionResponseMessage,
+  resp: ChatCompletionMessage,
   choiceScores: Record<string, number>
 ): Omit<Score, "name"> {
   let score = 0;
@@ -202,7 +211,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   temperature?: number;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
-  return async (
+  const ret = async (
     runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>
   ) => {
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
@@ -211,7 +220,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
     let maxTokens = 512;
-    const messages: ChatCompletionRequestMessage[] = [
+    const messages: ChatCompletionMessage[] = [
       {
         role: "user",
         content: prompt,
@@ -234,6 +243,12 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       useCoT,
     });
   };
+  Object.defineProperty(ret, "name", {
+    value: name,
+    configurable: true,
+  });
+
+  return ret;
 }
 
 export interface ModelGradedSpec {

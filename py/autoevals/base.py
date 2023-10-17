@@ -25,18 +25,10 @@ class Score(SerializableDataClass):
 
 class Scorer(ABC):
     async def eval_async(self, output, expected=None, **kwargs):
-        with current_span().start_span(
-            name=self._name(), input={"output": output, "expected": expected, **kwargs}
-        ) as span:
-            try:
-                result = await self._run_eval_async(output, expected, **kwargs)
-            except Exception as e:
-                result = Score(name=self._name(), score=0, error=e)
-
-            score_output = result.as_dict()
-            score_metadata = score_output.pop("metadata", {})
-            span.log(output=score_output, metadata=score_metadata)
-            return result
+        try:
+            return await self._run_eval_async(output, expected, **kwargs)
+        except Exception as e:
+            return Score(name=self._name(), score=0, error=e)
 
     def eval(self, output, expected=None, **kwargs):
         try:

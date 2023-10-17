@@ -211,7 +211,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   temperature?: number;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
-  return async (
+  const ret = async (
     runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>
   ) => {
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
@@ -243,6 +243,12 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       useCoT,
     });
   };
+  Object.defineProperty(ret, "name", {
+    value: name,
+    configurable: true,
+  });
+
+  return ret;
 }
 
 export interface ModelGradedSpec {

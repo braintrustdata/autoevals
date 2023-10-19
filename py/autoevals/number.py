@@ -8,7 +8,7 @@ class NumericDiff(Scorer):
 
     def _run_eval_sync(self, output, expected=None, **kwargs):
         if expected is None:
-            raise ValueError("LevenshteinScorer requires an expected value")
+            raise ValueError("NumericDiff requires an expected value")
 
         if expected == 0 and output == 0:
             score = 1

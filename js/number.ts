@@ -7,7 +7,7 @@ export const NumericDiff: Scorer<number, {}> = (args) => {
   const { output, expected } = args;
 
   if (expected === undefined) {
-    throw new Error("NumericDifference requires an expected value");
+    throw new Error("NumericDiff requires an expected value");
   }
 
   const score =

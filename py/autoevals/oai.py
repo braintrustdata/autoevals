@@ -90,9 +90,6 @@ def run_cached_request(Completion=None, **kwargs):
     return resp
 
 
-ACACHE_LOCK = asyncio.Lock()
-
-
 @traced(name="OpenAI Completion")
 async def arun_cached_request(Completion=None, **kwargs):
     # OpenAI is very slow to import, so we only do it if we need it
@@ -103,7 +100,7 @@ async def arun_cached_request(Completion=None, **kwargs):
 
     param_key = json.dumps(kwargs)
     conn = open_cache()
-    with ACACHE_LOCK:
+    with CACHE_LOCK:
         cursor = conn.cursor()
         resp = cursor.execute("""SELECT response FROM "cache" WHERE params=?""", [param_key]).fetchone()
     cached = False
@@ -122,7 +119,7 @@ async def arun_cached_request(Completion=None, **kwargs):
                 await asyncio.sleep(sleep_time)
                 retries += 1
 
-        with ACACHE_LOCK:
+        with CACHE_LOCK:
             cursor = conn.cursor()
             cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
             conn.commit()

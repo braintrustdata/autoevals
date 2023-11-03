@@ -79,6 +79,7 @@ class OpenAILLMClassifier(Scorer):
         max_tokens=None,
         temperature=None,
         engine=None,
+        api_key=None,
     ):
         self.name = name
         self.model = model
@@ -90,6 +91,8 @@ class OpenAILLMClassifier(Scorer):
         self.extra_args = {"temperature": temperature or 0}
         if max_tokens:
             self.extra_args["max_tokens"] = max(max_tokens, 5)
+        if api_key:
+            self.extra_args["api_key"] = api_key
 
         self.render_args = {}
         if render_args:
@@ -191,6 +194,7 @@ class LLMClassifier(OpenAILLMClassifier):
         max_tokens=512,
         temperature=0,
         engine=None,
+        api_key=None,
     ):
         choice_strings = list(choice_scores.keys())
 
@@ -211,6 +215,7 @@ class LLMClassifier(OpenAILLMClassifier):
             max_tokens=max_tokens,
             temperature=temperature,
             engine=engine,
+            api_key=api_key,
             render_args={"__choices": choice_strings},
         )
 
@@ -226,7 +231,7 @@ class LLMClassifier(OpenAILLMClassifier):
 
 
 class SpecFileClassifier(LLMClassifier):
-    def __new__(cls, model=None, engine=None, use_cot=None, max_tokens=None, temperature=None):
+    def __new__(cls, model=None, engine=None, use_cot=None, max_tokens=None, temperature=None, api_key=None):
         kwargs = {}
         if model is not None:
             kwargs["model"] = model
@@ -238,6 +243,8 @@ class SpecFileClassifier(LLMClassifier):
             kwargs["max_tokens"] = max_tokens
         if temperature is not None:
             kwargs["temperature"] = temperature
+        if api_key is not None:
+            kwargs["api_key"] = api_key
 
         # convert FooBar to foo_bar
         template_name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()

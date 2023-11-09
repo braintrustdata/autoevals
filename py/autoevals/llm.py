@@ -129,15 +129,20 @@ class OpenAILLMClassifier(Scorer):
         ]
 
     def _request_args(self, output, expected, **kwargs):
-        return dict(
-            Completion=openai.ChatCompletion,
+        ret = dict(
             model=self.model,
-            engine=self.engine,
             messages=self._render_messages(output=output, expected=expected, **kwargs),
             functions=self.classification_functions,
             function_call={"name": "select_choice"},
             **self.extra_args,
         )
+
+        if self.engine is not None:
+            # This parameter has been deprecated (https://help.openai.com/en/articles/6283125-what-happened-to-engines)
+            # and is unsupported in OpenAI v1, so only set it if the user has specified it
+            ret['engine'] = self.engine
+        
+        return ret
 
     def _postprocess_response(self, resp):
         if len(resp["choices"]) > 0:
@@ -163,6 +168,8 @@ class OpenAILLMClassifier(Scorer):
             return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
         except Exception as e:
             validity_score = 0
+            import traceback
+            traceback.print_exc()
             return Score(name=self.name, score=0, error=e)
         finally:
             current_span().log(scores={f"{self._name()} parsed": validity_score})

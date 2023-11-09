@@ -1,6 +1,7 @@
 import asyncio
 import os
-import re
+
+import chevron
 
 from autoevals.llm import build_classification_functions
 from autoevals.oai import set_cache_dir
@@ -11,6 +12,14 @@ from autoevals.oai import set_cache_dir
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 set_cache_dir(os.path.join(_SCRIPT_DIR, "../../.testcache"))
 from autoevals.llm import *
+
+
+def test_template_html():
+    template_double = "{{output}}"
+    template_triple = "{{{output}}}"
+
+    assert chevron.render(template_double, dict(output="Template<Foo>")) == "Template&lt;Foo&gt;"
+    assert chevron.render(template_triple, dict(output="Template<Foo>")) == "Template<Foo>"
 
 
 def test_openai():

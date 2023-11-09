@@ -2,6 +2,7 @@ import dataclasses
 import json
 import sys
 import textwrap
+import time
 
 
 class SerializableDataClass:
@@ -14,21 +15,40 @@ class SerializableDataClass:
         return json.dumps(self.as_dict(), **kwargs)
 
 
-class NoOpSpan:
-    def log(self, **kwargs):
+# DEVNOTE: This is copied from braintrust-sdk/py/src/braintrust/logger.py
+class _NoopSpan:
+    def __init__(self, *args, **kwargs):
         pass
 
-    def start_span(self, *args, **kwargs):
+    @property
+    def id(self):
+        return ""
+
+    @property
+    def span_id(self):
+        return ""
+
+    @property
+    def root_span_id(self):
+        return ""
+
+    def log(self, **event):
+        pass
+
+    def start_span(self, name, span_attributes={}, start_time=None, set_current=None, **event):
         return self
 
-    def end(self, *args, **kwargs):
-        pass
+    def end(self, end_time=None):
+        return end_time or time.time()
+
+    def close(self, end_time=None):
+        return self.end(end_time)
 
     def __enter__(self):
-        pass
+        return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+    def __exit__(self, type, value, callback):
+        del type, value, callback
 
 
 def current_span():
@@ -37,7 +57,7 @@ def current_span():
 
         return _get_current_span()
     except ImportError as e:
-        return NoOpSpan()
+        return _NoopSpan()
 
 
 def traced(*span_args, **span_kwargs):

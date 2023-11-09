@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 import chevron
-import openai
 import yaml
 
 from .base import Score, Scorer
@@ -140,8 +139,8 @@ class OpenAILLMClassifier(Scorer):
         if self.engine is not None:
             # This parameter has been deprecated (https://help.openai.com/en/articles/6283125-what-happened-to-engines)
             # and is unsupported in OpenAI v1, so only set it if the user has specified it
-            ret['engine'] = self.engine
-        
+            ret["engine"] = self.engine
+
         return ret
 
     def _postprocess_response(self, resp):
@@ -168,8 +167,6 @@ class OpenAILLMClassifier(Scorer):
             return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
         except Exception as e:
             validity_score = 0
-            import traceback
-            traceback.print_exc()
             return Score(name=self.name, score=0, error=e)
         finally:
             current_span().log(scores={f"{self._name()} parsed": validity_score})

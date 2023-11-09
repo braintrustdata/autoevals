@@ -51,19 +51,23 @@ def traced(*span_args, **span_kwargs):
         else:
             return lambda f: f
 
+
 def prepare_openai_complete(is_async=False, api_key=None):
     try:
         import openai
     except Exception as e:
-        print(textwrap.dedent(
-            f"""\
-            Unable to import openai. Please install it, e.g. with
+        print(
+            textwrap.dedent(
+                f"""\
+            Unable to import openai: {e}
+
+            Please install it, e.g. with
 
               pip install 'openai'
-
-            {e}
             """
-        ), file=sys.stderr)
+            ),
+            file=sys.stderr,
+        )
         raise
 
     openai_obj = openai
@@ -78,6 +82,7 @@ def prepare_openai_complete(is_async=False, api_key=None):
 
     try:
         from braintrust.oai import wrap_openai
+
         openai_obj = wrap_openai(openai_obj)
     except ImportError:
         pass

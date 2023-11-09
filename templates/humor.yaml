@@ -1,7 +1,7 @@
 prompt: |-
   Is the following funny?
 
-  {{output}}
+  {{{output}}}
 choice_scores:
   "Yes": 1.0
   "No": 0.0

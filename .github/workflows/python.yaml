@@ -6,6 +6,9 @@ on:
   push:
     branches: [main]
 
+env:
+  OPENAI_API_KEY: sk-dummy
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,7 +21,7 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip setuptools build twine
+          python -m pip install --upgrade pip setuptools build twine openai
           python -m pip install -e .[dev]
       - name: Test with pytest
         run: |

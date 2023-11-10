@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 import chevron
-import openai
 import yaml
 
 from .base import Score, Scorer
@@ -129,15 +128,20 @@ class OpenAILLMClassifier(Scorer):
         ]
 
     def _request_args(self, output, expected, **kwargs):
-        return dict(
-            Completion=openai.ChatCompletion,
+        ret = dict(
             model=self.model,
-            engine=self.engine,
             messages=self._render_messages(output=output, expected=expected, **kwargs),
             functions=self.classification_functions,
             function_call={"name": "select_choice"},
             **self.extra_args,
         )
+
+        if self.engine is not None:
+            # This parameter has been deprecated (https://help.openai.com/en/articles/6283125-what-happened-to-engines)
+            # and is unsupported in OpenAI v1, so only set it if the user has specified it
+            ret["engine"] = self.engine
+
+        return ret
 
     def _postprocess_response(self, resp):
         if len(resp["choices"]) > 0:

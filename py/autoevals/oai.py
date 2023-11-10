@@ -2,11 +2,13 @@ import asyncio
 import json
 import os
 import sqlite3
+import sys
+import textwrap
 import threading
 import time
 from pathlib import Path
 
-from .util import current_span, traced
+from .util import current_span
 
 _CACHE_DIR = None
 _CONN = None
@@ -30,52 +32,103 @@ def open_cache():
     return _CONN
 
 
-def log_openai_request(input_args, response, **kwargs):
-    span = current_span()
-    if not span:
-        return
-
-    input = input_args.pop("messages")
-    span.log(
-        metrics={
-            "tokens": response["usage"]["total_tokens"],
-            "prompt_tokens": response["usage"]["prompt_tokens"],
-            "completion_tokens": response["usage"]["completion_tokens"],
-        },
-        metadata={**input_args, **kwargs},
-        input=input,
-        output=response["choices"][0],
-    )
-
-
 CACHE_LOCK = threading.Lock()
 
 
-@traced(name="OpenAI Completion")
-def run_cached_request(Completion=None, **kwargs):
-    # OpenAI is very slow to import, so we only do it if we need it
-    import openai
+def prepare_openai_complete(is_async=False, api_key=None):
+    try:
+        import openai
+    except Exception as e:
+        print(
+            textwrap.dedent(
+                f"""\
+            Unable to import openai: {e}
 
-    if Completion is None:
-        Completion = openai.Completion
+            Please install it, e.g. with
+
+              pip install 'openai'
+            """
+            ),
+            file=sys.stderr,
+        )
+        raise
+
+    openai_obj = openai
+    is_v1 = False
+    if hasattr(openai, "OpenAI"):
+        # This is the new v1 API
+        is_v1 = True
+        if is_async:
+            openai_obj = openai.AsyncOpenAI(api_key=api_key)
+        else:
+            openai_obj = openai.OpenAI(api_key=api_key)
+
+    try:
+        from braintrust.oai import wrap_openai
+
+        openai_obj = wrap_openai(openai_obj)
+    except ImportError:
+        pass
+
+    complete_fn = None
+    rate_limit_error = None
+    if is_v1:
+        rate_limit_error = openai.RateLimitError
+        complete_fn = openai_obj.chat.completions.create
+    else:
+        rate_limit_error = openai.error.RateLimitError
+        if is_async:
+            complete_fn = openai_obj.ChatCompletion.acreate
+        else:
+            complete_fn = openai_obj.ChatCompletion.create
+
+    return complete_fn, rate_limit_error
+
+
+def post_process_response(resp):
+    # This normalizes against craziness in OpenAI v0 vs. v1
+    if hasattr(resp, "to_dict"):
+        # v0
+        return resp.to_dict()
+    else:
+        # v1
+        return resp.dict()
+
+
+def log_cached_response(params, resp):
+    with current_span().start_span(name="OpenAI Completion") as span:
+        messages = params.pop("messages", None)
+        span.log(
+            metrics={
+                "tokens": resp["usage"]["total_tokens"],
+                "prompt_tokens": resp["usage"]["prompt_tokens"],
+                "completion_tokens": resp["usage"]["completion_tokens"],
+            },
+            input=messages,
+            output=resp["choices"],
+        )
+
+
+def run_cached_request(api_key=None, **kwargs):
+    # OpenAI is very slow to import, so we only do it if we need it
+    complete, RateLimitError = prepare_openai_complete(is_async=False, api_key=api_key)
 
     param_key = json.dumps(kwargs)
     conn = open_cache()
     with CACHE_LOCK:
         cursor = conn.cursor()
         resp = cursor.execute("""SELECT response FROM "cache" WHERE params=?""", [param_key]).fetchone()
-    cached = False
     retries = 0
     if resp:
-        cached = True
         resp = json.loads(resp[0])
+        log_cached_response(kwargs, resp)
     else:
         sleep_time = 0.1
         while retries < 20:
             try:
-                resp = Completion.create(**kwargs).to_dict()
+                resp = post_process_response(complete(**kwargs))
                 break
-            except openai.error.RateLimitError:
+            except RateLimitError:
                 sleep_time *= 1.5
                 time.sleep(sleep_time)
                 retries += 1
@@ -85,36 +138,29 @@ def run_cached_request(Completion=None, **kwargs):
             cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
             conn.commit()
 
-    log_openai_request(kwargs, resp, cached=cached)
-
     return resp
 
 
-@traced(name="OpenAI Completion")
-async def arun_cached_request(Completion=None, **kwargs):
-    # OpenAI is very slow to import, so we only do it if we need it
-    import openai
-
-    if Completion is None:
-        Completion = openai.Completion
+async def arun_cached_request(api_key=None, **kwargs):
+    complete, RateLimitError = prepare_openai_complete(is_async=True, api_key=api_key)
 
     param_key = json.dumps(kwargs)
     conn = open_cache()
     with CACHE_LOCK:
         cursor = conn.cursor()
         resp = cursor.execute("""SELECT response FROM "cache" WHERE params=?""", [param_key]).fetchone()
-    cached = False
     retries = 0
     if resp:
         resp = json.loads(resp[0])
-        cached = True
+        log_cached_response(kwargs, resp)
     else:
         sleep_time = 0.1
         while retries < 100:
             try:
-                resp = (await Completion.acreate(**kwargs)).to_dict()
+                resp = post_process_response(await complete(**kwargs))
                 break
-            except openai.error.RateLimitError:
+            except RateLimitError:
+                # Just assume it's a rate limit error
                 sleep_time *= 1.5
                 await asyncio.sleep(sleep_time)
                 retries += 1
@@ -123,7 +169,5 @@ async def arun_cached_request(Completion=None, **kwargs):
             cursor = conn.cursor()
             cursor.execute("""INSERT INTO "cache" VALUES (?, ?)""", [param_key, json.dumps(resp)])
             conn.commit()
-
-    log_openai_request(kwargs, resp, cached=cached, retries=retries)
 
     return resp

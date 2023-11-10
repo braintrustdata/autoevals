@@ -80,9 +80,9 @@ I'm going to provide you with the issue description, and two possible titles.
 
 Issue Description: {{page_content}}
 
-1: {{output}}
-2: {{expected}}""",
-            {"1": 1, "2": 0},
+A: {{output}}
+B: {{expected}}""",
+            {"A": 1, "B": 0},
             use_cot=use_cot,
         )
 

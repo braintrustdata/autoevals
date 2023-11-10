@@ -84,9 +84,9 @@ I'm going to provide you with the issue description, and two possible titles.
 
 Issue Description: {{page_content}}
 
-1: {{output}}
-2: {{expected}}`,
-      choiceScores: { "1": 1, "2": 0 },
+A: {{output}}
+B: {{expected}}`,
+      choiceScores: { A: 1, B: 0 },
       useCoT,
     });
 
@@ -134,7 +134,7 @@ test("battle", async () => {
       openAiApiKey: process.env.OPENAI_API_KEY!,
     });
 
-    expect(response.score).toBe(useCoT ? 1 : 0);
+    expect(response.score).toBe(1);
     expect(response.error).toBeUndefined();
 
     response = await Battle({

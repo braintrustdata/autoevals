@@ -1,7 +1,5 @@
 import dataclasses
 import json
-import sys
-import textwrap
 import time
 
 
@@ -70,53 +68,3 @@ def traced(*span_args, **span_kwargs):
             return span_args[0]
         else:
             return lambda f: f
-
-
-def prepare_openai_complete(is_async=False, api_key=None):
-    try:
-        import openai
-    except Exception as e:
-        print(
-            textwrap.dedent(
-                f"""\
-            Unable to import openai: {e}
-
-            Please install it, e.g. with
-
-              pip install 'openai'
-            """
-            ),
-            file=sys.stderr,
-        )
-        raise
-
-    openai_obj = openai
-    is_v1 = False
-    if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
-        # This is the new v1 API
-        is_v1 = True
-        if is_async:
-            openai_obj = openai.AsyncOpenAI(api_key=api_key)
-        else:
-            openai_obj = openai.OpenAI(api_key=api_key)
-
-    try:
-        from braintrust.oai import wrap_openai
-
-        openai_obj = wrap_openai(openai_obj)
-    except ImportError:
-        pass
-
-    complete_fn = None
-    rate_limit_error = None
-    if is_v1:
-        rate_limit_error = openai.RateLimitError
-        complete_fn = openai_obj.chat.completions.create
-    else:
-        rate_limit_error = openai.error.RateLimitError
-        if is_async:
-            complete_fn = openai_obj.ChatCompletion.acreate
-        else:
-            complete_fn = openai_obj.ChatCompletion.create
-
-    return complete_fn, rate_limit_error

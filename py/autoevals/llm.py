@@ -27,11 +27,6 @@ single choice by setting the `choice` parameter to a single choice from {{__choi
     "\n", " "
 )
 
-SUPPORTED_MODELS = [
-    "gpt-3.5-turbo",
-    "gpt-4",
-]
-
 
 PLAIN_RESPONSE_SCHEMA = {
     "properties": {"choice": {"description": "The choice", "title": "Choice", "type": "string"}},
@@ -193,7 +188,7 @@ class LLMClassifier(OpenAILLMClassifier):
         name,
         prompt_template,
         choice_scores,
-        model="gpt-3.5-turbo",
+        model="gpt-4-1106-preview",
         use_cot=True,
         max_tokens=512,
         temperature=0,

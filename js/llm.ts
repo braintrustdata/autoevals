@@ -8,15 +8,12 @@ import {
   ChatCompletionCreateParams,
   ChatCompletionMessage,
 } from "openai/resources/index.mjs";
-import { currentSpan } from "./util.js";
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
 
 const COT_SUFFIX =
   "Answer the question by calling `select_choice` with your reasoning in a step-by-step matter to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a single choice by setting the `choice` parameter to a single choice from {{__choices}}.";
-
-const SUPPORTED_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 
 interface LLMArgs {
   maxTokens?: number;
@@ -92,19 +89,6 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     cache,
     ...remainingRenderArgs
   } = remaining;
-
-  let found = false;
-  for (const m of SUPPORTED_MODELS) {
-    if (model.startsWith(m)) {
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    throw new Error(
-      `Unsupported model: ${model}. Currently only supports OpenAI chat models.`
-    );
-  }
 
   const extraArgs = {
     temperature: temperature || 0,
@@ -199,7 +183,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   name,
   promptTemplate,
   choiceScores,
-  model = "gpt-3.5-turbo",
+  model = "gpt-4-1106-preview",
   useCoT: useCoTArg,
   temperature,
 }: {

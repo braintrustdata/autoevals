@@ -80,9 +80,9 @@ I'm going to provide you with the issue description, and two possible titles.
 
 Issue Description: {{page_content}}
 
-1: {{output}}
-2: {{expected}}""",
-            {"1": 1, "2": 0},
+A: {{output}}
+B: {{expected}}""",
+            {"A": 1, "B": 0},
             use_cot=use_cot,
         )
 
@@ -136,7 +136,7 @@ def test_battle():
         )
 
         print(response.as_json(indent=2))
-        assert response.score == (1 if use_cot else 0)
+        assert response.score == 1
         assert response.error is None
 
         response = e(instructions="Add the following numbers: 1, 2, 3", output="6", expected="6")

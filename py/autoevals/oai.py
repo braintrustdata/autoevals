@@ -35,7 +35,8 @@ def open_cache():
 CACHE_LOCK = threading.Lock()
 
 
-def prepare_openai_complete(is_async=False, api_key=None):
+def prepare_openai_complete(is_async=False, api_key=None, base_url="https://api.openai.com/v1"):
+    # base_url always defaults to https://api.openai.com/v1 unless specified by users
     try:
         import openai
     except Exception as e:
@@ -55,7 +56,6 @@ def prepare_openai_complete(is_async=False, api_key=None):
 
     openai_obj = openai
     is_v1 = False
-    base_url = os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1")
     if hasattr(openai, "OpenAI"):
         # This is the new v1 API
         is_v1 = True
@@ -110,9 +110,9 @@ def log_cached_response(params, resp):
         )
 
 
-def run_cached_request(api_key=None, **kwargs):
+def run_cached_request(api_key=None, base_url=None, **kwargs):
     # OpenAI is very slow to import, so we only do it if we need it
-    complete, RateLimitError = prepare_openai_complete(is_async=False, api_key=api_key)
+    complete, RateLimitError = prepare_openai_complete(is_async=False, api_key=api_key, base_url=base_url)
 
     param_key = json.dumps(kwargs)
     conn = open_cache()
@@ -142,8 +142,8 @@ def run_cached_request(api_key=None, **kwargs):
     return resp
 
 
-async def arun_cached_request(api_key=None, **kwargs):
-    complete, RateLimitError = prepare_openai_complete(is_async=True, api_key=api_key)
+async def arun_cached_request(api_key=None, base_url=None, **kwargs):
+    complete, RateLimitError = prepare_openai_complete(is_async=True, api_key=api_key, base_url=base_url)
 
     param_key = json.dumps(kwargs)
     conn = open_cache()

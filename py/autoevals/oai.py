@@ -55,13 +55,14 @@ def prepare_openai_complete(is_async=False, api_key=None):
 
     openai_obj = openai
     is_v1 = False
+    base_url = os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1")
     if hasattr(openai, "OpenAI"):
         # This is the new v1 API
         is_v1 = True
         if is_async:
-            openai_obj = openai.AsyncOpenAI(api_key=api_key)
+            openai_obj = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
         else:
-            openai_obj = openai.OpenAI(api_key=api_key)
+            openai_obj = openai.OpenAI(api_key=api_key, base_url=base_url)
 
     try:
         from braintrust.oai import wrap_openai

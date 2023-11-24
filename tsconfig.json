@@ -4,12 +4,12 @@
     "declaration": true,
     "outDir": "./jsdist",
     "lib": ["es6"],
-    "module": "commonjs",
+    "module": "NodeNext",
     "target": "es6",
     "moduleResolution": "nodenext",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "include": ["js"],
   "exclude": ["node_modules/**"]

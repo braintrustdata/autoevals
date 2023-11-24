@@ -1,7 +1,7 @@
 import {
   ChatCompletion,
   ChatCompletionCreateParams,
-  ChatCompletionMessage,
+  ChatCompletionMessageParam,
 } from "openai/resources/index.mjs";
 import { OpenAI } from "openai";
 
@@ -10,9 +10,9 @@ import { currentSpan } from "./util.js";
 
 export interface CachedLLMParams {
   model: string;
-  messages: ChatCompletionMessage[];
+  messages: ChatCompletionMessageParam[];
   functions?: ChatCompletionCreateParams.Function[];
-  function_call?: ChatCompletionCreateParams.FunctionCallOption;
+  function_call?: ChatCompletionCreateParams["function_call"];
   temperature?: number;
   max_tokens?: number;
 }

@@ -7,6 +7,7 @@ import { templates } from "./templates.js";
 import {
   ChatCompletionCreateParams,
   ChatCompletionMessage,
+  ChatCompletionMessageParam,
 } from "openai/resources/index.mjs";
 import { currentSpan } from "./util.js";
 
@@ -63,7 +64,7 @@ export function buildClassificationFunctions(useCoT: boolean) {
 export type OpenAIClassifierArgs<RenderArgs> = {
   name: string;
   model: string;
-  messages: ChatCompletionMessage[];
+  messages: ChatCompletionMessageParam[];
   choiceScores: Record<string, number>;
   classificationFunctions: ChatCompletionCreateParams.Function[];
   cache?: ChatCache;
@@ -117,9 +118,9 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     ...remainingRenderArgs,
   };
 
-  const messages: ChatCompletionMessage[] = messagesArg.map((m) => ({
+  const messages: ChatCompletionMessageParam[] = messagesArg.map((m) => ({
     ...m,
-    content: m.content && mustache.render(m.content, renderArgs),
+    content: m.content && mustache.render(m.content as string, renderArgs),
   }));
 
   let ret = null;
@@ -220,7 +221,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
     let maxTokens = 512;
-    const messages: ChatCompletionMessage[] = [
+    const messages: ChatCompletionMessageParam[] = [
       {
         role: "user",
         content: prompt,

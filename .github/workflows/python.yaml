@@ -1,13 +1,13 @@
 # Modified from https://github.com/actions/starter-workflows/blob/main/ci/python-app.yml
 name: python
 
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
 on:
   pull_request:
   push:
     branches: [main]
-
-env:
-  OPENAI_API_KEY: sk-dummy
 
 jobs:
   build:

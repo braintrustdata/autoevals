@@ -24,6 +24,7 @@ interface LLMArgs {
   temperature?: number;
   openAiApiKey?: string;
   openAiOrganizationId?: string;
+  openAiBaseUrl?: string;
 }
 
 const PLAIN_RESPONSE_SCHEMA = {
@@ -80,6 +81,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     expected,
     openAiApiKey,
     openAiOrganizationId,
+    openAiBaseUrl,
     ...remaining
   } = args;
 
@@ -138,6 +140,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
         cache,
         openAiApiKey,
         openAiOrganizationId,
+        openAiBaseUrl,
       }
     );
 

@@ -3,15 +3,8 @@ import os
 
 import chevron
 
-from autoevals.llm import build_classification_functions
-from autoevals.oai import set_cache_dir
-
-# By default, we use the user's tmp cache directory (e.g. in the Library/Caches dir on macOS)
-# However, we'd like to cache (and commit) the results of our tests, so we monkey patch the library
-# to use a cache directory in the project root.
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-set_cache_dir(os.path.join(_SCRIPT_DIR, "../../.testcache"))
 from autoevals.llm import *
+from autoevals.llm import build_classification_functions
 
 
 def test_template_html():

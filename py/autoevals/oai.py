@@ -33,6 +33,7 @@ def open_cache():
 
 
 CACHE_LOCK = threading.Lock()
+PROXY_URL = "https://braintrustproxy.com/v1"
 
 
 def prepare_openai_complete(is_async=False, api_key=None):
@@ -59,9 +60,9 @@ def prepare_openai_complete(is_async=False, api_key=None):
         # This is the new v1 API
         is_v1 = True
         if is_async:
-            openai_obj = openai.AsyncOpenAI(api_key=api_key)
+            openai_obj = openai.AsyncOpenAI(api_key=api_key, api_url=PROXY_URL)
         else:
-            openai_obj = openai.OpenAI(api_key=api_key)
+            openai_obj = openai.OpenAI(api_key=api_key, api_url=PROXY_URL)
 
     try:
         from braintrust.oai import wrap_openai

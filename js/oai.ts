@@ -27,6 +27,8 @@ export interface OpenAIAuth {
   openAiOrganizationId?: string;
 }
 
+const PROXY_URL = "https://braintrustproxy.com/v1";
+
 export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth
@@ -42,6 +44,7 @@ export async function cachedChatCompletion(
       const openai = new OpenAI({
         apiKey: openAiApiKey || Env.OPENAI_API_KEY,
         organization: openAiOrganizationId,
+        baseURL: PROXY_URL,
       });
 
       if (openai === null) {

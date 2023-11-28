@@ -36,9 +36,9 @@ CACHE_LOCK = threading.Lock()
 PROXY_URL = "https://braintrustproxy.com/v1"
 
 
-def prepare_openai_complete(is_async=False, api_key=None, api_url=None):
-    if api_url is None:
-        api_url = PROXY_URL
+def prepare_openai_complete(is_async=False, api_key=None, base_url=None):
+    if base_url is None:
+        base_url = PROXY_URL
 
     try:
         import openai
@@ -117,9 +117,9 @@ def log_cached_response(params, resp):
         )
 
 
-def run_cached_request(api_key=None, **kwargs):
+def run_cached_request(api_key=None, base_url=None, **kwargs):
     # OpenAI is very slow to import, so we only do it if we need it
-    complete, RateLimitError = prepare_openai_complete(is_async=False, api_key=api_key)
+    complete, RateLimitError = prepare_openai_complete(is_async=False, api_key=api_key, base_url=base_url)
     print(kwargs)
 
     retries = 0
@@ -136,8 +136,8 @@ def run_cached_request(api_key=None, **kwargs):
     return resp
 
 
-async def arun_cached_request(api_key=None, **kwargs):
-    complete, RateLimitError = prepare_openai_complete(is_async=True, api_key=api_key)
+async def arun_cached_request(api_key=None, base_url=None, **kwargs):
+    complete, RateLimitError = prepare_openai_complete(is_async=True, api_key=api_key, base_url=base_url)
     print(kwargs)
 
     retries = 0

@@ -25,6 +25,7 @@ export interface ChatCache {
 export interface OpenAIAuth {
   openAiApiKey?: string;
   openAiOrganizationId?: string;
+  openAiBaseUrl?: string;
 }
 
 const PROXY_URL = "https://braintrustproxy.com/v1";
@@ -33,7 +34,7 @@ export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth
 ): Promise<ChatCompletion> {
-  const { cache, openAiApiKey, openAiOrganizationId } = options;
+  const { cache, openAiApiKey, openAiOrganizationId, openAiBaseUrl } = options;
 
   return await currentSpan().traced("OpenAI Completion", async (span: any) => {
     let cached = false;
@@ -44,7 +45,7 @@ export async function cachedChatCompletion(
       const openai = new OpenAI({
         apiKey: openAiApiKey || Env.OPENAI_API_KEY,
         organization: openAiOrganizationId,
-        baseURL: PROXY_URL,
+        baseURL: openAiBaseUrl || PROXY_URL,
       });
 
       if (openai === null) {

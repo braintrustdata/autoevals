@@ -79,7 +79,6 @@ def post_process_response(resp):
 def run_cached_request(api_key=None, base_url=None, **kwargs):
     # OpenAI is very slow to import, so we only do it if we need it
     complete, RateLimitError = prepare_openai_complete(is_async=False, api_key=api_key, base_url=base_url)
-    print(kwargs)
 
     retries = 0
     sleep_time = 0.1
@@ -97,7 +96,6 @@ def run_cached_request(api_key=None, base_url=None, **kwargs):
 
 async def arun_cached_request(api_key=None, base_url=None, **kwargs):
     complete, RateLimitError = prepare_openai_complete(is_async=True, api_key=api_key, base_url=base_url)
-    print(kwargs)
 
     retries = 0
     sleep_time = 0.1

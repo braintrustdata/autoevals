@@ -125,8 +125,6 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     content: m.content && mustache.render(m.content as string, renderArgs),
   }));
 
-  let ret = null;
-  let validityScore = 1;
   try {
     const resp = await cachedChatCompletion(
       {
@@ -145,7 +143,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     );
 
     if (resp.choices.length > 0) {
-      ret = {
+      return {
         name,
         ...parseResponse(resp.choices[0].message!, choiceScores),
       };
@@ -153,15 +151,12 @@ export async function OpenAIClassifier<RenderArgs, Output>(
       throw new Error("Empty response from OpenAI");
     }
   } catch (error) {
-    validityScore = 0;
-    ret = {
+    return {
       name,
       score: 0,
       error: `${error}`,
     };
   }
-
-  return ret;
 }
 
 function parseResponse(

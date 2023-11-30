@@ -153,26 +153,18 @@ class OpenAILLMClassifier(Scorer):
             raise ValueError("Empty response from OpenAI")
 
     async def _run_eval_async(self, output, expected, **kwargs):
-        validity_score = 1
         try:
             return self._postprocess_response(
                 await arun_cached_request(**self._request_args(output, expected, **kwargs))
             )
         except Exception as e:
-            validity_score = 0
             return Score(name=self.name, score=0, error=e)
-        finally:
-            current_span().log(scores={f"{self._name()} parsed": validity_score})
 
     def _run_eval_sync(self, output, expected, **kwargs):
-        validity_score = 1
         try:
             return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
         except Exception as e:
-            validity_score = 0
             return Score(name=self.name, score=0, error=e)
-        finally:
-            current_span().log(scores={f"{self._name()} parsed": validity_score})
 
 
 @dataclass

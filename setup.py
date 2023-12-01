@@ -11,7 +11,7 @@ with open(os.path.join(dir_name, "py", "autoevals", "version.py"), encoding="utf
 with open(os.path.join(dir_name, "README.md"), "r", encoding="utf-8") as f:
     long_description = f.read()
 
-install_requires = ["chevron", "levenshtein", "pyyaml"]
+install_requires = ["chevron", "levenshtein", "pyyaml", "braintrust_core>=0.0.3"]
 
 extras_require = {
     "dev": [

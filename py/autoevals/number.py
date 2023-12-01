@@ -1,4 +1,4 @@
-from .base import Score, Scorer
+from braintrust_core.score import Score, Scorer
 
 
 class NumericDiff(Scorer):

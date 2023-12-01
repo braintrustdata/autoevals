@@ -1,4 +1,4 @@
-import { Scorer } from "./base.js";
+import { Scorer } from "@braintrust/core";
 import { NumericDiff } from "./number.js";
 import { LevenshteinScorer } from "./string.js";
 

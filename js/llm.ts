@@ -1,7 +1,7 @@
 import * as yaml from "js-yaml";
 import mustache from "mustache";
 
-import { Score, Scorer, ScorerArgs } from "./base.js";
+import { Score, Scorer, ScorerArgs } from "@braintrust/core";
 import { ChatCache, cachedChatCompletion } from "./oai.js";
 import { templates } from "./templates.js";
 import {

@@ -1,7 +1,7 @@
 import dataclasses
 from abc import ABC, abstractmethod
 
-from .util import SerializableDataClass, current_span
+from .util import SerializableDataClass
 
 
 @dataclasses.dataclass

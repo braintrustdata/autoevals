@@ -1,41 +1,20 @@
-/* This is copy/pasted from braintrust-sdk*/
-export class NoopSpan {
-  public id: string;
-  public span_id: string;
-  public root_span_id: string;
-  public kind: "span" = "span";
+export type SpanLogFn = (args: Record<string, any>) => void;
 
-  constructor() {
-    this.id = "";
-    this.span_id = "";
-    this.root_span_id = "";
-  }
-
-  public log(_: any) {}
-
-  public startSpan(_0: string, _1?: any) {
-    return this;
-  }
-
-  public traced<R>(_0: string, callback: (span: any) => R, _1: any): R {
-    return callback(this);
-  }
-
-  public end(args?: any): number {
-    return args?.endTime ?? new Date().getTime() / 1000;
-  }
-
-  public close(args?: any): number {
-    return this.end(args);
-  }
-}
 declare global {
   var __inherited_braintrust_state: any;
 }
-export function currentSpan() {
+
+// Signature taken from sdk/js/src/logger.ts::Span::traced.
+export function currentSpanTraced<R>(
+  name: string,
+  callback: (spanLog: SpanLogFn) => R,
+  args?: any
+): R {
   if (globalThis.__inherited_braintrust_state) {
-    return globalThis.__inherited_braintrust_state.currentSpan.getStore();
+    const currentSpan =
+      globalThis.__inherited_braintrust_state.currentSpan.getStore();
+    return currentSpan.traced(name, (span: any) => callback(span.log), args);
   } else {
-    return new NoopSpan();
+    return callback(() => {});
   }
 }

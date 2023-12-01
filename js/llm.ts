@@ -9,7 +9,6 @@ import {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
 } from "openai/resources/index.mjs";
-import { currentSpan } from "./util.js";
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";

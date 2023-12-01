@@ -4,8 +4,6 @@ import textwrap
 import time
 from pathlib import Path
 
-from .util import current_span
-
 PROXY_URL = "https://braintrustproxy.com/v1"
 
 

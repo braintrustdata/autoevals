@@ -9,7 +9,6 @@ import yaml
 
 from .base import Score, Scorer
 from .oai import arun_cached_request, run_cached_request
-from .util import current_span
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 

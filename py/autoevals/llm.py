@@ -2,7 +2,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import chevron
 import yaml
@@ -169,7 +169,7 @@ class OpenAILLMClassifier(Scorer):
 @dataclass
 class ModelGradedSpec:
     prompt: str
-    choice_scores: dict[str, float]
+    choice_scores: Dict[str, float]
     model: Optional[str] = None
     engine: Optional[str] = None
     use_cot: Optional[bool] = None

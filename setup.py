@@ -49,7 +49,7 @@ setuptools.setup(
     package_dir={"": "py"},
     include_package_data=True,
     packages=setuptools.find_packages(where="py"),
-    python_requires=">=3.9.0",
+    python_requires=">=3.8.0",
     entry_points={},
     install_requires=install_requires,
     extras_require=extras_require,

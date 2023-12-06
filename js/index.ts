@@ -27,7 +27,7 @@
  * @module autoevals
  */
 
-export * from "./base.js";
+export { Score, ScorerArgs, Scorer } from "@braintrust/core";
 export * from "./llm.js";
 export * from "./string.js";
 export * from "./number.js";

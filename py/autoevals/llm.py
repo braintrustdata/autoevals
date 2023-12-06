@@ -6,8 +6,8 @@ from typing import Dict, List, Optional
 
 import chevron
 import yaml
+from braintrust_core.score import Score, Scorer
 
-from .base import Score, Scorer
 from .oai import arun_cached_request, run_cached_request
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

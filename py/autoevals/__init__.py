@@ -29,7 +29,8 @@ print(f"Factuality metadata: {result.metadata['rationale']}")
 
 """
 
-from .base import *
+from braintrust_core.score import Score, Scorer
+
 from .json import *
 from .llm import *
 from .number import *

@@ -1,8 +1,5 @@
+from braintrust_core.score import Score, Scorer
 from Levenshtein import distance
-
-from autoevals.base import Score
-
-from .base import Score, Scorer
 
 
 class Levenshtein(Scorer):

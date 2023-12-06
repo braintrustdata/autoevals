@@ -1,4 +1,4 @@
-import { Scorer } from "./base.js";
+import { Scorer } from "@braintrust/core";
 
 /**
  * A simple scorer that compares numbers by normalizing their difference.

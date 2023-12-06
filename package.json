@@ -27,8 +27,8 @@
     "watch": "tsc --watch",
     "docs": "npx typedoc --options typedoc.json js/index.ts",
     "test": "jest",
-    "prepublishOnly": "./scripts/node_prepublish.py",
-    "postpublish": "./scripts/node_postpublish.py"
+    "prepublishOnly": "../../scripts/node_prepublish_autoevals.py",
+    "postpublish": "../../scripts/node_postpublish_autoevals.py"
   },
   "author": "",
   "license": "MIT",
@@ -45,6 +45,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
+    "@braintrust/core": "^0.0.6",
     "@types/node": "^20.4.4",
     "esbuild": "^0.19.1",
     "js-levenshtein": "^1.1.6",

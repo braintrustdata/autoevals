@@ -1,4 +1,4 @@
-import { Scorer } from "./base.js";
+import { Scorer } from "@braintrust/core";
 import levenshtein from "js-levenshtein";
 
 /**

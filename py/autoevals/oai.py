@@ -34,13 +34,13 @@ def prepare_openai_complete(is_async=False, api_key=None, base_url=None):
         # This is the new v1 API
         is_v1 = True
         if is_async:
-            openai_obj = openai.AsyncOpenAI(api_key=api_key, base_url=PROXY_URL)
+            openai_obj = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
         else:
-            openai_obj = openai.OpenAI(api_key=api_key, base_url=PROXY_URL)
+            openai_obj = openai.OpenAI(api_key=api_key, base_url=base_url)
     else:
         if api_key:
             openai.api_key = api_key
-        openai.api_base = PROXY_URL
+        openai.api_base = base_url
 
     try:
         from braintrust.oai import wrap_openai

@@ -18,7 +18,7 @@ ${VENV_INITIALIZED}:
 VENV_PYTHON_PACKAGES := venv/.python_packages
 
 ${VENV_PYTHON_PACKAGES}: ${VENV_INITIALIZED}
-	bash -c 'source venv/bin/activate && python -m pip install --upgrade pip setuptools build twine'
+	bash -c 'source venv/bin/activate && python -m pip install --upgrade pip setuptools build twine openai'
 	bash -c 'source venv/bin/activate && python -m pip install -e .[dev]'
 	@touch $@
 
@@ -32,7 +32,7 @@ develop: ${VENV_PRE_COMMIT}
 fixup:
 	pre-commit run --all-files
 
-.PHONY: test test-py test-js build build-py test-py publish publish-py publish-js clean docs
+.PHONY: test test-py test-js
 
 test: test-py test-js
 
@@ -40,26 +40,4 @@ test-py:
 	source env.sh && python3 -m pytest
 
 test-js:
-	npm run test
-
-build: build-py build-js
-
-build-py:
-	rm -rf ./pydist/*
-	./scripts/prepare_readme.py py
-	source env.sh && python3 -m build --outdir pydist
-	git checkout README.md
-
-build-js:
-	npm run build
-
-publish: publish-py publish-js
-
-publish-py: build-py
-	source env.sh && python3 -m twine upload pydist/autoevals-${SDK_VERSION}*
-
-publish-js: build-js
-	npm publish
-
-clean:
-	source env.sh && rm -rf pydist/* jsdist/*
+	npm install && npm run test

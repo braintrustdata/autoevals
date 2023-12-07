@@ -27,8 +27,8 @@
     "watch": "tsc --watch",
     "docs": "npx typedoc --options typedoc.json js/index.ts",
     "test": "jest",
-    "prepublishOnly": "../../scripts/node_prepublish_autoevals.py",
-    "postpublish": "../../scripts/node_postpublish_autoevals.py"
+    "prepublishOnly": "../scripts/node_prepublish_autoevals.py",
+    "postpublish": "../scripts/node_postpublish_autoevals.py"
   },
   "author": "",
   "license": "MIT",

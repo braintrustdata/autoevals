@@ -2,13 +2,13 @@ import * as yaml from "js-yaml";
 import mustache from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "@braintrust/core";
-import { ChatCache, cachedChatCompletion } from "./oai.js";
-import { templates } from "./templates.js";
+import { ChatCache, cachedChatCompletion } from "./oai";
+import { templates } from "./templates";
 import {
   ChatCompletionCreateParams,
   ChatCompletionMessage,
   ChatCompletionMessageParam,
-} from "openai/resources/index.mjs";
+} from "openai/resources";
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";

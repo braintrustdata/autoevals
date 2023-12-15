@@ -159,7 +159,7 @@ npx braintrust run example.eval.js
 
 ### Embeddings
 
-- Embedding distance
+- Embedding similarity
 - [ ] BERTScore
 
 ### Heuristic

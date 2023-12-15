@@ -2,7 +2,7 @@ import * as yaml from "js-yaml";
 import mustache from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "@braintrust/core";
-import { ChatCache, cachedChatCompletion } from "./oai.js";
+import { ChatCache, OpenAIAuth, cachedChatCompletion } from "./oai.js";
 import { templates } from "./templates.js";
 import {
   ChatCompletionCreateParams,
@@ -18,13 +18,10 @@ const COT_SUFFIX =
 
 const SUPPORTED_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 
-interface LLMArgs {
+type LLMArgs = {
   maxTokens?: number;
   temperature?: number;
-  openAiApiKey?: string;
-  openAiOrganizationId?: string;
-  openAiBaseUrl?: string;
-}
+} & OpenAIAuth;
 
 const PLAIN_RESPONSE_SCHEMA = {
   properties: {

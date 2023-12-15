@@ -33,23 +33,6 @@ class EmbeddingDistance(Scorer):
 
     MODEL = "text-embedding-ada-002"
 
-    @staticmethod
-    def cosine_similarity(list1, list2):
-        # Calculate dot product
-        dot_product = sum(a * b for a, b in zip(list1, list2))
-
-        # Calculate the magnitude of each list
-        magnitude_list1 = sum(a**2 for a in list1) ** 0.5
-        magnitude_list2 = sum(b**2 for b in list2) ** 0.5
-
-        # Calculate cosine similarity
-        if magnitude_list1 * magnitude_list2 == 0:
-            # Avoid division by zero
-            return 0
-        else:
-            # Sometimes, rounding errors cause the dot product to be slightly > 1
-            return min(dot_product / (magnitude_list1 * magnitude_list2), 1)
-
     def __init__(self, prefix="", model=MODEL, api_key=None, base_url=None):
         """
         Create a new EmbeddingDistance scorer.
@@ -93,6 +76,23 @@ class EmbeddingDistance(Scorer):
                 output_result["data"][0]["embedding"], expected_result["data"][0]["embedding"]
             ),
         )
+
+    @staticmethod
+    def cosine_similarity(list1, list2):
+        # Calculate dot product
+        dot_product = sum(a * b for a, b in zip(list1, list2))
+
+        # Calculate the magnitude of each list
+        magnitude_list1 = sum(a**2 for a in list1) ** 0.5
+        magnitude_list2 = sum(b**2 for b in list2) ** 0.5
+
+        # Calculate cosine similarity
+        if magnitude_list1 * magnitude_list2 == 0:
+            # Avoid division by zero
+            return 0
+        else:
+            # Sometimes, rounding errors cause the dot product to be slightly > 1
+            return min(dot_product / (magnitude_list1 * magnitude_list2), 1)
 
 
 __all__ = ["LevenshteinScorer", "Levenshtein", "EmbeddingDistance"]

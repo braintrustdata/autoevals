@@ -1,5 +1,10 @@
 import { Scorer } from "@braintrust/core";
 import levenshtein from "js-levenshtein";
+import { OpenAIAuth, buildOpenAIClient } from "./oai.js";
+import { CreateEmbeddingResponse } from "openai/resources/embeddings.mjs";
+import { SpanLogFn, currentSpanTraced } from "./util.js";
+import { OpenAI } from "openai";
+import cossim from "compute-cosine-similarity";
 
 /**
  * A simple scorer that uses the Levenshtein distance to compare two strings.
@@ -18,7 +23,75 @@ export const LevenshteinScorer: Scorer<string, {}> = (args) => {
   }
 
   return {
-    name: "levenshtein",
+    name: "Levenshtein",
     score,
   };
 };
+
+export const EmbeddingDistance: Scorer<
+  string,
+  {
+    prefix?: string;
+    model?: string;
+  } & OpenAIAuth
+> = async (args) => {
+  if (args.expected === undefined) {
+    throw new Error("EmbeddingDistance requires an expected value");
+  }
+
+  const prefix = args.prefix ?? "";
+  const [output, expected] = [
+    `${prefix}${args.output}`,
+    `${prefix}${args.expected}`,
+  ];
+
+  const openai = buildOpenAIClient(args);
+
+  const [outputResult, expectedResult] = await Promise.all(
+    [output, expected].map((input) =>
+      embed(openai, {
+        input,
+        model: args.model ?? "text-embedding-ada-002",
+      })
+    )
+  );
+
+  const score = cossim(
+    outputResult.data[0].embedding,
+    expectedResult.data[0].embedding
+  );
+
+  return {
+    name: "EmbeddingDistance",
+    score: score ?? 0,
+    error: score === null ? "EmbeddingDistance failed" : undefined,
+  };
+};
+
+async function embed(
+  openai: OpenAI,
+  params: OpenAI.Embeddings.EmbeddingCreateParams
+): Promise<CreateEmbeddingResponse> {
+  return await currentSpanTraced(
+    "OpenAI Embedding",
+    async (spanLog: SpanLogFn) => {
+      const result = await openai.embeddings.create(params);
+      const output = result.data[0].embedding;
+
+      const { input, ...rest } = params;
+      spanLog({
+        input,
+        output,
+        metadata: {
+          ...rest,
+        },
+        metrics: {
+          tokens: result.usage?.total_tokens,
+          prompt_tokens: result.usage?.prompt_tokens,
+        },
+      });
+
+      return result;
+    }
+  );
+}

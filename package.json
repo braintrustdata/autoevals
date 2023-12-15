@@ -43,6 +43,7 @@
   "dependencies": {
     "@braintrust/core": "^0.0.6",
     "@types/node": "^20.4.4",
+    "compute-cosine-similarity": "^1.1.0",
     "esbuild": "^0.19.1",
     "js-levenshtein": "^1.1.6",
     "js-yaml": "^4.1.0",

@@ -30,7 +30,6 @@ test("Embeddings Test", async () => {
         output: word,
         expected: synonym,
       });
-      console.log(`[${word}]`, `[${synonym}]`, result);
       expect(result.score).toBeGreaterThan(0.9);
     }
   }
@@ -48,7 +47,6 @@ test("Embeddings Test", async () => {
         output: word1,
         expected: word2,
       });
-      console.log(`[${word1}]`, `[${word2}]`, result);
       expect(result.score).toBeLessThan(0.9);
     }
   }

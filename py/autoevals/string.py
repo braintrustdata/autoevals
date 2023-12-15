@@ -47,7 +47,8 @@ class EmbeddingDistance(Scorer):
             # Avoid division by zero
             return 0
         else:
-            return dot_product / (magnitude_list1 * magnitude_list2)
+            # Sometimes, rounding errors cause the dot product to be slightly > 1
+            return min(dot_product / (magnitude_list1 * magnitude_list2), 1)
 
     def __init__(self, prefix="", model=MODEL, api_key=None, base_url=None):
         """
@@ -94,4 +95,4 @@ class EmbeddingDistance(Scorer):
         )
 
 
-__all__ = ["LevenshteinScorer", "Levenshtein"]
+__all__ = ["LevenshteinScorer", "Levenshtein", "EmbeddingDistance"]

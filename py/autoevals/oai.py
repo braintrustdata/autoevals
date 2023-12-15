@@ -39,6 +39,7 @@ def prepare_openai(is_async=False, api_key=None, base_url=None):
 
     openai_obj = openai
     is_v1 = False
+
     if hasattr(openai, "OpenAI"):
         # This is the new v1 API
         is_v1 = True

@@ -26,16 +26,16 @@ class Levenshtein(Scorer):
 LevenshteinScorer = Levenshtein  # backcompat
 
 
-class EmbeddingDistance(Scorer):
+class EmbeddingSimilarity(Scorer):
     """
-    A simple scorer that uses embedding distance to compare two strings.
+    A simple scorer that uses cosine similarity to compare two strings.
     """
 
     MODEL = "text-embedding-ada-002"
 
     def __init__(self, prefix="", model=MODEL, expected_min=0.7, api_key=None, base_url=None):
         """
-        Create a new EmbeddingDistance scorer.
+        Create a new EmbeddingSimilarity scorer.
 
         :param prefix: A prefix to prepend to the prompt. This is useful for specifying the domain of the inputs.
         :param model: The model to use for the embedding distance. Defaults to "text-embedding-ada-002".
@@ -53,7 +53,7 @@ class EmbeddingDistance(Scorer):
 
     async def _run_eval_async(self, output, expected=None, **kwargs):
         if expected is None:
-            raise ValueError("EmbeddingDistance requires an expected value")
+            raise ValueError("EmbeddingSimilarity requires an expected value")
 
         output_embedding_p = arun_cached_request(input=f"{self.prefix}{output}", **self.extra_args)
         expected_embedding_p = arun_cached_request(input=f"{self.prefix}{expected}", **self.extra_args)
@@ -69,7 +69,7 @@ class EmbeddingDistance(Scorer):
 
     def _run_eval_sync(self, output, expected=None, **kwargs):
         if expected is None:
-            raise ValueError("EmbeddingDistance requires an expected value")
+            raise ValueError("EmbeddingSimilarity requires an expected value")
 
         output_result = run_cached_request("embed", input=f"{self.prefix}{output}", **self.extra_args)
         expected_result = run_cached_request("embed", input=f"{self.prefix}{expected}", **self.extra_args)
@@ -104,4 +104,4 @@ class EmbeddingDistance(Scorer):
             return min(dot_product / (magnitude_list1 * magnitude_list2), 1)
 
 
-__all__ = ["LevenshteinScorer", "Levenshtein", "EmbeddingDistance"]
+__all__ = ["LevenshteinScorer", "Levenshtein", "EmbeddingSimilarity"]

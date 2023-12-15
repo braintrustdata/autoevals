@@ -1,4 +1,4 @@
-from autoevals import EmbeddingDistance
+from autoevals import EmbeddingSimilarity
 
 SYNONYMS = [
     ("water", ["water", "H2O", "agua"]),
@@ -10,7 +10,7 @@ UNRELATED = ["water", "The quick brown fox jumps over the lazy dog", "I like to 
 
 
 def test_embeddings():
-    evaluator = EmbeddingDistance(prefix="resource type: ")
+    evaluator = EmbeddingSimilarity(prefix="resource type: ")
     for word, synonyms in SYNONYMS:
         for synonym in synonyms:
             result = evaluator(word, synonym)

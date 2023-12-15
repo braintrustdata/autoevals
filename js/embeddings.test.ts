@@ -1,4 +1,4 @@
-import { EmbeddingDistance } from "./string.js";
+import { EmbeddingSimilarity } from "./string.js";
 
 const SYNONYMS = [
   {
@@ -25,7 +25,7 @@ test("Embeddings Test", async () => {
   const prefix = "resource type: ";
   for (const { word, synonyms } of SYNONYMS) {
     for (const synonym of synonyms) {
-      const result = await EmbeddingDistance({
+      const result = await EmbeddingSimilarity({
         prefix,
         output: word,
         expected: synonym,
@@ -42,7 +42,7 @@ test("Embeddings Test", async () => {
 
       const word1 = UNRELATED[i];
       const word2 = UNRELATED[j];
-      const result = await EmbeddingDistance({
+      const result = await EmbeddingSimilarity({
         prefix,
         output: word1,
         expected: word2,

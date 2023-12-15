@@ -28,7 +28,17 @@ export const LevenshteinScorer: Scorer<string, {}> = (args) => {
   };
 };
 
-export const EmbeddingDistance: Scorer<
+/**
+ * A scorer that uses cosine similarity to compare two strings.
+ *
+ * @param args
+ * @param args.prefix A prefix to prepend to the prompt. This is useful for specifying the domain of the inputs.
+ * @param args.model The model to use for the embedding distance. Defaults to "text-embedding-ada-002".
+ * @param args.expectedMin The minimum expected score. Defaults to 0.7. Values below this will be scored as 0, and
+ * values between this and 1 will be scaled linearly.
+ * @returns A score between 0 and 1, where 1 is a perfect match.
+ */
+export const EmbeddingSimilarity: Scorer<
   string,
   {
     prefix?: string;
@@ -37,7 +47,7 @@ export const EmbeddingDistance: Scorer<
   } & OpenAIAuth
 > = async (args) => {
   if (args.expected === undefined) {
-    throw new Error("EmbeddingDistance requires an expected value");
+    throw new Error("EmbeddingSimilarity requires an expected value");
   }
 
   const prefix = args.prefix ?? "";

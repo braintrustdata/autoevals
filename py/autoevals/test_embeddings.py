@@ -15,7 +15,7 @@ def test_embeddings():
         for synonym in synonyms:
             result = evaluator(word, synonym)
             print(f"[{word}]", f"[{synonym}]", result)
-            assert result.score > 0.9
+            assert result.score > 0.66
 
     for i in range(len(UNRELATED)):
         for j in range(len(UNRELATED)):
@@ -26,4 +26,4 @@ def test_embeddings():
             word2 = UNRELATED[j]
             result = evaluator(word1, word2)
             print(f"[{word1}]", f"[{word2}]", result)
-            assert result.score < 0.9
+            assert result.score < 0.5

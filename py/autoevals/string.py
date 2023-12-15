@@ -33,14 +33,17 @@ class EmbeddingDistance(Scorer):
 
     MODEL = "text-embedding-ada-002"
 
-    def __init__(self, prefix="", model=MODEL, api_key=None, base_url=None):
+    def __init__(self, prefix="", model=MODEL, expected_min=0.7, api_key=None, base_url=None):
         """
         Create a new EmbeddingDistance scorer.
 
         :param prefix: A prefix to prepend to the prompt. This is useful for specifying the domain of the inputs.
         :param model: The model to use for the embedding distance. Defaults to "text-embedding-ada-002".
+        :param expected_min: The minimum expected score. Defaults to 0.7. Values below this will be scored as 0, and
+        values between this and 1 will be scaled linearly.
         """
         self.prefix = prefix
+        self.expected_min = expected_min
 
         self.extra_args = {"model": model}
         if api_key:
@@ -58,8 +61,9 @@ class EmbeddingDistance(Scorer):
         output_result, expected_result = await output_embedding_p, await expected_embedding_p
         return Score(
             name=self._name(),
-            score=self.cosine_similarity(
-                output_result["data"][0]["embedding"], expected_result["data"][0]["embedding"]
+            score=self.scale_score(
+                self.cosine_similarity(output_result["data"][0]["embedding"], expected_result["data"][0]["embedding"]),
+                self.expected_min,
             ),
         )
 
@@ -72,10 +76,15 @@ class EmbeddingDistance(Scorer):
 
         return Score(
             name=self._name(),
-            score=self.cosine_similarity(
-                output_result["data"][0]["embedding"], expected_result["data"][0]["embedding"]
+            score=self.scale_score(
+                self.cosine_similarity(output_result["data"][0]["embedding"], expected_result["data"][0]["embedding"]),
+                self.expected_min,
             ),
         )
+
+    @staticmethod
+    def scale_score(score, expected_min):
+        return max((score - expected_min) / (1 - expected_min), 0)
 
     @staticmethod
     def cosine_similarity(list1, list2):

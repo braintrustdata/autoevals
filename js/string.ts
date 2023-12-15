@@ -32,6 +32,7 @@ export const EmbeddingDistance: Scorer<
   string,
   {
     prefix?: string;
+    expectedMin?: number;
     model?: string;
   } & OpenAIAuth
 > = async (args) => {
@@ -40,6 +41,8 @@ export const EmbeddingDistance: Scorer<
   }
 
   const prefix = args.prefix ?? "";
+  const expectedMin = args.expectedMin ?? 0.7;
+
   const [output, expected] = [
     `${prefix}${args.output}`,
     `${prefix}${args.expected}`,
@@ -63,10 +66,14 @@ export const EmbeddingDistance: Scorer<
 
   return {
     name: "EmbeddingDistance",
-    score: score ?? 0,
+    score: scaleScore(score ?? 0, expectedMin),
     error: score === null ? "EmbeddingDistance failed" : undefined,
   };
 };
+
+function scaleScore(score: number, expectedMin: number): number {
+  return Math.max((score - expectedMin) / (1 - expectedMin), 0);
+}
 
 async function embed(
   openai: OpenAI,

@@ -30,7 +30,7 @@ test("Embeddings Test", async () => {
         output: word,
         expected: synonym,
       });
-      expect(result.score).toBeGreaterThan(0.9);
+      expect(result.score).toBeGreaterThan(0.6);
     }
   }
 
@@ -47,7 +47,7 @@ test("Embeddings Test", async () => {
         output: word1,
         expected: word2,
       });
-      expect(result.score).toBeLessThan(0.9);
+      expect(result.score).toBeLessThan(0.5);
     }
   }
 });

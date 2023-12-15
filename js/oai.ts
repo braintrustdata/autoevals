@@ -30,11 +30,21 @@ export interface OpenAIAuth {
 
 const PROXY_URL = "https://braintrustproxy.com/v1";
 
+export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
+  const { openAiApiKey, openAiOrganizationId, openAiBaseUrl } = options;
+
+  return new OpenAI({
+    apiKey: openAiApiKey || Env.OPENAI_API_KEY,
+    organization: openAiOrganizationId,
+    baseURL: openAiBaseUrl || PROXY_URL,
+  });
+}
+
 export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth
 ): Promise<ChatCompletion> {
-  const { cache, openAiApiKey, openAiOrganizationId, openAiBaseUrl } = options;
+  const { cache } = options;
 
   return await currentSpanTraced(
     "OpenAI Completion",
@@ -44,16 +54,7 @@ export async function cachedChatCompletion(
       if (ret) {
         cached = true;
       } else {
-        const openai = new OpenAI({
-          apiKey: openAiApiKey || Env.OPENAI_API_KEY,
-          organization: openAiOrganizationId,
-          baseURL: openAiBaseUrl || PROXY_URL,
-        });
-
-        if (openai === null) {
-          throw new Error("OPENAI_API_KEY not set");
-        }
-
+        const openai = buildOpenAIClient(options);
         const completion = await openai.chat.completions.create(params);
 
         await cache?.set(params, completion);

@@ -1,12 +1,10 @@
 {
   "compilerOptions": {
-	"incremental": true,
     "declaration": true,
     "outDir": "./jsdist",
-    "lib": ["es6"],
-    "module": "NodeNext",
-    "target": "es6",
-    "moduleResolution": "nodenext",
+    "lib": ["es2015", "dom"],
+    "target": "ES2018",
+    "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true

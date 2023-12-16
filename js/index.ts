@@ -28,8 +28,8 @@
  */
 
 export { Score, ScorerArgs, Scorer } from "@braintrust/core";
-export * from "./llm.js";
-export * from "./string.js";
-export * from "./number.js";
-export * from "./json.js";
-export * from "./templates.js";
+export * from "./llm";
+export * from "./string";
+export * from "./number";
+export * from "./json";
+export * from "./templates";

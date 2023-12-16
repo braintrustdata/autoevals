@@ -1,8 +1,8 @@
 import { Scorer } from "@braintrust/core";
 import levenshtein from "js-levenshtein";
-import { OpenAIAuth, buildOpenAIClient } from "./oai.js";
-import { CreateEmbeddingResponse } from "openai/resources/embeddings.mjs";
-import { SpanLogFn, currentSpanTraced } from "./util.js";
+import { OpenAIAuth, buildOpenAIClient } from "./oai";
+import { CreateEmbeddingResponse } from "openai/resources/embeddings";
+import { SpanLogFn, currentSpanTraced } from "./util";
 import { OpenAI } from "openai";
 import cossim from "compute-cosine-similarity";
 

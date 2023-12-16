@@ -2,11 +2,11 @@ import {
   ChatCompletion,
   ChatCompletionCreateParams,
   ChatCompletionMessageParam,
-} from "openai/resources/index.mjs";
+} from "openai/resources";
 import { OpenAI } from "openai";
 
-import { Env } from "./env.js";
-import { currentSpanTraced, SpanLogFn } from "./util.js";
+import { Env } from "./env";
+import { currentSpanTraced, SpanLogFn } from "./util";
 
 export interface CachedLLMParams {
   model: string;

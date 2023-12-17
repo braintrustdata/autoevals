@@ -9,7 +9,7 @@ import cossim from "compute-cosine-similarity";
 /**
  * A simple scorer that uses the Levenshtein distance to compare two strings.
  */
-export const LevenshteinScorer: Scorer<string, {}> = (args) => {
+export const Levenshtein: Scorer<string, {}> = (args) => {
   if (args.expected === undefined) {
     throw new Error("LevenshteinScorer requires an expected value");
   }
@@ -27,6 +27,9 @@ export const LevenshteinScorer: Scorer<string, {}> = (args) => {
     score,
   };
 };
+
+// For back-compat
+export const LevenshteinScorer = Levenshtein;
 
 /**
  * A scorer that uses cosine similarity to compare two strings.

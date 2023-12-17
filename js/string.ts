@@ -29,7 +29,9 @@ export const Levenshtein: Scorer<string, {}> = (args) => {
 };
 
 // For back-compat
-export const LevenshteinScorer = Levenshtein;
+export const LevenshteinScorer: Scorer<string, {}> = (args) => {
+  return Levenshtein(args);
+};
 
 /**
  * A scorer that uses cosine similarity to compare two strings.

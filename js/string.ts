@@ -27,11 +27,20 @@ export const Levenshtein: Scorer<string, {}> = (args) => {
     score,
   };
 };
+Object.defineProperty(Levenshtein, "name", {
+  value: "Levenshtein",
+  configurable: true,
+});
 
 // For back-compat
 export const LevenshteinScorer: Scorer<string, {}> = (args) => {
   return Levenshtein(args);
 };
+
+Object.defineProperty(LevenshteinScorer, "name", {
+  value: "LevenshteinScorer",
+  configurable: true,
+});
 
 /**
  * A scorer that uses cosine similarity to compare two strings.
@@ -80,11 +89,16 @@ export const EmbeddingSimilarity: Scorer<
   );
 
   return {
-    name: "EmbeddingDistance",
+    name: "EmbeddingSimilarity",
     score: scaleScore(score ?? 0, expectedMin),
-    error: score === null ? "EmbeddingDistance failed" : undefined,
+    error: score === null ? "EmbeddingSimilarity failed" : undefined,
   };
 };
+
+Object.defineProperty(EmbeddingSimilarity, "name", {
+  value: "EmbeddingSimilarity",
+  configurable: true,
+});
 
 function scaleScore(score: number, expectedMin: number): number {
   return Math.max((score - expectedMin) / (1 - expectedMin), 0);

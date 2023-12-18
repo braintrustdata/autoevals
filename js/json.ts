@@ -21,6 +21,11 @@ export const JSONDiff: Scorer<
   };
 };
 
+Object.defineProperty(JSONDiff, "name", {
+  value: "JSONDiff",
+  configurable: true,
+});
+
 async function jsonDiff(
   o1: any,
   o2: any,

@@ -21,3 +21,8 @@ export const NumericDiff: Scorer<number, {}> = (args) => {
     score,
   };
 };
+
+Object.defineProperty(NumericDiff, "name", {
+  value: "NumericDiff",
+  configurable: true,
+});

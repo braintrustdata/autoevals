@@ -120,7 +120,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
 
   const messages: ChatCompletionMessageParam[] = messagesArg.map((m) => ({
     ...m,
-    content: m.content && mustache.render(m.content as string, renderArgs),
+    content: m.content ? mustache.render(m.content as string, renderArgs) : "",
   }));
 
   try {

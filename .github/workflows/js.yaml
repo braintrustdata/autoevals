@@ -23,6 +23,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
-      - run: npm install
-      - run: npm run test
-      - run: npm run build
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - run: pnpm install
+      - run: pnpm run test
+      - run: pnpm run build

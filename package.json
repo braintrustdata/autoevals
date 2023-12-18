@@ -47,7 +47,7 @@
     "js-levenshtein": "^1.1.6",
     "js-yaml": "^4.1.0",
     "mustache": "^4.2.0",
-    "openai": "^4.12.1",
+    "openai": "^4.23.0",
     "tsx": "^3.12.7"
   }
 }

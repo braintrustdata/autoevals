@@ -26,17 +26,27 @@ export interface OpenAIAuth {
   openAiApiKey?: string;
   openAiOrganizationId?: string;
   openAiBaseUrl?: string;
+  openAiDefaultHeaders?: Record<string, string>;
+  openAiDangerouslyAllowBrowser?: boolean;
 }
 
 const PROXY_URL = "https://braintrustproxy.com/v1";
 
 export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
-  const { openAiApiKey, openAiOrganizationId, openAiBaseUrl } = options;
+  const {
+    openAiApiKey,
+    openAiOrganizationId,
+    openAiBaseUrl,
+    openAiDefaultHeaders,
+    openAiDangerouslyAllowBrowser,
+  } = options;
 
   return new OpenAI({
     apiKey: openAiApiKey || Env.OPENAI_API_KEY,
     organization: openAiOrganizationId,
     baseURL: openAiBaseUrl || PROXY_URL,
+    defaultHeaders: openAiDefaultHeaders,
+    dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
   });
 }
 

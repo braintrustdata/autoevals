@@ -27,9 +27,10 @@
  * @module autoevals
  */
 
-export { Score, ScorerArgs, Scorer } from "@braintrust/core";
+export type { Score, ScorerArgs, Scorer } from "@braintrust/core";
 export * from "./llm";
 export * from "./string";
 export * from "./number";
 export * from "./json";
 export * from "./templates";
+export { Evaluators } from "./manifest";

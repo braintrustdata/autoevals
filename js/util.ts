@@ -13,7 +13,11 @@ export function currentSpanTraced<R>(
   if (globalThis.__inherited_braintrust_state) {
     const currentSpan =
       globalThis.__inherited_braintrust_state.currentSpan.getStore();
-    return currentSpan.traced(name, (span: any) => callback(span.log), args);
+    return currentSpan.traced(
+      name,
+      (span: any) => callback(span.log.bind(span)),
+      args
+    );
   } else {
     return callback(() => {});
   }

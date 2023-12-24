@@ -109,7 +109,6 @@ async function embed(
   params: OpenAI.Embeddings.EmbeddingCreateParams
 ): Promise<CreateEmbeddingResponse> {
   return await currentSpanTraced(
-    "OpenAI Embedding",
     async (spanLog: SpanLogFn) => {
       const result = await openai.embeddings.create(params);
       const output = result.data[0].embedding;
@@ -128,6 +127,7 @@ async function embed(
       });
 
       return result;
-    }
+    },
+    { name: "OpenAI Embedding" }
   );
 }

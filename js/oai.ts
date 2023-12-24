@@ -57,7 +57,6 @@ export async function cachedChatCompletion(
   const { cache } = options;
 
   return await currentSpanTraced(
-    "OpenAI Completion",
     async (spanLog: SpanLogFn) => {
       let cached = false;
       let ret = await cache?.get(params);
@@ -87,6 +86,7 @@ export async function cachedChatCompletion(
       });
 
       return ret;
-    }
+    },
+    { name: "OpenAI Completion" }
   );
 }

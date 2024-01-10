@@ -26,11 +26,13 @@ class JSONDiff(Scorer):
 
             all_keys = set(o1.keys()).union(set(o2.keys()))
             base_scores = [self.json_diff(o1.get(k), o2.get(k)) for k in all_keys]
+            base_scores = [s for s in base_scores if s is not None]
             return sum(base_scores) / len(base_scores)
         elif isinstance(o1, list) and isinstance(o2, list):
             if len(o1) == 0 and len(o2) == 0:
                 return 1
             base_scores = [self.json_diff(e1, e2) for (e1, e2) in zip(o1, o2)]
+            base_scores = [s for s in base_scores if s is not None]
             return sum(base_scores) / max(len(o1), len(o2))
         elif isinstance(o1, str) and isinstance(o2, str):
             return self.string_scorer.eval(o1, o2).score

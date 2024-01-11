@@ -31,7 +31,7 @@ async function jsonDiff(
   o2: any,
   stringScorer: Scorer<string, {}>,
   numberScorer: Scorer<number, {}>
-): Promise<number> {
+): Promise<number | null> {
   if (isObject(o1) && isObject(o2)) {
     if (Object.keys(o1).length == 0 && Object.keys(o2).length == 0) {
       return 1;
@@ -45,20 +45,24 @@ async function jsonDiff(
       )
     );
 
-    const baseScores = await Promise.all(
-      allKeys.map((k) => jsonDiff(o1[k], o2[k], stringScorer, numberScorer))
-    );
+    const baseScores = (
+      await Promise.all(
+        allKeys.map((k) => jsonDiff(o1[k], o2[k], stringScorer, numberScorer))
+      )
+    ).filter((s) => s !== null) as number[];
     return baseScores.reduce((acc, s) => acc + s, 0) / baseScores.length;
   } else if (isArray(o1) && isArray(o2)) {
     if (o1.length === 0 && o2.length === 0) {
       return 1;
     }
 
-    const baseScores = await Promise.all(
-      Array.from({
-        length: Math.min(o1.length, o2.length),
-      }).map((_, i) => jsonDiff(o1[i], o2[i], stringScorer, numberScorer))
-    );
+    const baseScores = (
+      await Promise.all(
+        Array.from({
+          length: Math.min(o1.length, o2.length),
+        }).map((_, i) => jsonDiff(o1[i], o2[i], stringScorer, numberScorer))
+      )
+    ).filter((s) => s !== null) as number[];
     return (
       baseScores.reduce((acc, s) => acc + s, 0) / Math.max(o1.length, o2.length)
     );

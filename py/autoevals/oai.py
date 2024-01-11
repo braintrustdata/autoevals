@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sys
 import textwrap
 import time
@@ -18,7 +19,7 @@ class OpenAIWrapper:
 
 def prepare_openai(is_async=False, api_key=None, base_url=None):
     if base_url is None:
-        base_url = PROXY_URL
+        base_url = os.environ.get("OPENAI_BASE_URL", PROXY_URL)
 
     try:
         import openai

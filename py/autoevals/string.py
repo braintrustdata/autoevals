@@ -55,8 +55,8 @@ class EmbeddingSimilarity(Scorer):
         if expected is None:
             raise ValueError("EmbeddingSimilarity requires an expected value")
 
-        output_embedding_p = arun_cached_request(input=f"{self.prefix}{output}", **self.extra_args)
-        expected_embedding_p = arun_cached_request(input=f"{self.prefix}{expected}", **self.extra_args)
+        output_embedding_p = arun_cached_request("embed", input=f"{self.prefix}{output}", **self.extra_args)
+        expected_embedding_p = arun_cached_request("embed", input=f"{self.prefix}{expected}", **self.extra_args)
 
         output_result, expected_result = await output_embedding_p, await expected_embedding_p
         return Score(

@@ -9,9 +9,9 @@ export function currentSpanTraced<R>(
   callback: (spanLog: SpanLogFn) => R,
   args?: any
 ): R {
-  if (globalThis.__inherited_braintrust_state) {
-    const currentSpan =
-      globalThis.__inherited_braintrust_state.currentSpan.getStore();
+  const currentSpan =
+    globalThis.__inherited_braintrust_state?.currentSpan?.getStore();
+  if (currentSpan) {
     // Old versions of the API provide the name as the first positional
     // argument. Otherwise, the name is provided as an optional keyword argument
     // at the end.

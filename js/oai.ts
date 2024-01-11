@@ -44,7 +44,7 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
   return new OpenAI({
     apiKey: openAiApiKey || Env.OPENAI_API_KEY,
     organization: openAiOrganizationId,
-    baseURL: openAiBaseUrl || PROXY_URL,
+    baseURL: openAiBaseUrl || Env.OPENAI_BASE_URL || PROXY_URL,
     defaultHeaders: openAiDefaultHeaders,
     dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
   });

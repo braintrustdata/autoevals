@@ -6,7 +6,6 @@ import {
 import { OpenAI } from "openai";
 
 import { Env } from "./env";
-import { currentSpanTraced, SpanLogFn } from "./util";
 
 export interface CachedLLMParams {
   model: string;
@@ -41,13 +40,19 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
     openAiDangerouslyAllowBrowser,
   } = options;
 
-  return new OpenAI({
+  const client = new OpenAI({
     apiKey: openAiApiKey || Env.OPENAI_API_KEY,
     organization: openAiOrganizationId,
     baseURL: openAiBaseUrl || Env.OPENAI_BASE_URL || PROXY_URL,
     defaultHeaders: openAiDefaultHeaders,
     dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
   });
+
+  if (globalThis.__inherited_braintrust_wrap_openai) {
+    return globalThis.__inherited_braintrust_wrap_openai(client);
+  } else {
+    return client;
+  }
 }
 
 declare global {
@@ -59,8 +64,5 @@ export async function cachedChatCompletion(
   options: { cache?: ChatCache } & OpenAIAuth
 ): Promise<ChatCompletion> {
   let openai = buildOpenAIClient(options);
-  if (globalThis.__inherited_braintrust_wrap_openai) {
-    openai = globalThis.__inherited_braintrust_wrap_openai(openai);
-  }
   return await openai.chat.completions.create(params);
 }

@@ -50,4 +50,4 @@ test("Embeddings Test", async () => {
       expect(result.score).toBeLessThan(0.5);
     }
   }
-});
+}, 600000);

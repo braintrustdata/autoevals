@@ -304,6 +304,13 @@ class Security(SpecFileClassifier):
     pass
 
 
+class Sql(SpecFileClassifier):
+    """
+    Test whether a SQL query is semantically the same as a reference (output) query."""
+
+    pass
+
+
 class Summary(SpecFileClassifier):
     """
     Test whether an output is a better summary of the `input` than the original (`expected`) value."""

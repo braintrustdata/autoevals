@@ -6,7 +6,6 @@ import {
 import { OpenAI } from "openai";
 
 import { Env } from "./env";
-import { currentSpanTraced, SpanLogFn } from "./util";
 
 export interface CachedLLMParams {
   model: string;
@@ -41,52 +40,29 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
     openAiDangerouslyAllowBrowser,
   } = options;
 
-  return new OpenAI({
+  const client = new OpenAI({
     apiKey: openAiApiKey || Env.OPENAI_API_KEY,
     organization: openAiOrganizationId,
     baseURL: openAiBaseUrl || Env.OPENAI_BASE_URL || PROXY_URL,
     defaultHeaders: openAiDefaultHeaders,
     dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
   });
+
+  if (globalThis.__inherited_braintrust_wrap_openai) {
+    return globalThis.__inherited_braintrust_wrap_openai(client);
+  } else {
+    return client;
+  }
+}
+
+declare global {
+  var __inherited_braintrust_wrap_openai: ((openai: any) => any) | undefined;
 }
 
 export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth
 ): Promise<ChatCompletion> {
-  const { cache } = options;
-
-  return await currentSpanTraced(
-    async (spanLog: SpanLogFn) => {
-      let cached = false;
-      let ret = await cache?.get(params);
-      if (ret) {
-        cached = true;
-      } else {
-        const openai = buildOpenAIClient(options);
-        const completion = await openai.chat.completions.create(params);
-
-        await cache?.set(params, completion);
-        ret = completion;
-      }
-
-      const { messages, ...rest } = params;
-      spanLog({
-        input: messages,
-        metadata: {
-          ...rest,
-          cached,
-        },
-        output: ret.choices[0],
-        metrics: {
-          tokens: ret.usage?.total_tokens,
-          prompt_tokens: ret.usage?.prompt_tokens,
-          completion_tokens: ret.usage?.completion_tokens,
-        },
-      });
-
-      return ret;
-    },
-    { name: "OpenAI Completion" }
-  );
+  let openai = buildOpenAIClient(options);
+  return await openai.chat.completions.create(params);
 }

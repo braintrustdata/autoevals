@@ -1,9 +1,6 @@
 import { Scorer } from "@braintrust/core";
 import levenshtein from "js-levenshtein";
 import { OpenAIAuth, buildOpenAIClient } from "./oai";
-import { CreateEmbeddingResponse } from "openai/resources/embeddings";
-import { SpanLogFn, currentSpanTraced } from "./util";
-import { OpenAI } from "openai";
 import cossim from "compute-cosine-similarity";
 
 /**
@@ -76,7 +73,7 @@ export const EmbeddingSimilarity: Scorer<
 
   const [outputResult, expectedResult] = await Promise.all(
     [output, expected].map((input) =>
-      embed(openai, {
+      openai.embeddings.create({
         input,
         model: args.model ?? "text-embedding-ada-002",
       })
@@ -102,32 +99,4 @@ Object.defineProperty(EmbeddingSimilarity, "name", {
 
 function scaleScore(score: number, expectedMin: number): number {
   return Math.max((score - expectedMin) / (1 - expectedMin), 0);
-}
-
-async function embed(
-  openai: OpenAI,
-  params: OpenAI.Embeddings.EmbeddingCreateParams
-): Promise<CreateEmbeddingResponse> {
-  return await currentSpanTraced(
-    async (spanLog: SpanLogFn) => {
-      const result = await openai.embeddings.create(params);
-      const output = result.data[0].embedding;
-
-      const { input, ...rest } = params;
-      spanLog({
-        input,
-        output,
-        metadata: {
-          ...rest,
-        },
-        metrics: {
-          tokens: result.usage?.total_tokens,
-          prompt_tokens: result.usage?.prompt_tokens,
-        },
-      });
-
-      return result;
-    },
-    { name: "OpenAI Embedding" }
-  );
 }

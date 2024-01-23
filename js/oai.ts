@@ -50,43 +50,17 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
   });
 }
 
+declare global {
+  var __inherited_braintrust_wrap_openai: ((openai: any) => any) | undefined;
+}
+
 export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth
 ): Promise<ChatCompletion> {
-  const { cache } = options;
-
-  return await currentSpanTraced(
-    async (spanLog: SpanLogFn) => {
-      let cached = false;
-      let ret = await cache?.get(params);
-      if (ret) {
-        cached = true;
-      } else {
-        const openai = buildOpenAIClient(options);
-        const completion = await openai.chat.completions.create(params);
-
-        await cache?.set(params, completion);
-        ret = completion;
-      }
-
-      const { messages, ...rest } = params;
-      spanLog({
-        input: messages,
-        metadata: {
-          ...rest,
-          cached,
-        },
-        output: ret.choices[0],
-        metrics: {
-          tokens: ret.usage?.total_tokens,
-          prompt_tokens: ret.usage?.prompt_tokens,
-          completion_tokens: ret.usage?.completion_tokens,
-        },
-      });
-
-      return ret;
-    },
-    { name: "OpenAI Completion" }
-  );
+  let openai = buildOpenAIClient(options);
+  if (globalThis.__inherited_braintrust_wrap_openai) {
+    openai = globalThis.__inherited_braintrust_wrap_openai(openai);
+  }
+  return await openai.chat.completions.create(params);
 }

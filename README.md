@@ -1,6 +1,6 @@
-# AutoEvals
+# Autoevals
 
-AutoEvals is a tool to quickly and easily evaluate AI model outputs.
+Autoevals is a tool to quickly and easily evaluate AI model outputs.
 
 It bundles together a variety of automatic evaluation methods including:
 
@@ -8,19 +8,19 @@ It bundles together a variety of automatic evaluation methods including:
 - Statistical (e.g. BLEU)
 - Model-based (using LLMs)
 
-AutoEvals is developed by the team at [BrainTrust](https://braintrustdata.com/).
+Autoevals is developed by the team at [BrainTrust](https://braintrustdata.com/).
 
-AutoEvals uses model-graded evaluation for a variety of subjective tasks including fact checking,
+Autoevals uses model-graded evaluation for a variety of subjective tasks including fact checking,
 safety, and more. Many of these evaluations are adapted from OpenAI's excellent [evals](https://github.com/openai/evals)
 project but are implemented so you can flexibly run them on individual examples, tweak the prompts, and debug
 their outputs.
 
-You can also create your own model-graded evaluations with AutoEvals. It's easy to add custom prompts, parse outputs,
+You can also create your own model-graded evaluations with Autoevals. It's easy to add custom prompts, parse outputs,
 and manage exceptions.
 
 ## Installation
 
-AutoEvals is distributed as a [Python library on PyPI](https://pypi.org/project/autoevals/) and
+Autoevals is distributed as a [Python library on PyPI](https://pypi.org/project/autoevals/) and
 [Node.js library on NPM](https://www.npmjs.com/package/autoevals).
 
 ### Python
@@ -37,7 +37,7 @@ npm install autoevals
 
 ## Example
 
-Use AutoEvals to model-grade an example LLM completion using the [factuality prompt](templates/factuality.yaml).
+Use Autoevals to model-grade an example LLM completion using the [factuality prompt](templates/factuality.yaml).
 
 ### Python
 
@@ -75,9 +75,9 @@ import { Factuality } from "autoevals";
 })();
 ```
 
-## Using Braintrust with AutoEvals
+## Using Braintrust with Autoevals
 
-Once you grade an output using AutoEvals, it's convenient to use [BrainTrust](https://www.braintrustdata.com/docs/libs/python) to log and compare your evaluation results.
+Once you grade an output using Autoevals, it's convenient to use [BrainTrust](https://www.braintrustdata.com/docs/libs/python) to log and compare your evaluation results.
 
 ### Python
 
@@ -101,7 +101,7 @@ print(f"Factuality metadata: {result.metadata['rationale']}")
 
 # Log the evaluation results to BrainTrust
 experiment = braintrust.init(
-    project="AutoEvals", api_key="YOUR_BRAINTRUST_API_KEY"
+    project="Autoevals", api_key="YOUR_BRAINTRUST_API_KEY"
 )
 experiment.log(
     inputs={"query": input},
@@ -125,7 +125,7 @@ Create a file named `example.eval.js` (it must end with `.eval.js` or `.eval.js`
 import { Eval } from "braintrust";
 import { Factuality } from "autoevals";
 
-Eval("AutoEvals", {
+Eval("Autoevals", {
   data: () => [
     {
       input: "Which country has the highest population?",
@@ -177,7 +177,7 @@ npx braintrust run example.eval.js
 
 ## Custom Evaluation Prompts
 
-AutoEvals supports custom evaluation prompts for model-graded evaluation. To use them, simply pass in a prompt and scoring mechanism:
+Autoevals supports custom evaluation prompts for model-graded evaluation. To use them, simply pass in a prompt and scoring mechanism:
 
 ### Python
 
@@ -261,14 +261,57 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
 })();
 ```
 
+## Creating custom scorers
+
+You can also create your own scoring functions that do not use LLMs. For example, to test whether the word `'banana'`
+is in the output, you can use the following:
+
+### Python
+
+```python
+from autoevals import Score
+
+
+def banana_scorer(output, expected, input):
+    return Score(name="banana_scorer", score=1 if "banana" in output else 0)
+
+
+input = "What is 1 banana + 2 bananas?"
+output = "3"
+expected = "3 bananas"
+
+result = banana_scorer(output, expected, input)
+
+print(f"Banana score: {result.score}")
+```
+
+### Node.js
+
+```javascript
+import { Score } from "autoevals";
+
+const bananaScorer = ({ output, expected, input }): Score => {
+  return { name: "banana_scorer", score: output.includes("banana") ? 1 : 0 };
+};
+
+(async () => {
+  const input = "What is 1 banana + 2 bananas?";
+  const output = "3";
+  const expected = "3 bananas";
+
+  const result = await bananaScorer({ output, expected, input });
+  console.log(`Banana score: ${result.score}`);
+})();
+```
+
 ## Why does this library exist?
 
 There is nothing particularly novel about the evaluation methods in this library. They are all well-known and well-documented. However, there are a few things that are particularly difficult when evaluating in practice:
 
 - Normalizing metrics between 0 and 1 is tough. For example, check out the calculation in [number.py](/py/autoevals/number.py) to see how it's done for numeric differences.
 - Parsing the outputs on model-graded evaluations is also challenging. There are frameworks that do this, but it's hard to
-  debug one output at a time, propagate errors, and tweak the prompts. AutoEvals makes these tasks easy.
-- Collecting metrics behind a uniform interface makes it easy to swap out evaluation methods and compare them. Prior to AutoEvals, we couldn't find an open source library where you can simply pass in `input`, `output`, and `expected` values through a bunch of different evaluation methods.
+  debug one output at a time, propagate errors, and tweak the prompts. Autoevals makes these tasks easy.
+- Collecting metrics behind a uniform interface makes it easy to swap out evaluation methods and compare them. Prior to Autoevals, we couldn't find an open source library where you can simply pass in `input`, `output`, and `expected` values through a bunch of different evaluation methods.
 
 ## Documentation
 

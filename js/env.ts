@@ -3,7 +3,10 @@ export interface EnvI {
   OPENAI_BASE_URL?: string;
 }
 
-export const Env: EnvI = {
-  OPENAI_API_KEY: undefined,
-  OPENAI_BASE_URL: undefined,
-};
+export const Env: EnvI =
+  typeof process === "undefined"
+    ? {}
+    : {
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
+      };

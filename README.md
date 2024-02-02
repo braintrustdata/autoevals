@@ -38,6 +38,7 @@ npm install autoevals
 ## Example
 
 Use Autoevals to model-grade an example LLM completion using the [factuality prompt](templates/factuality.yaml).
+By default, Autoevals uses your `OPENAI_API_KEY` environment variable to authenticate with OpenAI's API.
 
 ### Python
 

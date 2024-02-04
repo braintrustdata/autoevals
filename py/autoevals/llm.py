@@ -55,13 +55,17 @@ COT_RESPONSE_SCHEMA = {
 }
 
 
-def build_classification_functions(useCoT):
+def build_classification_functions(useCoT, choice_strings):
+    params = COT_RESPONSE_SCHEMA if useCoT else PLAIN_RESPONSE_SCHEMA
+    enum_params = {
+        **params,
+        "properties": {
+            **params["properties"],
+            "choice": {**params["properties"]["choice"], "enum": choice_strings},
+        },
+    }
     return [
-        {
-            "name": "select_choice",
-            "description": "Call this function to select a choice.",
-            "parameters": COT_RESPONSE_SCHEMA if useCoT else PLAIN_RESPONSE_SCHEMA,
-        }
+        {"name": "select_choice", "description": "Call this function to select a choice.", "parameters": enum_params}
     ]
 
 
@@ -210,7 +214,7 @@ class LLMClassifier(OpenAILLMClassifier):
             messages,
             model,
             choice_scores,
-            classification_functions=build_classification_functions(use_cot),
+            classification_functions=build_classification_functions(use_cot, choice_strings),
             max_tokens=max_tokens,
             temperature=temperature,
             engine=engine,

@@ -54,7 +54,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
     model: "gpt-3.5-turbo",
     parseScoreFn: parseBestTitle,
     choiceScores: { "1": 1, "2": 0 },
-    classificationFunctions: buildClassificationFunctions(true),
+    classificationFunctions: buildClassificationFunctions(true, ["1", "2"]),
     page_content,
     maxTokens: 500,
     cache,

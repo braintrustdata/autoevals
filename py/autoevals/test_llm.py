@@ -41,7 +41,7 @@ the select_choice function with "1" or "2".""",
         ],
         model="gpt-3.5-turbo",
         choice_scores={"1": 1, "2": 0},
-        classification_functions=build_classification_functions(useCoT=True),
+        classification_functions=build_classification_functions(useCoT=True, choice_strings=["1", "2"]),
         max_tokens=500,
     )
 

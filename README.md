@@ -204,9 +204,10 @@ Issue Description: {{input}}
 output_scores = {"1": 1, "2": 0}
 
 evaluator = LLMClassifier(
-    prompt_prefix,
-    output_scores,
-    use_cot=False,
+    name="TitleQuality",
+    prompt_template=prompt_prefix,
+    choice_scores=output_scores,
+    use_cot=True,
 )
 
 # Evaluate an example LLM completion
@@ -244,9 +245,10 @@ Issue Description: {{input}}
   const choiceScores = { 1: 1, 2: 0 };
 
   const evaluator = LLMClassifierFromTemplate({
+    name: "TitleQuality",
     promptTemplate,
     choiceScores,
-    useCoT: false,
+    useCoT: true,
   });
 
   const input = `As suggested by Nicolo, we should standardize the error responses coming from GoTrue, postgres, and realtime (and any other/future APIs) so that it's better DX when writing a client,

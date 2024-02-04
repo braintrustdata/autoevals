@@ -48,12 +48,23 @@ const COT_RESPONSE_SCHEMA = {
   type: "object",
 };
 
-export function buildClassificationFunctions(useCoT: boolean) {
+export function buildClassificationFunctions(
+  useCoT: boolean,
+  choiceStrings: string[]
+) {
+  const params = useCoT ? COT_RESPONSE_SCHEMA : PLAIN_RESPONSE_SCHEMA;
+  const enumParams = {
+    ...params,
+    properties: {
+      ...params.properties,
+      choice: { ...params.properties.choice, enum: choiceStrings },
+    },
+  };
   return [
     {
       name: "select_choice",
       description: "Call this function to select a choice.",
-      parameters: useCoT ? COT_RESPONSE_SCHEMA : PLAIN_RESPONSE_SCHEMA,
+      parameters: enumParams,
     },
   ];
 }
@@ -230,7 +241,10 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       name,
       messages,
       choiceScores,
-      classificationFunctions: buildClassificationFunctions(useCoT),
+      classificationFunctions: buildClassificationFunctions(
+        useCoT,
+        choiceStrings
+      ),
       model,
       maxTokens,
       temperature,

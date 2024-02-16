@@ -150,9 +150,7 @@ class OpenAILLMClassifier(Scorer):
             raise ValueError("Empty response from OpenAI")
 
     async def _run_eval_async(self, output, expected, **kwargs):
-        return self._postprocess_response(
-            await arun_cached_request(**self._request_args(output, expected, **kwargs))
-        )
+        return self._postprocess_response(await arun_cached_request(**self._request_args(output, expected, **kwargs)))
 
     def _run_eval_sync(self, output, expected, **kwargs):
         return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))

@@ -134,39 +134,31 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     content: m.content ? mustache.render(m.content as string, renderArgs) : "",
   }));
 
-  try {
-    const resp = await cachedChatCompletion(
-      {
-        model,
-        messages,
-        functions: classificationFunctions,
-        function_call: { name: "select_choice" },
-        ...extraArgs,
-      },
-      {
-        cache,
-        openAiApiKey,
-        openAiOrganizationId,
-        openAiBaseUrl,
-        openAiDefaultHeaders,
-        openAiDangerouslyAllowBrowser,
-      }
-    );
-
-    if (resp.choices.length > 0) {
-      return {
-        name,
-        ...parseResponse(resp.choices[0].message!, choiceScores),
-      };
-    } else {
-      throw new Error("Empty response from OpenAI");
+  const resp = await cachedChatCompletion(
+    {
+      model,
+      messages,
+      functions: classificationFunctions,
+      function_call: { name: "select_choice" },
+      ...extraArgs,
+    },
+    {
+      cache,
+      openAiApiKey,
+      openAiOrganizationId,
+      openAiBaseUrl,
+      openAiDefaultHeaders,
+      openAiDangerouslyAllowBrowser,
     }
-  } catch (error) {
+  );
+
+  if (resp.choices.length > 0) {
     return {
       name,
-      score: 0,
-      error: `${error}`,
+      ...parseResponse(resp.choices[0].message!, choiceScores),
     };
+  } else {
+    throw new Error("Empty response from OpenAI");
   }
 }
 
@@ -175,27 +167,19 @@ function parseResponse(
   choiceScores: Record<string, number>
 ): Omit<Score, "name"> {
   let score = 0;
-  let error = undefined;
   const metadata: Record<string, unknown> = {};
-  try {
-    const args = JSON.parse(resp.function_call!.arguments!);
-    metadata["rationale"] = args["reasons"]?.join("\n");
-    const choice = args["choice"].trim();
-    metadata["choice"] = choice;
-    if (choiceScores[choice] !== undefined) {
-      score = choiceScores[choice];
-    } else {
-      throw new Error(`Unknown score choice ${choice}`);
-    }
-  } catch (e: unknown) {
-    score = 0;
-    error = `${e}`;
+  const args = JSON.parse(resp.function_call!.arguments!);
+  metadata["rationale"] = args["reasons"]?.join("\n");
+  const choice = args["choice"].trim();
+  metadata["choice"] = choice;
+  if (choiceScores[choice] !== undefined) {
+    score = choiceScores[choice];
+  } else {
+    throw new Error(`Unknown score choice ${choice}`);
   }
-
   return {
     score,
     metadata,
-    error,
   };
 }
 

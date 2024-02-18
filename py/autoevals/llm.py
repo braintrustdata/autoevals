@@ -108,20 +108,14 @@ class OpenAILLMClassifier(Scorer):
 
     def _process_response(self, resp):
         metadata = {}
-        try:
-            args = json.loads(resp["function_call"]["arguments"])
-            if "reasons" in args:
-                metadata["rationale"] = "\n".join(args["reasons"])
-            if "function_call" not in resp:
-                raise ValueError("No function call found in response")
-            metadata["choice"] = args["choice"].strip()
-            score = self.choice_scores[metadata["choice"]]
-            error = None
-        except Exception as e:
-            score = 0
-            error = e
-
-        return Score(name=self.name, score=score, metadata=metadata, error=error)
+        args = json.loads(resp["function_call"]["arguments"])
+        if "reasons" in args:
+            metadata["rationale"] = "\n".join(args["reasons"])
+        if "function_call" not in resp:
+            raise ValueError("No function call found in response")
+        metadata["choice"] = args["choice"].strip()
+        score = self.choice_scores[metadata["choice"]]
+        return Score(name=self.name, score=score, metadata=metadata)
 
     def _render_messages(self, **kwargs):
         kwargs.update(self.render_args)
@@ -156,18 +150,10 @@ class OpenAILLMClassifier(Scorer):
             raise ValueError("Empty response from OpenAI")
 
     async def _run_eval_async(self, output, expected, **kwargs):
-        try:
-            return self._postprocess_response(
-                await arun_cached_request(**self._request_args(output, expected, **kwargs))
-            )
-        except Exception as e:
-            return Score(name=self.name, score=0, error=e)
+        return self._postprocess_response(await arun_cached_request(**self._request_args(output, expected, **kwargs)))
 
     def _run_eval_sync(self, output, expected, **kwargs):
-        try:
-            return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
-        except Exception as e:
-            return Score(name=self.name, score=0, error=e)
+        return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
 
 
 @dataclass

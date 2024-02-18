@@ -18,6 +18,8 @@ class OpenAIWrapper:
 
 
 def prepare_openai(is_async=False, api_key=None, base_url=None):
+    if api_key is None:
+        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("BRAINTRUST_API_KEY")
     if base_url is None:
         base_url = os.environ.get("OPENAI_BASE_URL", PROXY_URL)
 

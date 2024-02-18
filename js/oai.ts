@@ -41,7 +41,7 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
   } = options;
 
   const client = new OpenAI({
-    apiKey: openAiApiKey || Env.OPENAI_API_KEY,
+    apiKey: openAiApiKey || Env.OPENAI_API_KEY || Env.BRAINTRUST_API_KEY,
     organization: openAiOrganizationId,
     baseURL: openAiBaseUrl || Env.OPENAI_BASE_URL || PROXY_URL,
     defaultHeaders: openAiDefaultHeaders,

@@ -1,6 +1,6 @@
 from braintrust_core.score import Score, Scorer
 
-from autoevals import Levenshtein
+from .string import Levenshtein
 
 
 class ListContains(Scorer):

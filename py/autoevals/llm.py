@@ -1,3 +1,4 @@
+import abc
 import json
 import os
 import re
@@ -25,11 +26,6 @@ single choice by setting the `choice` parameter to a single choice from {{__choi
 """.strip().replace(
     "\n", " "
 )
-
-SUPPORTED_MODELS = [
-    "gpt-3.5-turbo",
-    "gpt-4",
-]
 
 
 PLAIN_RESPONSE_SCHEMA = {
@@ -69,7 +65,21 @@ def build_classification_functions(useCoT, choice_strings):
     ]
 
 
-class OpenAILLMClassifier(Scorer):
+class OpenAIScorer(Scorer):
+    def __init__(
+        self,
+        temperature=None,
+        api_key=None,
+        base_url=None,
+    ):
+        self.extra_args = {"temperature": temperature or 0}
+        if api_key:
+            self.extra_args["api_key"] = api_key
+        if base_url:
+            self.extra_args["base_url"] = base_url
+
+
+class OpenAILLMClassifier(OpenAIScorer):
     def __init__(
         self,
         name: str,
@@ -84,38 +94,38 @@ class OpenAILLMClassifier(Scorer):
         api_key=None,
         base_url=None,
     ):
+        super().__init__(
+            temperature=temperature,
+            api_key=api_key,
+            base_url=base_url,
+        )
+
         self.name = name
+
         self.model = model
         self.engine = engine
         self.messages = messages
-        self.choice_scores = choice_scores
-        self.classification_functions = classification_functions
 
-        self.extra_args = {"temperature": temperature or 0}
         if max_tokens:
             self.extra_args["max_tokens"] = max(max_tokens, 5)
-        if api_key:
-            self.extra_args["api_key"] = api_key
-        if base_url:
-            self.extra_args["base_url"] = base_url
 
         self.render_args = {}
         if render_args:
             self.render_args.update(render_args)
 
+        self.choice_scores = choice_scores
+        self.classification_functions = classification_functions
+
     def _name(self):
         return self.name
 
-    def _process_response(self, resp):
-        metadata = {}
-        args = json.loads(resp["function_call"]["arguments"])
-        if "reasons" in args:
-            metadata["rationale"] = "\n".join(args["reasons"])
-        if "function_call" not in resp:
-            raise ValueError("No function call found in response")
-        metadata["choice"] = args["choice"].strip()
-        score = self.choice_scores[metadata["choice"]]
-        return Score(name=self.name, score=score, metadata=metadata)
+    def _build_args(self, output, expected, **kwargs):
+        return dict(
+            model=self.model,
+            messages=self._render_messages(output=output, expected=expected, **kwargs),
+            functions=self.classification_functions,
+            function_call={"name": "select_choice"},
+        )
 
     def _render_messages(self, **kwargs):
         kwargs.update(self.render_args)
@@ -128,20 +138,28 @@ class OpenAILLMClassifier(Scorer):
         ]
 
     def _request_args(self, output, expected, **kwargs):
-        ret = dict(
-            model=self.model,
-            messages=self._render_messages(output=output, expected=expected, **kwargs),
-            functions=self.classification_functions,
-            function_call={"name": "select_choice"},
+        ret = {
             **self.extra_args,
-        )
+            **self._build_args(output, expected, **kwargs),
+        }
 
         if self.engine is not None:
-            # This parameter has been deprecated (https://help.openai.com/en/articles/6283125-what-happened-to-engines)
-            # and is unsupported in OpenAI v1, so only set it if the user has specified it
+            # this parameter has been deprecated (https://help.openai.com/en/articles/6283125-what-happened-to-engines)
+            # and is unsupported in openai v1, so only set it if the user has specified it
             ret["engine"] = self.engine
 
         return ret
+
+    def _process_response(self, resp):
+        metadata = {}
+        args = json.loads(resp["function_call"]["arguments"])
+        if "reasons" in args:
+            metadata["rationale"] = "\n".join(args["reasons"])
+        if "function_call" not in resp:
+            raise ValueError("No function call found in response")
+        metadata["choice"] = args["choice"].strip()
+        score = self.choice_scores[metadata["choice"]]
+        return Score(name=self.name, score=score, metadata=metadata)
 
     def _postprocess_response(self, resp):
         if len(resp["choices"]) > 0:
@@ -196,10 +214,10 @@ class LLMClassifier(OpenAILLMClassifier):
         ]
 
         super().__init__(
-            name,
-            messages,
-            model,
-            choice_scores,
+            name=name,
+            messages=messages,
+            model=model,
+            choice_scores=choice_scores,
             classification_functions=build_classification_functions(use_cot, choice_strings),
             max_tokens=max_tokens,
             temperature=temperature,

@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools build twine openai
-          python -m pip install -e .[dev]
+          python -m pip install -e .[all]
       - name: Test with pytest
         run: |
           pytest

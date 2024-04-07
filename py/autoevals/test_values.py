@@ -73,3 +73,7 @@ def test_list_contains():
         assert ListContains(pairwise_evaluator=LevenshteinScorer())(output, expected).score == approx(
             expected_score, abs=1e-4
         ), (output, expected, expected_score)
+
+    assert (
+        ListContains(pairwise_evaluator=LevenshteinScorer(), allow_extra_entities=True)(["a", "b"], ["a"]).score == 1
+    )

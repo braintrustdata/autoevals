@@ -4,7 +4,8 @@ from autoevals import Levenshtein
 
 
 class ListContains(Scorer):
-    def __init__(self, pairwise_scorer=None, **kwargs):
+    def __init__(self, pairwise_scorer=None, allow_extra_entities=False, **kwargs):
+        self.allow_extra_entities = allow_extra_entities
         self.pairwise_scorer = pairwise_scorer or Levenshtein()
 
     async def _run_eval_async(self, output, expected=None, **kwargs):
@@ -34,10 +35,10 @@ class ListContains(Scorer):
 
         return self._compute_scores(output, expected, distances, **kwargs)
 
-    def _compute_scores(self, rows, columns, distances, **kwargs):
-        if len(rows) == 0 and len(columns) == 0:
+    def _compute_scores(self, outputs, expecteds, distances, **kwargs):
+        if len(outputs) == 0 and len(expecteds) == 0:
             return Score(name=self._name(), score=1)
-        elif len(rows) == 0 or len(columns) == 0:
+        elif len(outputs) == 0 or len(expecteds) == 0:
             return Score(name=self._name(), score=0)
 
         try:
@@ -53,12 +54,13 @@ class ListContains(Scorer):
         distances = 1 - np.array(distances)
         row_ind, col_ind = linear_sum_assignment(distances)
 
-        pairs = [(rows[r], columns[c], 1 - distances[r][c]) for (r, c) in zip(row_ind, col_ind)]
+        pairs = [(outputs[r], expecteds[c], 1 - distances[r][c]) for (r, c) in zip(row_ind, col_ind)]
         lowest_distances = distances[row_ind, col_ind]
 
-        # We care about each element of output being _in_ expected, so we also need to penalize
-        # elements in expected that are not in output
-        denominator = max(len(rows), len(columns))
+        # Generally speaking, outputs that are not in expecteds should be penalized, but in certain use cases
+        # (eg checking whether a passage of text has all of the entities in a list, and maybe a few more), it's
+        # ok to allow them.
+        denominator = max(len(outputs), len(expecteds)) if not self.allow_extra_entities else len(expecteds)
         assert len(lowest_distances) <= denominator, "There should be at most as many pairs as there are rows"
         score = sum(1 - lowest_distances) / denominator
 

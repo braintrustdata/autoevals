@@ -71,7 +71,8 @@ export const ListContains: Scorer<
   }>;
 
   const avgScore =
-    pairs.reduce((acc, pair) => acc + pair.score, 0) / output.length;
+    pairs.reduce((acc, pair) => acc + pair.score, 0) /
+    Math.max(output.length, expected.length);
 
   return {
     name: "ListOverlap",

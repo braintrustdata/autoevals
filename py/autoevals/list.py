@@ -58,8 +58,9 @@ class ListContains(Scorer):
 
         # We care about each element of output being _in_ expected, so we also need to penalize
         # elements in expected that are not in output
-        assert len(lowest_distances) <= len(columns), "There should be at most as many pairs as there are rows"
-        score = sum(1 - lowest_distances) / len(columns)
+        denominator = max(len(rows), len(columns))
+        assert len(lowest_distances) <= denominator, "There should be at most as many pairs as there are rows"
+        score = sum(1 - lowest_distances) / denominator
 
         return Score(
             name=self._name(),

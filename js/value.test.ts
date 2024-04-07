@@ -43,7 +43,7 @@ test("ListContains Test", async () => {
     { a: ["0"], b: [], expected: 0 },
     { a: [], b: ["0"], expected: 0 },
     { a: ["a"], b: ["a"], expected: 1 },
-    { a: ["a"], b: ["a", "b"], expected: 1 },
+    { a: ["a"], b: ["a", "b"], expected: 0.5 },
     { a: ["a", "b"], b: ["a"], expected: 0.5 },
     {
       a: [
@@ -69,7 +69,7 @@ test("ListContains Test", async () => {
         "team",
         "pinning",
       ],
-      expected: 0.2843,
+      expected: 0.1218,
     },
   ];
 

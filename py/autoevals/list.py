@@ -16,10 +16,10 @@ class ListContains(Scorer):
             for output_item in output
         ]
 
-        distances = [
-            [(await distance_future).score or 0 for distance_future in distance_futures]
-            for distance_futures in distances_futures
-        ]
+        distances = []
+
+        for distance_futures in distances_futures:
+            distances.append([await distance_future for distance_future in distance_futures])
 
         return self._compute_scores(output, expected, distances, **kwargs)
 

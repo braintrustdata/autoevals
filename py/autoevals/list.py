@@ -19,7 +19,7 @@ class ListContains(Scorer):
         distances = []
 
         for distance_futures in distances_futures:
-            distances.append([await distance_future for distance_future in distance_futures])
+            distances.append([(await distance_future).score for distance_future in distance_futures])
 
         return self._compute_scores(output, expected, distances, **kwargs)
 
@@ -57,9 +57,9 @@ class ListContains(Scorer):
         lowest_distances = distances[row_ind, col_ind]
 
         # We care about each element of output being _in_ expected, so we also need to penalize
-        # elements in output that are not in expected
-        assert len(lowest_distances) <= len(rows), "There should be at most as many pairs as there are rows"
-        score = sum(1 - lowest_distances) / len(rows)
+        # elements in expected that are not in output
+        assert len(lowest_distances) <= len(columns), "There should be at most as many pairs as there are rows"
+        score = sum(1 - lowest_distances) / len(columns)
 
         return Score(
             name=self._name(),

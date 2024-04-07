@@ -10,8 +10,5 @@ module.exports = {
       useESM: true,
     },
   },
-  moduleNameMapper: {
-    "(.+)\\.js": "$1",
-  },
   extensionsToTreatAsEsm: [".ts"],
 };

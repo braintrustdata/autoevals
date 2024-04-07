@@ -1,4 +1,4 @@
-import { JSONDiff } from "./json.js";
+import { JSONDiff } from "./json";
 
 test("JSON String Test", async () => {
   const cases = [

@@ -643,6 +643,64 @@ export const ContextEntityRecall: Scorer<
   };
 };
 
+const SENTENCE_PROMPT = `Please extract relevant sentences from the provided context that is absolutely required answer the following question. If no relevant sentences are found, or if you believe the question cannot be answered from the given context, return an empty array.  While extracting candidate sentences you're not allowed to make any changes to sentences from given context.
+
+Your actual task:
+
+question: {{question}}
+context: {{context}}
+candidate sentences:`;
+
+const SENTENCE_SCHEMA = {
+  $defs: {
+    RelevantSentence: {
+      properties: {
+        sentence: {
+          description: "The selected sentence",
+          title: "Sentence",
+          type: "string",
+        },
+        reasons: {
+          description:
+            "Reasons why the sentence is relevant. Explain your thinking step by step.",
+          items: { type: "string" },
+          title: "Reasons",
+          type: "array",
+        },
+      },
+      required: ["sentence", "reasons"],
+      title: "RelevantSentence",
+      type: "object",
+    },
+  },
+  properties: {
+    sentences: {
+      description: "List of referenced sentences",
+      items: { $ref: "#/$defs/RelevantSentence" },
+      title: "Sentences",
+      type: "array",
+    },
+  },
+  required: ["sentences"],
+  title: "RelevantSentences",
+  type: "object",
+};
+
+const relevantSentencesSchema = z.object({
+  sentnces: z
+    .array(
+      z.object({
+        sentence: z.string().describe("The selected sentence"),
+        reasons: z
+          .array(z.string())
+          .describe(
+            "Reasons why the sentence is relevant. Explain your thinking step by step."
+          ),
+      })
+    )
+    .describe("List of referenced sentences"),
+});
+
 function parseArgs<RequiredExpected extends boolean>(
   args: ScorerArgs<string, RagasArgs>
 ): {

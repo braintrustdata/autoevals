@@ -10,6 +10,13 @@ from .llm import OpenAIScorer
 from .oai import arun_cached_request, run_cached_request
 from .string import EmbeddingSimilarity
 
+
+def check_required(name, **kwargs):
+    for key, value in kwargs.items():
+        if value is None:
+            raise ValueError(f"{name} requires {key} value")
+
+
 DEFAULT_RAGAS_MODEL = "gpt-3.5-turbo-16k"
 
 ENTITY_PROMPT = """Given a text, extract unique entities without repetition. Ensure you consider different forms or mentions of the same entity as a single entity.
@@ -92,25 +99,17 @@ class ContextEntityRecall(OpenAIScorer):
         )
 
     async def _run_eval_async(self, output, expected=None, context=None, **kwargs):
-        if expected is None:
-            raise ValueError("ContextEntityRecall requires an expected value")
-        if context is None:
-            raise ValueError("ContextEntityRecall requires a context value")
+        check_required("ContextEntityRecall", expected=expected, context=context)
 
         context = "\n".join(context) if isinstance(context, list) else context
 
-        expected_entities = [
-            e
-            for e in (await aextract_entities(text=expected, model=self.extraction_model, **self.extra_args))[
-                "entities"
-            ]
-        ]
-        context_entities = [
-            e
-            for e in (await aextract_entities(text=context, model=self.extraction_model, **self.extra_args))[
-                "entities"
-            ]
-        ]
+        expected_entities_future, context_entities_future = (
+            aextract_entities(text=expected, model=self.extraction_model, **self.extra_args),
+            aextract_entities(text=context, model=self.extraction_model, **self.extra_args),
+        )
+
+        expected_entities = [e for e in (await expected_entities_future)["entities"]]
+        context_entities = [e for e in (await context_entities_future)["entities"]]
 
         score = await self.contains_scorer.eval_async(output=context_entities, expected=expected_entities)
 
@@ -121,10 +120,7 @@ class ContextEntityRecall(OpenAIScorer):
         )
 
     def _run_eval_sync(self, output, expected=None, context=None, **kwargs):
-        if expected is None:
-            raise ValueError("ContextEntityRecall requires an expected value")
-        if context is None:
-            raise ValueError("ContextEntityRecall requires a context value")
+        check_required("ContextEntityRecall", expected=expected, context=context)
 
         context = "\n".join(context) if isinstance(context, list) else context
 
@@ -215,18 +211,7 @@ class ContextRelevancy(OpenAIScorer):
 
         self.model = model
 
-    async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
-        if input is None:
-            raise ValueError("ContextRelevancy requires an input value")
-        if context is None:
-            raise ValueError("ContextRelevancy requires a context value")
-
-        if isinstance(context, list):
-            context = "\n".join(context)
-
-        response = await arun_cached_request(
-            **extract_sentences_request(question=input, context=context, model=self.model, **self.extra_args)
-        )
+    def _postprocess(self, context, response):
         sentences = json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
         return Score(
@@ -236,29 +221,32 @@ class ContextRelevancy(OpenAIScorer):
             metadata={
                 "relevant_sentences": sentences["sentences"],
             },
+        )
+
+    async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
+        check_required("ContextRelevancy", input=input, expected=expected, context=context)
+
+        if isinstance(context, list):
+            context = "\n".join(context)
+
+        return self._postprocess(
+            context,
+            await arun_cached_request(
+                **extract_sentences_request(question=input, context=context, model=self.model, **self.extra_args)
+            ),
         )
 
     def _run_eval_sync(self, output, expected=None, input=None, context=None, **kwargs):
-        if input is None:
-            raise ValueError("ContextRelevancy requires an input value")
-        if context is None:
-            raise ValueError("ContextRelevancy requires a context value")
+        check_required("ContextRelevancy", input=input, expected=expected, context=context)
 
         if isinstance(context, list):
             context = "\n".join(context)
 
-        response = run_cached_request(
-            **extract_sentences_request(question=input, context=context, model=self.model, **self.extra_args)
-        )
-        sentences = json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
-
-        return Score(
-            name=self._name(),
-            # Simplify this by just using the string length, rather than the number of sentences.
-            score=len("".join([s["sentence"] for s in sentences["sentences"]])) / len(context),
-            metadata={
-                "relevant_sentences": sentences["sentences"],
-            },
+        return self._postprocess(
+            context,
+            run_cached_request(
+                **extract_sentences_request(question=input, context=context, model=self.model, **self.extra_args)
+            ),
         )
 
 
@@ -357,22 +345,7 @@ class ContextRecall(OpenAIScorer):
 
         self.model = model
 
-    async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
-        if input is None:
-            raise ValueError("ContextRecall requires an input value")
-        if expected is None:
-            raise ValueError("ContextRecall requires an expected value")
-        if context is None:
-            raise ValueError("ContextRecall requires a context value")
-
-        if isinstance(context, list):
-            context = "\n".join(context)
-
-        response = await arun_cached_request(
-            **extract_context_recall_request(
-                question=input, answer=expected, context=context, model=self.model, **self.extra_args
-            )
-        )
+    def _postprocess(self, response):
         statements = json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
         ones = sum([s["attributed"] for s in statements["statements"]])
@@ -384,35 +357,34 @@ class ContextRecall(OpenAIScorer):
             metadata={
                 "statements": statements,
             },
+        )
+
+    async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
+        check_required("ContextRecall", input=input, expected=expected, context=context)
+
+        if isinstance(context, list):
+            context = "\n".join(context)
+
+        return self._postprocess(
+            await arun_cached_request(
+                **extract_context_recall_request(
+                    question=input, answer=expected, context=context, model=self.model, **self.extra_args
+                )
+            )
         )
 
     def _run_eval_sync(self, output, expected=None, input=None, context=None, **kwargs):
-        if input is None:
-            raise ValueError("ContextRecall requires an input value")
-        if expected is None:
-            raise ValueError("ContextRecall requires an expected value")
-        if context is None:
-            raise ValueError("ContextRecall requires a context value")
+        check_required("ContextRecall", input=input, expected=expected, context=context)
 
         if isinstance(context, list):
             context = "\n".join(context)
 
-        response = run_cached_request(
-            **extract_context_recall_request(
-                question=input, answer=expected, context=context, model=self.model, **self.extra_args
+        return self._postprocess(
+            run_cached_request(
+                **extract_context_recall_request(
+                    question=input, answer=expected, context=context, model=self.model, **self.extra_args
+                )
             )
-        )
-        statements = json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
-
-        ones = sum([s["attributed"] for s in statements["statements"]])
-        total = len(statements["statements"])
-
-        return Score(
-            name=self._name(),
-            score=ones / total,
-            metadata={
-                "statements": statements,
-            },
         )
 
 
@@ -506,22 +478,7 @@ class ContextPrecision(OpenAIScorer):
 
         self.model = model
 
-    async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
-        if input is None:
-            raise ValueError("ContextPrecision requires an input value")
-        if expected is None:
-            raise ValueError("ContextPrecision requires an expected value")
-        if context is None:
-            raise ValueError("ContextPrecision requires a context value")
-
-        if isinstance(context, list):
-            context = "\n".join(context)
-
-        response = await arun_cached_request(
-            **extract_context_precision_request(
-                question=input, answer=expected, context=context, model=self.model, **self.extra_args
-            )
-        )
+    def _postprocess(self, response):
         precision = json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
         return Score(
@@ -530,30 +487,32 @@ class ContextPrecision(OpenAIScorer):
             metadata={
                 "precision": precision,
             },
+        )
+
+    async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
+        check_required("ContextPrecision", input=input, expected=expected, context=context)
+
+        if isinstance(context, list):
+            context = "\n".join(context)
+
+        return self._postprocess(
+            await arun_cached_request(
+                **extract_context_precision_request(
+                    question=input, answer=expected, context=context, model=self.model, **self.extra_args
+                )
+            )
         )
 
     def _run_eval_sync(self, output, expected=None, input=None, context=None, **kwargs):
-        if input is None:
-            raise ValueError("ContextPrecision requires an input value")
-        if expected is None:
-            raise ValueError("ContextPrecision requires an expected value")
-        if context is None:
-            raise ValueError("ContextPrecision requires a context value")
+        check_required("ContextPrecision", input=input, expected=expected, context=context)
 
         if isinstance(context, list):
             context = "\n".join(context)
 
-        response = run_cached_request(
-            **extract_context_precision_request(
-                question=input, answer=expected, context=context, model=self.model, **self.extra_args
+        return self._postprocess(
+            run_cached_request(
+                **extract_context_precision_request(
+                    question=input, answer=expected, context=context, model=self.model, **self.extra_args
+                )
             )
-        )
-        precision = json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
-
-        return Score(
-            name=self._name(),
-            score=precision["verdict"],
-            metadata={
-                "precision": precision,
-            },
         )

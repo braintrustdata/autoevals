@@ -20,44 +20,43 @@ export const ListContains: Scorer<
 
   if (output.length == 0 && expected.length == 0) {
     return {
-      name: "ListOverlap",
+      name: "ListContains",
       score: 1,
     };
   } else if (output.length == 0 || expected.length == 0) {
     return {
-      name: "ListOverlap",
+      name: "ListContains",
       score: 0,
     };
   }
 
   const pairwiseScorer = args.pairwiseScorer || Levenshtein;
 
-  const distances = await Promise.all(
+  const similarities = await Promise.all(
     args.output.map(async (output_item) =>
       Promise.all(
         expected.map(
           async (expected_item) =>
-            1 -
-            ((
+            (
               await pairwiseScorer({
                 output: output_item,
                 expected: expected_item,
               })
-            ).score ?? 0)
+            ).score ?? 0
         )
       )
     )
   );
 
-  if (distances.length === 1 && distances[0].length === 1) {
+  if (similarities.length === 1 && similarities[0].length === 1) {
     // There appears to be a bug in the linearSumAssignment library when there is only one element
     return {
-      name: "ListOverlap",
-      score: 1 - distances[0][0],
+      name: "ListContains",
+      score: similarities[0][0],
     };
   }
 
-  const result = linearSumAssignment(distances, { maximaze: false });
+  const result = linearSumAssignment(similarities, { maximaze: true });
 
   const pairs = Array.from(result.rowAssignments)
     .map((c, r) =>
@@ -65,7 +64,7 @@ export const ListContains: Scorer<
         ? {
             output: output[r],
             expected: expected[c],
-            score: 1 - distances[r][c],
+            score: similarities[r][c],
           }
         : null
     )
@@ -80,11 +79,10 @@ export const ListContains: Scorer<
     Math.max(output.length, expected.length);
 
   return {
-    name: "ListOverlap",
-    score: avgScore,
+    name: "ListContains",
+    score: Math.min(Math.max(avgScore, 0), 1),
     metadata: {
       pairs,
-      lowestDistances: pairs.map((pair) => pair.score),
     },
   };
 };

@@ -1,3 +1,5 @@
+# These metrics are ported, with some enhancements, from the [RAGAS](https://github.com/explodinggradients/ragas) project.
+
 import json
 
 import chevron
@@ -76,6 +78,11 @@ def extract_entities(text, **extra_args):
 
 
 class ContextEntityRecall(OpenAIScorer):
+    """
+    Estimates context recall by estimating TP and FN using annotated answer and
+    retrieved context.
+    """
+
     def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
         super().__init__(**kwargs)
 
@@ -198,6 +205,11 @@ def extract_sentences_request(question, context, **extra_args):
 
 
 class ContextRelevancy(OpenAIScorer):
+    """
+    Extracts sentences from the context that are relevant to the question with
+    self-consistency checks. The number of relevant sentences and is used as the score.
+    """
+
     def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
         super().__init__(**kwargs)
 
@@ -335,6 +347,11 @@ def extract_context_recall_request(question, answer, context, **extra_args):
 
 
 class ContextRecall(OpenAIScorer):
+    """
+    Estimates context recall by estimating TP and FN using annotated answer and
+    retrieved context.
+    """
+
     def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
         super().__init__(**kwargs)
 
@@ -479,6 +496,11 @@ def extract_context_precision_request(question, answer, context, **extra_args):
 
 
 class ContextPrecision(OpenAIScorer):
+    """
+    Average Precision is a metric that evaluates whether all of the
+    relevant items selected by the model are ranked higher or not.
+    """
+
     def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
         super().__init__(**kwargs)
 

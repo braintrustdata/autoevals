@@ -4,6 +4,12 @@ from .string import Levenshtein
 
 
 class ListContains(Scorer):
+    """
+    A scorer that semantically evaluates the overlap between two lists of strings. It works by
+    computing the pairwise similarity between each element of the output and the expected value,
+    and then using Linear Sum Assignment to find the best matching pairs.
+    """
+
     def __init__(self, pairwise_scorer=None, allow_extra_entities=False, **kwargs):
         self.allow_extra_entities = allow_extra_entities
         self.pairwise_scorer = pairwise_scorer or Levenshtein()
@@ -12,46 +18,48 @@ class ListContains(Scorer):
         if expected is None:
             raise ValueError("ListContains requires an expected value")
 
-        distances_futures = [
+        similarities_futures = [
             [self.pairwise_scorer._run_eval_async(output_item, expected_item) for expected_item in expected]
             for output_item in output
         ]
 
-        distances = []
+        similarities = []
 
-        for distance_futures in distances_futures:
-            distances.append([(await distance_future).score for distance_future in distance_futures])
+        for similarity_futures in similarities_futures:
+            similarities.append([(await similarity_future).score for similarity_future in similarity_futures])
 
-        return self._compute_scores(output, expected, distances, **kwargs)
+        return self._compute_score(output, expected, similarities, **kwargs)
 
     def _run_eval_sync(self, output, expected=None, **kwargs):
         if expected is None:
-            raise ValueError("ListOverlap requires an expected value")
+            raise ValueError("ListContains requires an expected value")
 
-        distances = [
+        similarities = [
             [self.pairwise_scorer._run_eval_sync(output_item, expected_item).score or 0 for expected_item in expected]
             for output_item in output
         ]
 
-        return self._compute_scores(output, expected, distances, **kwargs)
+        return self._compute_score(output, expected, similarities, **kwargs)
 
-    def _compute_scores(self, outputs, expecteds, distances, **kwargs):
+    def _compute_score(self, outputs, expecteds, similarities, **kwargs):
         if len(outputs) == 0 and len(expecteds) == 0:
             return Score(name=self._name(), score=1)
         elif len(outputs) == 0 or len(expecteds) == 0:
             return Score(name=self._name(), score=0)
+
+        similarities = [[d or 0 for d in row] for row in similarities]
 
         try:
             import numpy as np
             from scipy.optimize import linear_sum_assignment
         except ImportError:
             print(
-                "ListOverlap requires the scipy extension, which you can install with `pip install 'autoevals[scipy]'`",
+                "ListContains requires the scipy extension, which you can install with `pip install 'autoevals[scipy]'`",
                 file=sys.stderr,
             )
             raise
 
-        distances = 1 - np.array(distances)
+        distances = -np.array(similarities)
         row_ind, col_ind = linear_sum_assignment(distances)
 
         pairs = [(outputs[r], expecteds[c], 1 - distances[r][c]) for (r, c) in zip(row_ind, col_ind)]
@@ -62,10 +70,10 @@ class ListContains(Scorer):
         # ok to allow them.
         denominator = max(len(outputs), len(expecteds)) if not self.allow_extra_entities else len(expecteds)
         assert len(lowest_distances) <= denominator, "There should be at most as many pairs as there are rows"
-        score = sum(1 - lowest_distances) / denominator
+        score = min(max(sum(-lowest_distances) / denominator, 0), 1)
 
         return Score(
             name=self._name(),
             score=score,
-            metadata={"pairs": pairs, "lowest_distances": lowest_distances.tolist()},
+            metadata={"pairs": pairs},
         )

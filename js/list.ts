@@ -2,6 +2,11 @@ import { Scorer } from "@braintrust/core";
 import { Levenshtein } from "./string";
 import { linearSumAssignment } from "linear-sum-assignment";
 
+/**
+ * A scorer that semantically evaluates the overlap between two lists of strings. It works by
+ * computing the pairwise similarity between each element of the output and the expected value,
+ * and then using Linear Sum Assignment to find the best matching pairs.
+ */
 export const ListContains: Scorer<
   string[],
   {

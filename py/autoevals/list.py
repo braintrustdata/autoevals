@@ -35,7 +35,7 @@ class ListContains(Scorer):
             raise ValueError("ListContains requires an expected value")
 
         similarities = [
-            [self.pairwise_scorer._run_eval_sync(output_item, expected_item).score or 0 for expected_item in expected]
+            [self.pairwise_scorer._run_eval_sync(output_item, expected_item).score for expected_item in expected]
             for output_item in output
         ]
 
@@ -62,7 +62,7 @@ class ListContains(Scorer):
         distances = -np.array(similarities)
         row_ind, col_ind = linear_sum_assignment(distances)
 
-        pairs = [(outputs[r], expecteds[c], 1 - distances[r][c]) for (r, c) in zip(row_ind, col_ind)]
+        pairs = [(outputs[r], expecteds[c], similarities[r][c]) for (r, c) in zip(row_ind, col_ind)]
         lowest_distances = distances[row_ind, col_ind]
 
         # Generally speaking, outputs that are not in expecteds should be penalized, but in certain use cases

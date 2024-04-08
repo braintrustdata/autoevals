@@ -1,6 +1,6 @@
 import { Scorer } from "@braintrust/core";
-import { NumericDiff } from "./number.js";
-import { LevenshteinScorer } from "./string.js";
+import { NumericDiff } from "./number";
+import { LevenshteinScorer } from "./string";
 
 /**
  * A simple scorer that compares JSON objects, using a customizable comparison method for strings

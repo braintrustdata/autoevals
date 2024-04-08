@@ -1,5 +1,6 @@
-import { NumericDiff } from "./number.js";
-import { LevenshteinScorer } from "./string.js";
+import { ListContains } from "./list";
+import { NumericDiff } from "./number";
+import { LevenshteinScorer } from "./string";
 
 test("Levenshtein Test", async () => {
   const cases = [
@@ -33,5 +34,48 @@ test("Numeric Test", async () => {
     console.log(a, b, expected);
     const score = (await NumericDiff({ output: a, expected: b })).score;
     expect(score).toBeCloseTo(expected);
+  }
+});
+
+test("ListContains Test", async () => {
+  const cases = [
+    { a: [], b: [], expected: 1 },
+    { a: ["0"], b: [], expected: 0 },
+    { a: [], b: ["0"], expected: 0 },
+    { a: ["a"], b: ["a"], expected: 1 },
+    { a: ["a"], b: ["a", "b"], expected: 0.5 },
+    { a: ["a", "b"], b: ["a"], expected: 0.5 },
+    {
+      a: [
+        "workspaces",
+        "section",
+        "view",
+        "others",
+        "workspace",
+        "team",
+        "pinning",
+      ],
+      b: ["starred", "multiple different workspaces", "shortcuts"],
+      expected: 0.1218,
+    },
+    {
+      a: ["starred", "multiple different workspaces", "shortcuts"],
+      b: [
+        "workspaces",
+        "section",
+        "view",
+        "others",
+        "workspace",
+        "team",
+        "pinning",
+      ],
+      expected: 0.1218,
+    },
+  ];
+
+  for (const { a, b, expected } of cases) {
+    console.log(a, b, expected);
+    const score = (await ListContains({ output: a, expected: b })).score;
+    expect(score).toBeCloseTo(expected, 4);
   }
 });

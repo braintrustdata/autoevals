@@ -30,6 +30,7 @@
 export type { Score, ScorerArgs, Scorer } from "@braintrust/core";
 export * from "./llm";
 export * from "./string";
+export * from "./list";
 export * from "./number";
 export * from "./json";
 export * from "./templates";

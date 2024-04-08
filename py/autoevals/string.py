@@ -1,3 +1,5 @@
+import threading
+
 from braintrust_core.score import Score, Scorer
 from Levenshtein import distance
 
@@ -33,6 +35,9 @@ class EmbeddingSimilarity(Scorer):
 
     MODEL = "text-embedding-ada-002"
 
+    _CACHE = {}
+    _CACHE_LOCK = threading.Lock()
+
     def __init__(self, prefix="", model=MODEL, expected_min=0.7, api_key=None, base_url=None):
         """
         Create a new EmbeddingSimilarity scorer.
@@ -51,12 +56,36 @@ class EmbeddingSimilarity(Scorer):
         if base_url:
             self.extra_args["base_url"] = base_url
 
+    async def _a_embed(self, value):
+        with self._CACHE_LOCK:
+            if value in self._CACHE:
+                return self._CACHE[value]
+
+        result = await arun_cached_request("embed", input=f"{self.prefix}{value}", **self.extra_args)
+
+        with self._CACHE_LOCK:
+            self._CACHE[value] = result
+
+        return result
+
+    def _embed(self, value):
+        with self._CACHE_LOCK:
+            if value in self._CACHE:
+                return self._CACHE[value]
+
+        result = run_cached_request("embed", input=f"{self.prefix}{value}", **self.extra_args)
+
+        with self._CACHE_LOCK:
+            self._CACHE[value] = result
+
+        return result
+
     async def _run_eval_async(self, output, expected=None, **kwargs):
         if expected is None:
             raise ValueError("EmbeddingSimilarity requires an expected value")
 
-        output_embedding_p = arun_cached_request("embed", input=f"{self.prefix}{output}", **self.extra_args)
-        expected_embedding_p = arun_cached_request("embed", input=f"{self.prefix}{expected}", **self.extra_args)
+        output_embedding_p = self._a_embed(output)
+        expected_embedding_p = self._a_embed(expected)
 
         output_result, expected_result = await output_embedding_p, await expected_embedding_p
         return Score(
@@ -71,8 +100,8 @@ class EmbeddingSimilarity(Scorer):
         if expected is None:
             raise ValueError("EmbeddingSimilarity requires an expected value")
 
-        output_result = run_cached_request("embed", input=f"{self.prefix}{output}", **self.extra_args)
-        expected_result = run_cached_request("embed", input=f"{self.prefix}{expected}", **self.extra_args)
+        output_result = self._embed(output)
+        expected_result = self._embed(expected)
 
         return Score(
             name=self._name(),

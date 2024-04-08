@@ -1,4 +1,4 @@
-import { EmbeddingSimilarity } from "./string.js";
+import { EmbeddingSimilarity } from "./string";
 
 const SYNONYMS = [
   {

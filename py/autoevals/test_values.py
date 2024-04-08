@@ -1,5 +1,6 @@
 from pytest import approx
 
+from autoevals.list import ListContains
 from autoevals.number import NumericDiff
 from autoevals.string import LevenshteinScorer
 
@@ -30,3 +31,45 @@ def test_numeric():
     for a, b, expected in cases:
         print(f"[{a}]", f"[{b}]", expected, evaluator(a, b))
         assert evaluator(a, b).score == approx(expected, abs=1e-4)
+
+
+def test_list_contains():
+    cases = [
+        [[], [], 1],
+        [[0], [], 0],
+        [[], [0], 0],
+        [["a"], ["a"], 1],
+        [["a"], ["a", "b"], 0.5],
+        [["a", "b"], ["a"], 0.5],
+        [
+            [
+                "workspaces",
+                "section",
+                "view",
+                "others",
+                "workspace",
+                "team",
+                "pinning",
+            ],
+            ["starred", "multiple different workspaces", "shortcuts"],
+            0.1218,
+        ],
+        [
+            ["starred", "multiple different workspaces", "shortcuts"],
+            [
+                "workspaces",
+                "section",
+                "view",
+                "others",
+                "workspace",
+                "team",
+                "pinning",
+            ],
+            0.1218,
+        ],
+    ]
+
+    for output, expected, expected_score in cases:
+        assert ListContains(pairwise_evaluator=LevenshteinScorer())(output, expected).score == approx(
+            expected_score, abs=1e-4
+        ), (output, expected, expected_score)

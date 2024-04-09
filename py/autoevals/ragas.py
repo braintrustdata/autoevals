@@ -224,7 +224,7 @@ class ContextRelevancy(OpenAIScorer):
         )
 
     async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
-        check_required("ContextRelevancy", input=input, expected=expected, context=context)
+        check_required("ContextRelevancy", input=input, context=context)
 
         if isinstance(context, list):
             context = "\n".join(context)
@@ -237,7 +237,7 @@ class ContextRelevancy(OpenAIScorer):
         )
 
     def _run_eval_sync(self, output, expected=None, input=None, context=None, **kwargs):
-        check_required("ContextRelevancy", input=input, expected=expected, context=context)
+        check_required("ContextRelevancy", input=input, context=context)
 
         if isinstance(context, list):
             context = "\n".join(context)

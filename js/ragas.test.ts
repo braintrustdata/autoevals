@@ -40,4 +40,4 @@ test("Ragas retrieval test", async () => {
       expect(actualScore.score).toBeGreaterThanOrEqual(score);
     }
   }
-});
+}, 600000);

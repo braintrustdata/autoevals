@@ -158,6 +158,22 @@ npx braintrust run example.eval.js
 - Translation
 - [ ] Fine-tuned binary classifiers
 
+### RAGAS
+
+- Context precision
+- Context relevancy
+- Context recall
+- Context entities recall
+- [ ] Faithfullness
+- [ ] Answer relevance
+- [ ] Answer semantic similarity
+- [ ] Answer correctness
+- [ ] Aspect critique
+
+### Composite
+
+- Semantic list contains
+
 ### Embeddings
 
 - Embedding similarity

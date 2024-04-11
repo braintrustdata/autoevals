@@ -18,7 +18,7 @@ const COT_SUFFIX =
 
 const SUPPORTED_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 
-type LLMArgs = {
+export type LLMArgs = {
   maxTokens?: number;
   temperature?: number;
 } & OpenAIAuth;

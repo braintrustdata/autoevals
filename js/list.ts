@@ -11,9 +11,10 @@ export const ListContains: Scorer<
   string[],
   {
     pairwiseScorer?: Scorer<string, {}>;
+    allowExtraEntities?: boolean;
   }
 > = async (args) => {
-  const { output, expected } = args;
+  const { output, expected, allowExtraEntities } = args;
   if (expected === undefined) {
     throw new Error("ListContains requires an expected value");
   }
@@ -74,9 +75,12 @@ export const ListContains: Scorer<
     score: number;
   }>;
 
+  const denominator = allowExtraEntities
+    ? expected.length
+    : Math.max(output.length, expected.length);
+
   const avgScore =
-    pairs.reduce((acc, pair) => acc + pair.score, 0) /
-    Math.max(output.length, expected.length);
+    pairs.reduce((acc, pair) => acc + pair.score, 0) / denominator;
 
   return {
     name: "ListContains",

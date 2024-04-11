@@ -1,6 +1,6 @@
 from braintrust_core.score import Score, Scorer
 
-from autoevals import Levenshtein
+from .string import Levenshtein
 
 
 class ListContains(Scorer):
@@ -10,7 +10,8 @@ class ListContains(Scorer):
     and then using Linear Sum Assignment to find the best matching pairs.
     """
 
-    def __init__(self, pairwise_scorer=None, **kwargs):
+    def __init__(self, pairwise_scorer=None, allow_extra_entities=False, **kwargs):
+        self.allow_extra_entities = allow_extra_entities
         self.pairwise_scorer = pairwise_scorer or Levenshtein()
 
     async def _run_eval_async(self, output, expected=None, **kwargs):
@@ -64,9 +65,10 @@ class ListContains(Scorer):
         pairs = [(outputs[r], expecteds[c], similarities[r][c]) for (r, c) in zip(row_ind, col_ind)]
         lowest_distances = distances[row_ind, col_ind]
 
-        # We care about each element of output being _in_ expected, so we also need to penalize
-        # elements in expected that are not in output
-        denominator = max(len(outputs), len(expecteds))
+        # Generally speaking, outputs that are not in expecteds should be penalized, but in certain use cases
+        # (eg checking whether a passage of text has all of the entities in a list, and maybe a few more), it's
+        # ok to allow them.
+        denominator = max(len(outputs), len(expecteds)) if not self.allow_extra_entities else len(expecteds)
         assert len(lowest_distances) <= denominator, "There should be at most as many pairs as there are rows"
         score = min(max(sum(-lowest_distances) / denominator, 0), 1)
 

@@ -78,4 +78,14 @@ test("ListContains Test", async () => {
     const score = (await ListContains({ output: a, expected: b })).score;
     expect(score).toBeCloseTo(expected, 4);
   }
+
+  expect(
+    (
+      await ListContains({
+        output: ["a", "b"],
+        expected: ["b"],
+        allowExtraEntities: true,
+      })
+    ).score
+  ).toBe(1);
 });

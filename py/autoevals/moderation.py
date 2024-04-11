@@ -1,8 +1,6 @@
-import threading
-
 from braintrust_core.score import Score, Scorer
 
-from .oai import arun_cached_request, run_cached_request
+from .oai import run_cached_request
 
 REQUEST_TYPE = "moderation"
 
@@ -12,9 +10,6 @@ class Moderation(Scorer):
     A scorer that uses OpenAI's moderation API to determine if AI response contains ANY flagged content.
     """
 
-    _CACHE = {}
-    _CACHE_LOCK = threading.Lock()
-
     threshold = None
     extra_args = {}
 
@@ -22,7 +17,8 @@ class Moderation(Scorer):
         """
         Create a new Moderation scorer.
 
-        :param threshold: A prefix to prepend to the prompt. This is useful for specifying the domain of the inputs.
+        :param threshold: Optional. Threshold to use to determine whether content has exceeded threshold. By
+        default, it uses OpenAI's default. (Using `flagged` from the response payload.)
         :param api_key: OpenAI key
         :param base_url: Base URL to be used to reach OpenAI moderation endpoint.
         """
@@ -35,44 +31,16 @@ class Moderation(Scorer):
         if base_url:
             self.extra_args["base_url"] = base_url
 
-    async def _a_moderation(self, value):
-        with self._CACHE_LOCK:
-            if value in self._CACHE:
-                return self._CACHE[value]
-
-        result = await arun_cached_request(REQUEST_TYPE, input=value, **self.extra_args)
-
-        with self._CACHE_LOCK:
-            self._CACHE[value] = result
-
-        return result
-
-    def _moderation(self, value):
-        with self._CACHE_LOCK:
-            if value in self._CACHE:
-                return self._CACHE[value]
-
-        result = run_cached_request(REQUEST_TYPE, input=value, **self.extra_args)
-
-        with self._CACHE_LOCK:
-            self._CACHE[value] = result
-
-        return result
-
-    async def _run_eval_async(self, output, __expected=None):
-        output_result = (await self._a_moderation(output))["results"][0]
-        return Score(
-            name=self._name(),
-            score=self.compute_score(output_result, self.threshold),
-            metadata=output_result["category_scores"],
-        )
-
     def _run_eval_sync(self, output, __expected=None):
-        output_result = self._moderation(output)["results"][0]
+        moderation_result = run_cached_request(REQUEST_TYPE, input=output, **self.extra_args)["results"][0]
+
         return Score(
             name=self._name(),
-            score=self.compute_score(output_result, self.threshold),
-            metadata=output_result["category_scores"],
+            score=self.compute_score(moderation_result, self.threshold),
+            metadata={
+                "threshold": self.threshold,
+                "category_scores": moderation_result["category_scores"],
+            },
         )
 
     @staticmethod
@@ -80,10 +48,7 @@ class Moderation(Scorer):
         if threshold is None:
             return 0 if moderation_result["flagged"] else 1
 
-        print(moderation_result)
-
         category_scores = moderation_result["category_scores"]
-
         for category in category_scores.keys():
             if category_scores[category] > threshold:
                 return 0

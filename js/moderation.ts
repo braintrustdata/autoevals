@@ -50,11 +50,13 @@ export const Moderation: Scorer<
   return {
     name: MODERATION_NAME,
     score: computeScore(result, threshold),
-    error: result === null ? `${MODERATION_NAME} failed` : undefined,
-    metadata:
+    metadata: {
+      threshold,
       // @NOTE: `as unknown ...` is intentional. See https://stackoverflow.com/a/57280262
-      (result.category_scores as unknown as Record<string, number>) ||
-      undefined,
+      category_scores:
+        (result.category_scores as unknown as Record<string, number>) ||
+        undefined,
+    },
   };
 };
 

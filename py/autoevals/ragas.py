@@ -6,7 +6,7 @@ import chevron
 
 from . import Score
 from .list import ListContains
-from .llm import OpenAIScorer
+from .llm import OpenAILLMScorer
 from .oai import arun_cached_request, run_cached_request
 from .string import EmbeddingSimilarity
 
@@ -84,7 +84,7 @@ def extract_entities(text, **extra_args):
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
 
-class ContextEntityRecall(OpenAIScorer):
+class ContextEntityRecall(OpenAILLMScorer):
     """
     Estimates context recall by estimating TP and FN using annotated answer and
     retrieved context.
@@ -200,7 +200,7 @@ def extract_sentences_request(question, context, **extra_args):
     )
 
 
-class ContextRelevancy(OpenAIScorer):
+class ContextRelevancy(OpenAILLMScorer):
     """
     Extracts sentences from the context that are relevant to the question with
     self-consistency checks. The number of relevant sentences and is used as the score.
@@ -334,7 +334,7 @@ def extract_context_recall_request(question, answer, context, **extra_args):
     )
 
 
-class ContextRecall(OpenAIScorer):
+class ContextRecall(OpenAILLMScorer):
     """
     Estimates context recall by estimating TP and FN using annotated answer and
     retrieved context.
@@ -467,7 +467,7 @@ def extract_context_precision_request(question, answer, context, **extra_args):
     )
 
 
-class ContextPrecision(OpenAIScorer):
+class ContextPrecision(OpenAILLMScorer):
     """
     Average Precision is a metric that evaluates whether all of the
     relevant items selected by the model are ranked higher or not.

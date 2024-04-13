@@ -152,6 +152,7 @@ npx braintrust run example.eval.js
 - ClosedQA
 - Humor
 - Factuality
+- Moderation
 - Security
 - Summarization
 - SQL

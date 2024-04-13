@@ -68,18 +68,31 @@ def build_classification_functions(useCoT, choice_strings):
 class OpenAIScorer(Scorer):
     def __init__(
         self,
-        temperature=None,
         api_key=None,
         base_url=None,
     ):
-        self.extra_args = {"temperature": temperature or 0}
+        self.extra_args = {}
         if api_key:
             self.extra_args["api_key"] = api_key
         if base_url:
             self.extra_args["base_url"] = base_url
 
 
-class OpenAILLMClassifier(OpenAIScorer):
+class OpenAILLMScorer(OpenAIScorer):
+    def __init__(
+        self,
+        temperature=None,
+        api_key=None,
+        base_url=None,
+    ):
+        super().__init__(
+            api_key=api_key,
+            base_url=base_url,
+        )
+        self.extra_args["temperature"] = temperature or 0
+
+
+class OpenAILLMClassifier(OpenAILLMScorer):
     def __init__(
         self,
         name: str,
@@ -95,7 +108,6 @@ class OpenAILLMClassifier(OpenAIScorer):
         base_url=None,
     ):
         super().__init__(
-            temperature=temperature,
             api_key=api_key,
             base_url=base_url,
         )
@@ -105,6 +117,8 @@ class OpenAILLMClassifier(OpenAIScorer):
         self.model = model
         self.engine = engine
         self.messages = messages
+
+        self.extra_args["temperature"] = temperature or 0
 
         if max_tokens:
             self.extra_args["max_tokens"] = max(max_tokens, 5)

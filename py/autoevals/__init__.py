@@ -34,6 +34,7 @@ from braintrust_core.score import Score, Scorer
 from .json import *
 from .list import *
 from .llm import *
+from .moderation import *
 from .number import *
 from .ragas import *
 from .string import *

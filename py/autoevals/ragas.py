@@ -1,5 +1,6 @@
 # These metrics are ported, with some enhancements, from the [RAGAS](https://github.com/explodinggradients/ragas) project.
 
+import asyncio
 import json
 
 import chevron
@@ -516,3 +517,576 @@ class ContextPrecision(OpenAIScorer):
                 )
             )
         )
+
+
+LONG_FORM_ANSWER_PROMPT = """Create one or more statements from each sentence in the given answer.
+
+The output should be a well-formatted JSON instance that conforms to the JSON schema below.
+
+As an example, for the schema {"properties": {"foo": {"title": "Foo", "description": "a list of strings", "type": "array", "items": {"type": "string"}}}, "required": ["foo"]}
+the object {"foo": ["bar", "baz"]} is a well-formatted instance of the schema. The object {"properties": {"foo": ["bar", "baz"]}} is not well-formatted.
+
+Here is the output JSON schema:
+```
+{"description": "the list of extracted statements", "type": "array", "items": {"type": "string"}}
+```
+
+Do not return any preamble or explanations, return only a pure JSON string surrounded by triple backticks (```).
+
+Examples:
+
+question: "Who was  Albert Einstein and what is he best known for?"
+answer: "He was a German-born theoretical physicist, widely acknowledged to be one of the greatest and most influential physicists of all time. He was best known for developing the theory of relativity, he also made important contributions to the development of the theory of quantum mechanics."
+statements: ```["Albert Einstein, a German-born theoretical physicist, is renowned for being one of the most influential physicists in history.", "Albert Einstein was best known for his theory of relativity.", "Einstein's contributions significantly advanced the field of quantum mechanics", "Recognized globally, Einstein's work has profoundly impacted the scientific community", "Einstein's groundbreaking theories continue to shape our understanding of physics today."]```
+
+question: "Cadmium Chloride is slightly soluble in this chemical, it is also called what?"
+answer: "alcohol"
+statements: ```["Cadmium Chloride is slightly soluble in alcohol."]```
+
+question: "Were Hitler and Benito Mussolini of the same nationality?"
+answer: "Sorry, I can't provide answer to that question."
+statements: ```[]```
+
+Your actual task:
+
+question: {{question}}
+answer: {{answer}}
+statements:
+"""
+
+NLI_STATEMENTS_PROMPT = """Your task is to judge the faithfulness of a series of statements based on a given context. For each statement you must return verdict as 1 if the statement can be verified based on the context or 0 if the statement can not be verified based on the context.
+
+The output should be a well-formatted JSON instance that conforms to the JSON schema below.
+
+As an example, for the schema {"properties": {"foo": {"title": "Foo", "description": "a list of strings", "type": "array", "items": {"type": "string"}}}, "required": ["foo"]}
+the object {"foo": ["bar", "baz"]} is a well-formatted instance of the schema. The object {"properties": {"foo": ["bar", "baz"]}} is not well-formatted.
+
+Here is the output JSON schema:
+```
+{"type": "array", "items": {"$ref": "#/definitions/StatementFaithfulnessAnswer"}, "definitions": {"StatementFaithfulnessAnswer": {"title": "StatementFaithfulnessAnswer", "type": "object", "properties": {"statement": {"title": "Statement", "description": "the original statement, word-by-word", "type": "string"}, "verdict": {"title": "Verdict", "description": "the verdict(0/1) of the faithfulness.", "type": "integer"}, "reason": {"title": "Reason", "description": "the reason of the verdict", "type": "string"}}, "required": ["statement", "verdict", "reason"]}}}
+```
+
+Do not return any preamble or explanations, return only a pure JSON string surrounded by triple backticks (```).
+
+Examples:
+
+context: "John is a student at XYZ University. He is pursuing a degree in Computer Science. He is enrolled in several courses this semester, including Data Structures, Algorithms, and Database Management. John is a diligent student and spends a significant amount of time studying and completing assignments. He often stays late in the library to work on his projects."
+statements: ```["John is majoring in Biology.", "John is taking a course on Artificial Intelligence.", "John is a dedicated student.", "John has a part-time job."]```
+answer: ```[{"statement": "John is majoring in Biology.", "verdict": 0, "reason": "John's major is explicitly mentioned as Computer Science. There is no information suggesting he is majoring in Biology."}, {"statement": "John is taking a course on Artificial Intelligence.", "verdict": 0, "reason": "The context mentions the courses John is currently enrolled in, and Artificial Intelligence is not mentioned. Therefore, it cannot be deduced that John is taking a course on AI."}, {"statement": "John is a dedicated student.", "verdict": 1, "reason": "The context states that he spends a significant amount of time studying and completing assignments. Additionally, it mentions that he often stays late in the library to work on his projects, which implies dedication."}, {"statement": "John has a part-time job.", "verdict": 0, "reason": "There is no information given in the context about John having a part-time job."}]```
+
+context: "Photosynthesis is a process used by plants, algae, and certain bacteria to convert light energy into chemical energy."
+statements: ```["Albert Einstein was a genius."]```
+answer: ```[{"statement": "Albert Einstein was a genius.", "verdict": 0, "reason": "The context and statement are unrelated"}]```
+
+Your actual task:
+
+context: {{context}}
+statements: {{statements}}
+answer:
+"""
+
+
+EXTRACTED_STATEMENTS_SCHEMA = {
+    "properties": {
+        "statements": {
+            "description": "List of extracted statements",
+            "items": {"type": "string"},
+            "title": "Statements",
+            "type": "array",
+        },
+    },
+    "required": ["statements"],
+    "title": "ExtractedStatements",
+    "type": "object",
+}
+
+STATEMENT_FAITHFULNESS_SCHEMA = {
+    "$defs": {
+        "StatementFaithfulnessAnswer": {
+            "title": "StatementFaithfulnessAnswer",
+            "type": "object",
+            "properties": {
+                "statement": {
+                    "title": "Statement",
+                    "description": "The original statement, word-for-word",
+                    "type": "string",
+                },
+                "verdict": {
+                    "title": "Verdict",
+                    "description": "The verdict (0/1) of the faithfulness.",
+                    "type": "integer",
+                },
+                "reason": {"title": "Reason", "description": "The reason for the verdict", "type": "string"},
+            },
+            "required": ["statement", "verdict", "reason"],
+        },
+    },
+    "properties": {
+        "faithfulness": {
+            "items": {"$ref": "#/$defs/StatementFaithfulnessAnswer"},
+            "type": "array",
+        },
+    },
+    "title": "StatementFaithfulness",
+    "type": "object",
+}
+
+
+def extract_statements_request(question, answer, **extra_args):
+    return dict(
+        messages=[
+            {
+                "role": "user",
+                "content": chevron.render(LONG_FORM_ANSWER_PROMPT, {"question": question, "answer": answer}),
+            }
+        ],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "extract_statements",
+                    "description": "Extract statements from an answer given a question",
+                    "parameters": EXTRACTED_STATEMENTS_SCHEMA,
+                },
+            }
+        ],
+        tool_choice={"type": "function", "function": {"name": "extract_statements"}},
+        **extra_args,
+    )
+
+
+def extract_faithfulness_request(context, statements, **extra_args):
+    return dict(
+        messages=[
+            {
+                "role": "user",
+                "content": chevron.render(NLI_STATEMENTS_PROMPT, {"context": context, "statements": statements}),
+            }
+        ],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "judge_statements",
+                    "description": "Judge whether the statements are faithful to the context",
+                    "parameters": STATEMENT_FAITHFULNESS_SCHEMA,
+                },
+            }
+        ],
+        tool_choice={"type": "function", "function": {"name": "judge_statements"}},
+        **extra_args,
+    )
+
+
+async def aextract_statements(question, answer, **extra_args):
+    response = await arun_cached_request(**extract_statements_request(question=question, answer=answer, **extra_args))
+    return load_function_call(response)
+
+
+def extract_statements(question, answer, **extra_args):
+    response = run_cached_request(**extract_statements_request(question=question, answer=answer, **extra_args))
+    return load_function_call(response)
+
+
+async def aextract_faithfulness(context, statements, **extra_args):
+    response = await arun_cached_request(
+        **extract_faithfulness_request(context=context, statements=statements, **extra_args)
+    )
+    return load_function_call(response)
+
+
+def extract_faithfulness(context, statements, **extra_args):
+    response = run_cached_request(**extract_faithfulness_request(context=context, statements=statements, **extra_args))
+    return load_function_call(response)
+
+
+class Faithfulness(OpenAIScorer):
+    """
+    Measures factual consistency of a generated answer against the given context.
+    """
+
+    def __init__(self, model=DEFAULT_RAGAS_MODEL, **kwargs):
+        super().__init__(**kwargs)
+
+        self.model = model
+
+    async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
+        check_required("Faithfulness", input=input, output=output, context=context)
+
+        statements = (await aextract_statements(question=input, answer=expected, model=self.model, **self.extra_args))[
+            "statements"
+        ]
+
+        faithfulness = (
+            await aextract_faithfulness(context=context, statements=statements, model=self.model, **self.extra_args)
+        )["faithfulness"]
+
+        return Score(
+            name=self._name(),
+            score=sum([s["verdict"] for s in faithfulness]) / len(faithfulness),
+            metadata={
+                "statements": statements,
+                "faithfulness": faithfulness,
+            },
+        )
+
+    def _run_eval_sync(self, output, expected=None, input=None, context=None, **kwargs):
+        check_required("Faithfulness", input=input, context=context)
+
+        statements = (extract_statements(question=input, answer=expected, model=self.model, **self.extra_args))[
+            "statements"
+        ]
+
+        faithfulness = (
+            extract_faithfulness(context=context, statements=statements, model=self.model, **self.extra_args)
+        )["faithfulness"]
+
+        return Score(
+            name=self._name(),
+            score=sum([s["verdict"] for s in faithfulness]) / len(faithfulness),
+            metadata={
+                "statements": statements,
+                "faithfulness": faithfulness,
+            },
+        )
+
+
+QUESTION_GEN_PROMPT = """Generate a question for the given answer and Identify if answer is noncommittal. Give noncommittal as 1 if the answer is noncommittal and 0 if the answer is committal. A noncommittal answer is one that is evasive, vague, or ambiguous. For example, "I don't know" or "I'm not sure" are noncommittal answers
+
+The output should be a well-formatted JSON instance that conforms to the JSON schema below.
+
+As an example, for the schema {"properties": {"foo": {"title": "Foo", "description": "a list of strings", "type": "array", "items": {"type": "string"}}}, "required": ["foo"]}
+the object {"foo": ["bar", "baz"]} is a well-formatted instance of the schema. The object {"properties": {"foo": ["bar", "baz"]}} is not well-formatted.
+
+Here is the output JSON schema:
+```
+{"type": "object", "properties": {"question": {"title": "Question", "type": "string"}, "noncommittal": {"title": "Noncommittal", "type": "integer"}}, "required": ["question", "noncommittal"]}
+```
+
+Do not return any preamble or explanations, return only a pure JSON string surrounded by triple backticks (```).
+
+Examples:
+
+answer: "Albert Einstein was born in Germany."
+context: "Albert Einstein was a German-born theoretical physicist who is widely held to be one of the greatest and most influential scientists of all time"
+output: ```{"question": "Where was Albert Einstein born?", "noncommittal": 0}```
+
+answer: "It can change its skin color based on the temperature of its environment."
+context: "A recent scientific study has discovered a new species of frog in the Amazon rainforest that has the unique ability to change its skin color based on the temperature of its environment."
+output: ```{"question": "What unique ability does the newly discovered species of frog have?", "noncommittal": 0}```
+
+answer: "Everest"
+context: "The tallest mountain on Earth, measured from sea level, is a renowned peak located in the Himalayas."
+output: ```{"question": "What is the tallest mountain on Earth?", "noncommittal": 0}```
+
+answer: "I don't know about the  groundbreaking feature of the smartphone invented in 2023 as am unaware of information beyond 2022. "
+context: "In 2023, a groundbreaking invention was announced: a smartphone with a battery life of one month, revolutionizing the way people use mobile technology."
+output: ```{"question": "What was the groundbreaking feature of the smartphone invented in 2023?", "noncommittal": 1}```
+
+Your actual task:
+
+answer: {{answer}}
+context: {{context}}
+output:
+"""
+
+
+QUESTION_GEN_SCHEMA = {
+    "properties": {
+        "question": {"title": "Question", "type": "string"},
+        "noncommittal": {"title": "Noncommittal", "type": "integer"},
+    },
+    "required": ["question", "noncommittal"],
+    "type": "object",
+}
+
+
+def extract_question_gen_request(answer, context, **extra_args):
+    return dict(
+        messages=[
+            {
+                "role": "user",
+                "content": chevron.render(QUESTION_GEN_PROMPT, {"answer": answer, "context": context}),
+            }
+        ],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "generate_question",
+                    "description": "Generate a question for the given answer and identify if the answer is noncommittal",
+                    "parameters": QUESTION_GEN_SCHEMA,
+                },
+            }
+        ],
+        tool_choice={"type": "function", "function": {"name": "generate_question"}},
+        **extra_args,
+    )
+
+
+class AnswerRelevancy(OpenAIScorer):
+    """
+    Scores the relevancy of the answer according to the given question.
+    Answers with incomplete, redundant or unnecessary information are penalized.
+    """
+
+    def __init__(self, model=DEFAULT_RAGAS_MODEL, strictness=3, temperature=0.5, **kwargs):
+        super().__init__(temperature=temperature, **kwargs)
+
+        self.model = model
+        self.strictness = strictness
+        self.temperature = temperature
+
+    def _postprocess(self, questions, similarity):
+        score = (
+            sum([s.score for s in similarity]) / len(questions)
+            if not any([q["noncommittal"] for q in questions])
+            else 0
+        )
+        return Score(
+            name=self._name(),
+            score=score,
+            metadata={
+                "questions": questions,
+                "similarity": similarity,
+                "temperature": self.temperature,
+            },
+        )
+
+    async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
+        check_required("AnswerRelevancy", input=input, output=output, context=context)
+
+        questions = await asyncio.gather(
+            *[
+                aload_function_call_request(
+                    **extract_question_gen_request(answer=output, context=context, model=self.model, **self.extra_args)
+                )
+                for _ in range(self.strictness)
+            ]
+        )
+        similarity = await asyncio.gather(
+            *[
+                EmbeddingSimilarity().eval_async(output=q["question"], expected=input, model=self.model)
+                for q in questions
+            ]
+        )
+
+        return self._postprocess(questions, similarity)
+
+    def _run_eval_sync(self, output, expected=None, input=None, context=None, **kwargs):
+        check_required("AnswerRelevancy", input=input, output=output, context=context)
+
+        questions = [
+            load_function_call_request(
+                **extract_question_gen_request(answer=output, context=context, model=self.model, **self.extra_args)
+            )
+            for _ in range(self.strictness)
+        ]
+        similarity = [
+            EmbeddingSimilarity().eval(output=q["question"], expected=input, model=self.model) for q in questions
+        ]
+
+        return self._postprocess(questions, similarity)
+
+
+class AnswerSimilarity(OpenAIScorer):
+    """
+    Measures the similarity between the generated answer and the expected answer.
+    """
+
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
+        super().__init__(**kwargs)
+
+        self.model = model
+
+    async def _run_eval_async(self, output, expected=None, input=None, **kwargs):
+        check_required("AnswerSimilarity", expected=expected, output=output)
+
+        return await EmbeddingSimilarity().eval_async(
+            output=output, expected=expected, model=self.model, **self.extra_args
+        )
+
+    def _run_eval_sync(self, output, expected=None, input=None, **kwargs):
+        check_required("AnswerSimilarity", expected=expected, output=output)
+
+        return EmbeddingSimilarity().eval(output=output, expected=expected, model=self.model, **self.extra_args)
+
+
+CORRECTNESS_PROMPT = """Given a ground truth and an answer, analyze each statement in the answer and classify them in one of the following categories:
+
+- TP (true positive): statements that are present in both the answer and the ground truth,
+- FP (false positive): statements present in the answer but not found in the ground truth,
+- FN (false negative): relevant statements found in the ground truth but omitted in the answer.
+
+A single statement you must classify in exactly one category. Do not try to interpret the meaning of the ground truth or the answer, just compare the presence of the statements in them.
+
+The output should be a well-formatted JSON instance that conforms to the JSON schema below.
+
+As an example, for the schema {"properties": {"foo": {"title": "Foo", "description": "a list of strings", "type": "array", "items": {"type": "string"}}}, "required": ["foo"]}
+the object {"foo": ["bar", "baz"]} is a well-formatted instance of the schema. The object {"properties": {"foo": ["bar", "baz"]}} is not well-formatted.
+
+Here is the output JSON schema:
+```
+{"type": "object", "properties": {"TP": {"title": "Tp", "type": "array", "items": {"type": "string"}}, "FP": {"title": "Fp", "type": "array", "items": {"type": "string"}}, "FN": {"title": "Fn", "type": "array", "items": {"type": "string"}}}, "required": ["TP", "FP", "FN"]}
+```
+
+Do not return any preamble or explanations, return only a pure JSON string surrounded by triple backticks (```).
+
+Examples:
+
+question: "What powers the sun and what is its primary function?"
+answer: "The sun is powered by nuclear fission, similar to nuclear reactors on Earth, and its primary function is to provide light to the solar system."
+ground_truth: "The sun is actually powered by nuclear fusion, not fission. In its core, hydrogen atoms fuse to form helium, releasing a tremendous amount of energy. This energy is what lights up the sun and provides heat and light, essential for life on Earth. The sun's light also plays a critical role in Earth's climate system and helps to drive the weather and ocean currents."
+extracted_statements: ```{"TP": ["The sun's primary function is to provide light"], "FP": ["The sun is powered by nuclear fission", "similar to nuclear reactors on Earth"], "FN": ["The sun is powered by nuclear fusion, not fission", "In its core, hydrogen atoms fuse to form helium, releasing a tremendous amount of energy", "This energy provides heat and light, essential for life on Earth", "The sun's light plays a critical role in Earth's climate system", "The sun helps to drive the weather and ocean currents"]}```
+
+question: "What is the boiling point of water?"
+answer: "The boiling point of water is 100 degrees Celsius at sea level."
+ground_truth: "The boiling point of water is 100 degrees Celsius (212 degrees Fahrenheit) at sea level, but it can change with altitude."
+extracted_statements: ```{"TP": ["The boiling point of water is 100 degrees Celsius at sea level"], "FP": [], "FN": ["The boiling point can change with altitude", "The boiling point of water is 212 degrees Fahrenheit at sea level"]}```
+
+Your actual task:
+
+question: {{question}}
+answer: {{answer}}
+ground_truth: {{ground_truth}}
+extracted_statements:
+"""
+
+
+ANSWER_CORRECTNESS_CLASSIFICATION_SCHEMA = {
+    "properties": {
+        "TP": {"title": "Tp", "type": "array", "items": {"type": "string"}},
+        "FP": {"title": "Fp", "type": "array", "items": {"type": "string"}},
+        "FN": {"title": "Fn", "type": "array", "items": {"type": "string"}},
+    },
+    "required": ["TP", "FP", "FN"],
+    "type": "object",
+}
+
+
+def extract_correctness_request(question, answer, ground_truth, **extra_args):
+    return dict(
+        messages=[
+            {
+                "role": "user",
+                "content": chevron.render(
+                    CORRECTNESS_PROMPT, {"question": question, "answer": answer, "ground_truth": ground_truth}
+                ),
+            }
+        ],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "classify_statements",
+                    "description": "Classify statements as TP, FP, or FN",
+                    "parameters": ANSWER_CORRECTNESS_CLASSIFICATION_SCHEMA,
+                },
+            }
+        ],
+        tool_choice={"type": "function", "function": {"name": "classify_statements"}},
+        **extra_args,
+    )
+
+
+def compute_f1_score(factuality):
+    tp, fp, fn = len(factuality["TP"]), len(factuality["FP"]), len(factuality["FN"])
+    return tp / (tp + 0.5 * (fp + fn))
+
+
+class AnswerCorrectness(OpenAIScorer):
+    """
+    Scores the correctness of the answer based on the ground truth.
+    """
+
+    def __init__(
+        self,
+        pairwise_scorer=None,
+        model=DEFAULT_RAGAS_MODEL,
+        factuality_weight=0.75,
+        answer_similarity_weight=0.25,
+        answer_similarity=None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.model = model
+        self.answer_similarity = answer_similarity or AnswerSimilarity()
+
+        if factuality_weight == 0 and answer_similarity_weight == 0:
+            raise ValueError("At least one weight must be nonzero")
+        if factuality_weight < 0 or answer_similarity_weight < 0:
+            raise ValueError("Weights must be non-negative")
+        self.factuality_weight = factuality_weight
+        self.answer_similarity_weight = answer_similarity_weight
+
+    def _postprocess(self, factuality, similarity):
+        factuality_score = compute_f1_score(factuality)
+        similarity_score = 0 if similarity is None else similarity.score
+
+        score = (self.factuality_weight * factuality_score + self.answer_similarity_weight * (similarity_score)) / (
+            self.factuality_weight + self.answer_similarity_weight
+        )
+
+        return Score(
+            name=self._name(),
+            score=score,
+            metadata={
+                "factuality": factuality,
+                "factuality_score": factuality_score,
+                "answer_similarity": similarity,
+                "answer_similarity_score": similarity_score,
+            },
+        )
+
+    async def _run_answer_similarity_async(self, output, expected):
+        if self.answer_similarity_weight == 0:
+            return None
+        return await self.answer_similarity.eval_async(
+            output=output, expected=expected, model=self.model, **self.extra_args
+        )
+
+    def _run_answer_similarity_sync(self, output, expected):
+        if self.answer_similarity_weight == 0:
+            return None
+        return self.answer_similarity.eval(output=output, expected=expected, model=self.model, **self.extra_args)
+
+    async def _run_eval_async(self, output, expected=None, input=None, **kwargs):
+        check_required("AnswerCorrectness", input=input, expected=expected, output=output)
+
+        factuality_future, similarity_future = (
+            aload_function_call_request(
+                **extract_correctness_request(
+                    question=input, answer=output, ground_truth=expected, model=self.model, **self.extra_args
+                )
+            ),
+            self._run_answer_similarity_async(output, expected),
+        )
+
+        return self._postprocess(await factuality_future, await similarity_future)
+
+    def _run_eval_sync(self, output, expected=None, input=None, **kwargs):
+        check_required("AnswerCorrectness", input=input, expected=expected, output=output)
+
+        factuality, similarity = (
+            load_function_call_request(
+                **extract_correctness_request(
+                    question=input, answer=output, ground_truth=expected, model=self.model, **self.extra_args
+                )
+            ),
+            self._run_answer_similarity_sync(output, expected),
+        )
+
+        return self._postprocess(factuality, similarity)
+
+
+def load_function_call(response):
+    return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
+
+
+async def aload_function_call_request(**kwargs):
+    return load_function_call(await arun_cached_request(**kwargs))
+
+
+def load_function_call_request(**kwargs):
+    return load_function_call(run_cached_request(**kwargs))

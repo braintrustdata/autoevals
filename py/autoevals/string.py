@@ -2,6 +2,7 @@ import threading
 
 from braintrust_core.score import Score, Scorer
 from Levenshtein import distance
+from ragas.embeddings import LangchainEmbeddingsWrapper
 
 from .oai import arun_cached_request, run_cached_request
 

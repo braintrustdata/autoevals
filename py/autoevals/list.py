@@ -1,3 +1,5 @@
+import sys
+
 from braintrust_core.score import Score, Scorer
 
 from .string import Levenshtein

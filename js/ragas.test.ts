@@ -1,8 +1,12 @@
 import {
+  AnswerCorrectness,
+  AnswerRelevancy,
+  AnswerSimilarity,
   ContextEntityRecall,
   ContextPrecision,
   ContextRecall,
   ContextRelevancy,
+  Faithfulness,
 } from "./ragas";
 
 const data = {
@@ -16,7 +20,7 @@ const data = {
   ],
 };
 
-const metrics = [
+const retrievalMetrics = [
   { scorer: ContextEntityRecall, score: 0.69525 },
   { scorer: ContextRelevancy, score: 0.7423 },
   { scorer: ContextRecall, score: 1 },
@@ -24,10 +28,59 @@ const metrics = [
 ];
 
 test("Ragas retrieval test", async () => {
-  for (const { scorer, score } of metrics) {
+  for (const { scorer, score } of retrievalMetrics) {
     const actualScore = await scorer({
       output: data.output,
       input: data.input,
+      expected: data.expected,
+      context: data.context,
+    });
+
+    if (score === 1) {
+      expect(actualScore.score).toBeCloseTo(score, 4);
+    } else {
+      // Expect it to be >= score
+      console.log("RETURNED SCORE: ", scorer, actualScore.score);
+      expect(actualScore.score).toBeGreaterThanOrEqual(score);
+    }
+  }
+}, 600000);
+
+const generationMetrics = [
+  { scorer: AnswerRelevancy, score: 0.59 },
+  { scorer: Faithfulness, score: 1 },
+];
+
+test("Ragas generation test", async () => {
+  for (const { scorer, score } of generationMetrics) {
+    const actualScore = await scorer({
+      input: data.input,
+      output: data.output,
+      expected: data.expected,
+      context: data.context,
+      temperature: 0,
+    });
+
+    if (score === 1) {
+      expect(actualScore.score).toBeCloseTo(score, 4);
+    } else {
+      // Expect it to be >= score
+      console.log("RETURNED SCORE: ", scorer, actualScore.score);
+      expect(actualScore.score).toBeGreaterThanOrEqual(score);
+    }
+  }
+}, 600000);
+
+const endToEndMetrics = [
+  { scorer: AnswerSimilarity, score: 1 },
+  { scorer: AnswerCorrectness, score: 1 },
+];
+
+test("Ragas end-to-end test", async () => {
+  for (const { scorer, score } of endToEndMetrics) {
+    const actualScore = await scorer({
+      input: data.input,
+      output: data.output,
       expected: data.expected,
       context: data.context,
     });

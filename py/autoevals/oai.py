@@ -14,6 +14,7 @@ PROXY_URL = "https://braintrustproxy.com/v1"
 class OpenAIWrapper:
     complete: Any
     embed: Any
+    moderation: Any
     RateLimitError: Exception
 
 
@@ -68,6 +69,7 @@ def prepare_openai(is_async=False, api_key=None, base_url=None):
         wrapper = OpenAIWrapper(
             complete=openai_obj.chat.completions.create,
             embed=openai_obj.embeddings.create,
+            moderation=openai_obj.moderations.create,
             RateLimitError=openai.RateLimitError,
         )
     else:
@@ -75,12 +77,15 @@ def prepare_openai(is_async=False, api_key=None, base_url=None):
         if is_async:
             complete_fn = openai_obj.ChatCompletion.acreate
             embedding_fn = openai_obj.Embedding.acreate
+            moderation_fn = openai_obj.Moderations.acreate
         else:
             complete_fn = openai_obj.ChatCompletion.create
             embedding_fn = openai_obj.Embedding.create
+            moderation_fn = openai_obj.Moderations.create
         wrapper = OpenAIWrapper(
             complete=complete_fn,
             embed=embedding_fn,
+            moderation=moderation_fn,
             RateLimitError=rate_limit_error,
         )
 

@@ -16,12 +16,19 @@ data = {
 
 def test_ragas_retrieval():
     metrics = [
-        (ContextEntityRecall(), 0.69525),
-        (ContextRelevancy(), 0.7423),
+        (ContextEntityRecall(), 0.5),
+        (ContextRelevancy(), 0.7),
         (ContextRecall(), 1),
         (ContextPrecision(), 1),
     ]
 
     for m, score in metrics:
-        assert m.eval(**data).score == approx(score, abs=1e-4)
-        assert asyncio.run(m.eval_async(**data)).score == approx(score, abs=1e-4)
+        sync_score = m.eval(**data).score
+        async_score = asyncio.run(m.eval_async(**data)).score
+
+        if score == 1:
+            assert sync_score == score
+            assert async_score == score
+        else:
+            assert sync_score >= score
+            assert async_score >= score

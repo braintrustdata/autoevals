@@ -700,7 +700,7 @@ def extract_faithfulness(context, statements, **extra_args):
     return load_function_call(response)
 
 
-class Faithfulness(OpenAIScorer):
+class Faithfulness(OpenAILLMScorer):
     """
     Measures factual consistency of a generated answer against the given context.
     """
@@ -824,7 +824,7 @@ def extract_question_gen_request(answer, context, **extra_args):
     )
 
 
-class AnswerRelevancy(OpenAIScorer):
+class AnswerRelevancy(OpenAILLMScorer):
     """
     Scores the relevancy of the answer according to the given question.
     Answers with incomplete, redundant or unnecessary information are penalized.
@@ -889,7 +889,7 @@ class AnswerRelevancy(OpenAIScorer):
         return self._postprocess(questions, similarity)
 
 
-class AnswerSimilarity(OpenAIScorer):
+class AnswerSimilarity(OpenAILLMScorer):
     """
     Measures the similarity between the generated answer and the expected answer.
     """
@@ -994,7 +994,7 @@ def compute_f1_score(factuality):
     return tp / (tp + 0.5 * (fp + fn))
 
 
-class AnswerCorrectness(OpenAIScorer):
+class AnswerCorrectness(OpenAILLMScorer):
     """
     Scores the correctness of the answer based on the ground truth.
     """

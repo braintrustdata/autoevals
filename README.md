@@ -165,11 +165,11 @@ npx braintrust run example.eval.js
 - Context relevancy
 - Context recall
 - Context entities recall
-- [ ] Faithfullness
-- [ ] Answer relevance
-- [ ] Answer semantic similarity
-- [ ] Answer correctness
-- [ ] Aspect critique
+- Faithfullness
+- Answer relevance
+- Answer semantic similarity
+- Answer correctness
+- Aspect critique
 
 ### Composite
 

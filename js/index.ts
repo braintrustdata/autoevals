@@ -35,4 +35,5 @@ export * from "./moderation";
 export * from "./number";
 export * from "./json";
 export * from "./templates";
+export * from "./ragas";
 export { Evaluators } from "./manifest";

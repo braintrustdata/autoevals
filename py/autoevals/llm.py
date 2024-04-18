@@ -2,12 +2,16 @@ import abc
 import json
 import os
 import re
+from abc import ABC
 from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, List, Optional
 
 import chevron
 import yaml
 from braintrust_core.score import Score, Scorer
+
+import autoevals.claude as claude
 
 from .oai import arun_cached_request, run_cached_request
 
@@ -26,7 +30,6 @@ single choice by setting the `choice` parameter to a single choice from {{__choi
 """.strip().replace(
     "\n", " "
 )
-
 
 PLAIN_RESPONSE_SCHEMA = {
     "properties": {"choice": {"description": "The choice", "title": "Choice", "type": "string"}},
@@ -51,7 +54,12 @@ COT_RESPONSE_SCHEMA = {
 }
 
 
-def build_classification_functions(useCoT, choice_strings):
+class LLMScorerModels(str, Enum):
+    OPEN_AI = "openai"
+    CLAUDE = "claude"
+
+
+def build_classification_functions(useCoT, choice_strings, model_type=LLMScorerModels.OPEN_AI):
     params = COT_RESPONSE_SCHEMA if useCoT else PLAIN_RESPONSE_SCHEMA
     enum_params = {
         **params,
@@ -60,9 +68,24 @@ def build_classification_functions(useCoT, choice_strings):
             "choice": {**params["properties"]["choice"], "enum": choice_strings},
         },
     }
-    return [
-        {"name": "select_choice", "description": "Call this function to select a choice.", "parameters": enum_params}
-    ]
+    if model_type == LLMScorerModels.CLAUDE:
+        return [
+            {
+                "name": "select_choice",
+                "description": "Call this function to select a choice.",
+                "input_schema": enum_params,
+            }
+        ]
+    elif model_type == LLMScorerModels.OPEN_AI:
+        return [
+            {
+                "name": "select_choice",
+                "description": "Call this function to select a choice.",
+                "parameters": enum_params,
+            }
+        ]
+    else:
+        raise ValueError(f"Unknown model type: {model_type}")
 
 
 class OpenAIScorer(Scorer):
@@ -188,6 +211,93 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
 
 
+class ClaudeLLMClassifier(Scorer, ABC):
+    def __init__(
+        self,
+        name: str,
+        messages: List,
+        model: str,
+        choice_scores,
+        classification_functions,
+        render_args=None,
+        max_tokens=None,
+        temperature=None,
+        engine=None,
+        api_key=None,
+        base_url=None,
+    ):
+        self.name = name
+        self.messages = messages
+        self.model = model
+        self.choice_scores = choice_scores
+        self.classification_functions = classification_functions
+
+        self.extra_args = {}
+
+        if api_key:
+            self.extra_args["api_key"] = api_key
+        if base_url:
+            self.extra_args["base_url"] = base_url
+        if temperature:
+            self.extra_args["temperature"] = temperature
+        if max_tokens:
+            self.extra_args["max_tokens"] = max_tokens
+
+        self.render_args = {}
+        if render_args:
+            self.render_args.update(render_args)
+
+        self.engine = engine
+
+    def _name(self):
+        return self.name
+
+    def _render_messages(self, **kwargs):
+        kwargs.update(self.render_args)
+        return [
+            {
+                **m,
+                "content": chevron.render(m["content"].strip(), kwargs, warn=True),
+            }
+            for m in self.messages
+        ]
+
+    def _build_args(self, output, expected, **kwargs):
+        return dict(
+            model=self.model,
+            messages=self._render_messages(output=output, expected=expected, **kwargs),
+            tools=self.classification_functions,
+        )
+
+    def _request_args(self, output, expected, **kwargs):
+        return {
+            **self.extra_args,
+            **self._build_args(output, expected, **kwargs),
+        }
+
+    def _process_response(self, resp):
+        print(json.dumps(resp))
+        metadata = {}
+        tool_use = next(block for block in resp["content"] if block["type"] == "tool_use")
+        tool_input = tool_use["input"]
+        if "reasons" in tool_input:
+            metadata["rationale"] = tool_input["reasons"]
+        metadata["choice"] = tool_input["choice"].strip()
+        score = self.choice_scores[metadata["choice"]]
+        return Score(name=self.name, score=score, metadata=metadata)
+
+    def _postprocess_response(self, resp):
+        return self._process_response(resp)
+
+    async def _run_eval_async(self, output, expected, **kwargs):
+        return self._postprocess_response(
+            await claude.arun_cached_request(**self._request_args(output, expected, **kwargs))
+        )
+
+    def _run_eval_sync(self, output, expected, **kwargs):
+        return self._postprocess_response(claude.run_cached_request(**self._request_args(output, expected, **kwargs)))
+
+
 @dataclass
 class ModelGradedSpec:
     prompt: str
@@ -199,9 +309,9 @@ class ModelGradedSpec:
 
 
 # XXX: Document that prompts are expected to be mustache templates
-class LLMClassifier(OpenAILLMClassifier):
+class LLMClassifier(ABC):
     """
-    An LLM-based classifier that wraps `OpenAILLMClassifier` and provides a standard way to
+    An LLM-based classifier that wraps `OpenAILLMClassifier or ClaudeLLMClassifier` and provides a standard way to
     apply chain of thought, parse the output, and score the result."""
 
     def __init__(
@@ -216,6 +326,7 @@ class LLMClassifier(OpenAILLMClassifier):
         engine=None,
         api_key=None,
         base_url=None,
+        model_type=LLMScorerModels.OPEN_AI,
     ):
         choice_strings = list(choice_scores.keys())
 
@@ -227,19 +338,36 @@ class LLMClassifier(OpenAILLMClassifier):
             }
         ]
 
-        super().__init__(
-            name=name,
-            messages=messages,
-            model=model,
-            choice_scores=choice_scores,
-            classification_functions=build_classification_functions(use_cot, choice_strings),
-            max_tokens=max_tokens,
-            temperature=temperature,
-            engine=engine,
-            api_key=api_key,
-            base_url=base_url,
-            render_args={"__choices": choice_strings},
-        )
+        if model_type == LLMScorerModels.OPEN_AI:
+            self.classifier = OpenAILLMClassifier(
+                name=name,
+                messages=messages,
+                model=model,
+                choice_scores=choice_scores,
+                classification_functions=build_classification_functions(use_cot, choice_strings),
+                max_tokens=max_tokens,
+                temperature=temperature,
+                engine=engine,
+                api_key=api_key,
+                base_url=base_url,
+                render_args={"__choices": choice_strings},
+            )
+        elif model_type == LLMScorerModels.CLAUDE:
+            self.classifier = ClaudeLLMClassifier(
+                name=name,
+                messages=messages,
+                model=model,
+                choice_scores=choice_scores,
+                classification_functions=build_classification_functions(use_cot, choice_strings, is_claude=True),
+                max_tokens=max_tokens,
+                temperature=temperature,
+                engine=engine,
+                api_key=api_key,
+                base_url=base_url,
+                render_args={"__choices": choice_strings},
+            )
+        else:
+            raise ValueError(f"Unknown model type: {model_type}")
 
     @classmethod
     def from_spec(cls, name: str, spec: ModelGradedSpec, **kwargs):
@@ -250,6 +378,9 @@ class LLMClassifier(OpenAILLMClassifier):
         with open(path) as f:
             spec = yaml.safe_load(f)
         return cls.from_spec(name, ModelGradedSpec(**spec), **kwargs)
+
+    def get_llm_classifier(self):
+        return self.classifier
 
 
 class SpecFileClassifier(LLMClassifier):
@@ -279,7 +410,7 @@ class SpecFileClassifier(LLMClassifier):
         if not os.path.exists(template_path):
             raise AttributeError(f"Model template {cls.__name__} not found")
 
-        return LLMClassifier.from_spec_file(cls.__name__, template_path, **kwargs)
+        return LLMClassifier.from_spec_file(cls.__name__, template_path, **kwargs).get_llm_classifier()
 
 
 class Battle(SpecFileClassifier):

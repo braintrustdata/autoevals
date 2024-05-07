@@ -1,6 +1,7 @@
 import { Scorer } from "@braintrust/core";
 import { NumericDiff } from "./number";
 import { LevenshteinScorer } from "./string";
+import Ajv, { JSONSchemaType, Schema } from "ajv";
 
 /**
  * A simple scorer that compares JSON objects, using a customizable comparison method for strings
@@ -23,6 +24,26 @@ export const JSONDiff: Scorer<
 
 Object.defineProperty(JSONDiff, "name", {
   value: "JSONDiff",
+  configurable: true,
+});
+
+/**
+ * A binary scorer that evaluates the validity of JSON output, optionally validating against a
+ * JSON Schema definition (see https://json-schema.org/learn/getting-started-step-by-step#create).
+ */
+export const ValidJSON: Scorer<string, { schema?: any }> = async ({
+  output,
+  schema,
+}) => {
+  return {
+    name: "ValidJSON",
+    score: validJSON(output, schema),
+    metadata: { schema },
+  };
+};
+
+Object.defineProperty(ValidJSON, "name", {
+  value: "ValidJSON",
   configurable: true,
 });
 
@@ -110,3 +131,25 @@ const replacer = (key: string, value: any) =>
           return sorted;
         }, {})
     : value;
+
+function validJSON<T>(output: string, schema?: Schema | JSONSchemaType<T>) {
+  try {
+    const parsed = JSON.parse(output);
+
+    if (schema) {
+      return validateSchema(parsed, schema);
+    }
+    if (isObject(parsed) || isArray(parsed)) {
+      return 1;
+    }
+  } catch (err) {}
+
+  return 0;
+}
+
+function validateSchema(data: any, schema: any) {
+  const ajv = new Ajv();
+  const validate = ajv.compile(schema);
+  const valid = validate(data);
+  return valid ? 1 : 0;
+}

@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "@braintrust/core": "^0.0.8",
+    "ajv": "^8.13.0",
     "compute-cosine-similarity": "^1.1.0",
     "js-levenshtein": "^1.1.6",
     "js-yaml": "^4.1.0",

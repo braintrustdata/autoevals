@@ -1,6 +1,7 @@
 import json
 
 from braintrust_core.score import Score, Scorer
+from jsonschema import ValidationError, validate
 
 from .number import NumericDiff
 from .string import Levenshtein
@@ -47,4 +48,33 @@ class JSONDiff(Scorer):
             return self.string_scorer.eval(json.dumps(o1, **kwargs), json.dumps(o2, **kwargs)).score
 
 
-__all__ = ["JSONDiff"]
+class ValidJSON(Scorer):
+    """
+    A binary scorer that evaluates the validity of JSON output, optionally validating against a
+    JSON Schema definition (see https://json-schema.org/learn/getting-started-step-by-step#create).
+    """
+
+    def __init__(self, schema=None):
+        self.schema = schema
+
+    def _run_eval_sync(self, output, schema=None, **kwargs):
+        return Score(name=self._name(), score=self.valid_json(output, schema))
+
+    def valid_json(self, output, schema=None):
+        try:
+            parsed = json.loads(output)
+
+            if schema is not None:
+                validate(parsed, schema)
+                return 1
+
+            if isinstance(parsed, dict) or isinstance(parsed, list):
+                return 1
+
+        except (json.JSONDecodeError, ValidationError):
+            pass
+
+        return 0
+
+
+__all__ = ["JSONDiff", "ValidJSON"]

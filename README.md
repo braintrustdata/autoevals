@@ -157,7 +157,7 @@ npx braintrust run example.eval.js
 - Summarization
 - SQL
 - Translation
-- [ ] Fine-tuned binary classifiers
+- Fine-tuned binary classifiers
 
 ### RAGAS
 
@@ -174,24 +174,25 @@ npx braintrust run example.eval.js
 ### Composite
 
 - Semantic list contains
+- JSON validity
 
 ### Embeddings
 
 - Embedding similarity
-- [ ] BERTScore
+- BERTScore
 
 ### Heuristic
 
 - Levenshtein distance
 - Numeric difference
 - JSON diff
-- [ ] Jaccard distance
+- Jaccard distance
 
 ### Statistical
 
-- [ ] BLEU
-- [ ] ROUGE
-- [ ] METEOR
+- BLEU
+- ROUGE
+- METEOR
 
 ## Custom Evaluation Prompts
 

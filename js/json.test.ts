@@ -1,4 +1,4 @@
-import { JSONDiff } from "./json";
+import { JSONDiff, ValidJSON } from "./json";
 
 test("JSON String Test", async () => {
   const cases = [
@@ -42,5 +42,66 @@ test("JSON Object Test", async () => {
   for (const { a, b, expected } of cases) {
     const score = (await JSONDiff({ output: a, expected: b })).score;
     expect(score).toBeCloseTo(expected);
+  }
+});
+
+test("Valid JSON Test", async () => {
+  const cases = [
+    { output: "1", expected: 0 },
+    { output: '{ "a": 1, "b": "hello" }', expected: 1 },
+    { output: '[{ "a": 1 }]', expected: 1 },
+    { output: '[{ "a": 1 }', expected: 0 },
+    {
+      output: '{ "mapping": { "a": "foo", "b": "bar" }, "extra": 4 }',
+      expected: 1,
+    },
+    {
+      output: '{ mapping: { "a": "foo", "b": "bar" }, "extra": 4 }',
+      expected: 0,
+    },
+    {
+      output: '{"a":"1"}',
+      expected: 1,
+      schema: {
+        type: "object",
+        properties: {
+          a: { type: "string" },
+        },
+        required: ["a"],
+      },
+    },
+    {
+      output: '{ "a": "1", "b": "1" }',
+      expected: 0,
+      schema: {
+        type: "object",
+        properties: {
+          a: { type: "string" },
+          b: { type: "number" },
+        },
+        required: ["a", "b"],
+      },
+    },
+    {
+      output: '[{ "a": "1" }, { "a": "1", "b": 22 }]',
+      expected: 1,
+      schema: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            a: { type: "string" },
+            b: { type: "number" },
+          },
+          required: ["a"],
+        },
+        uniqueItems: true,
+      },
+    },
+  ];
+
+  for (const { output, expected, schema } of cases) {
+    const score = (await ValidJSON({ output, schema })).score;
+    expect(score).toEqual(expected);
   }
 });

@@ -104,17 +104,18 @@ print(f"Factuality metadata: {result.metadata['rationale']}")
 experiment = braintrust.init(
     project="Autoevals", api_key="YOUR_BRAINTRUST_API_KEY"
 )
-experiment.log(
-    inputs={"query": input},
-    output=output,
-    expected=expected,
-    scores={
-        "factuality": result.score,
-    },
-    metadata={
-        "factuality": result.metadata,
-    },
-)
+with experiment.start_span() as span:
+    span.log(
+        inputs={"query": input},
+        output=output,
+        expected=expected,
+        scores={
+            "factuality": result.score,
+        },
+        metadata={
+            "factuality": result.metadata,
+        },
+    )
 print(experiment.summarize())
 ```
 

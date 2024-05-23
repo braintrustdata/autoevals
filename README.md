@@ -86,25 +86,27 @@ Once you grade an output using Autoevals, it's convenient to use [BrainTrust](ht
 from autoevals.llm import *
 import braintrust
 
+# Set up a BrainTrust experiment to log our eval to
+experiment = braintrust.init(
+    project="Autoevals", api_key="YOUR_BRAINTRUST_API_KEY"
+)
+
 # Create a new LLM-based evaluator
 evaluator = Factuality()
 
-# Evaluate an example LLM completion
+# Set up an example LLM completion
 input = "Which country has the highest population?"
 output = "People's Republic of China"
 expected = "China"
 
-result = evaluator(output, expected, input=input)
-
-# The evaluator returns a score from [0,1] and includes the raw outputs from the evaluator
-print(f"Factuality score: {result.score}")
-print(f"Factuality metadata: {result.metadata['rationale']}")
-
-# Log the evaluation results to BrainTrust
-experiment = braintrust.init(
-    project="Autoevals", api_key="YOUR_BRAINTRUST_API_KEY"
-)
+# Start a span and run the evaluator
 with experiment.start_span() as span:
+    result = evaluator(output, expected, input=input)
+
+    # The evaluator returns a score from [0,1] and includes the raw outputs from the evaluator
+    print(f"Factuality score: {result.score}")
+    print(f"Factuality metadata: {result.metadata['rationale']}")
+
     span.log(
         inputs={"query": input},
         output=output,
@@ -116,6 +118,7 @@ with experiment.start_span() as span:
             "factuality": result.metadata,
         },
     )
+
 print(experiment.summarize())
 ```
 

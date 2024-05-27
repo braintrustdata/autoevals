@@ -50,7 +50,7 @@
     "js-yaml": "^4.1.0",
     "linear-sum-assignment": "^1.0.7",
     "mustache": "^4.2.0",
-    "openai": "4.23.0",
+    "openai": "4.47.1",
     "zod": "^3.22.4",
     "zod-to-json-schema": "^3.22.5"
   }

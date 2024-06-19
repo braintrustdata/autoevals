@@ -16,12 +16,19 @@ class ListContains(Scorer):
         self.allow_extra_entities = allow_extra_entities
         self.pairwise_scorer = pairwise_scorer or Levenshtein()
 
+        # If it's a class, then instantiate it
+        if isinstance(self.pairwise_scorer, type):
+            self.pairwise_scorer = self.pairwise_scorer()
+
     async def _run_eval_async(self, output, expected=None, **kwargs):
         if expected is None:
             raise ValueError("ListContains requires an expected value")
 
         similarities_futures = [
-            [self.pairwise_scorer._run_eval_async(output_item, expected_item) for expected_item in expected]
+            [
+                self.pairwise_scorer._run_eval_async(output=output_item, expected=expected_item)
+                for expected_item in expected
+            ]
             for output_item in output
         ]
 

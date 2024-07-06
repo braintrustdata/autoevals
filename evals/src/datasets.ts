@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import path from "path";
+
+export const dataDir = path.join(__dirname, "../data");
+
 export const coqaSchema = z.object({
   source: z.string(),
   story: z.string(),

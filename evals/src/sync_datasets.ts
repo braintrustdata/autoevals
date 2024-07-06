@@ -2,7 +2,7 @@ import { duckq, getDuckDBConn } from "./duckdb";
 
 import { z } from "zod";
 import { Factuality } from "autoevals";
-import { coqaSchema, FactualityCase } from "./datasets";
+import { coqaSchema, dataDir, FactualityCase } from "./datasets";
 import path from "path";
 import fs from "fs";
 
@@ -46,7 +46,7 @@ async function coqaFactuality(): Promise<FactualityCase[]> {
     cases.push({
       input: {
         input: questions[0],
-        output: `${answers.input_text[0]} and ${answers.input_text[1]}`,
+        output: `${answers.input_text[1]} ${answers.input_text[0]} ${answers.input_text[2]}`,
         expected: answers.input_text[0],
       },
       expected: 0.6,
@@ -57,7 +57,6 @@ async function coqaFactuality(): Promise<FactualityCase[]> {
   return cases;
 }
 
-const dataDir = path.join(__dirname, "../data");
 function saveFile(cases: unknown[], fname: string) {
   fs.writeFileSync(path.join(dataDir, fname), JSON.stringify(cases, null, 2));
 }

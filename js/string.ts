@@ -1,12 +1,10 @@
-import { Scorer } from "@braintrust/core";
+import { Scorer, ScorerArgs } from "@braintrust/core";
 import levenshtein from "js-levenshtein";
 import { OpenAIAuth, buildOpenAIClient } from "./oai";
 import cossim from "compute-cosine-similarity";
+import { makePartial, ScorerWithPartial } from "./util";
 
-/**
- * A simple scorer that uses the Levenshtein distance to compare two strings.
- */
-export const Levenshtein: Scorer<string, {}> = (args) => {
+const lev: Scorer<string, {}> = (args) => {
   if (args.expected === undefined) {
     throw new Error("LevenshteinScorer requires an expected value");
   }
@@ -24,20 +22,20 @@ export const Levenshtein: Scorer<string, {}> = (args) => {
     score,
   };
 };
-Object.defineProperty(Levenshtein, "name", {
-  value: "Levenshtein",
-  configurable: true,
-});
+
+/**
+ * A simple scorer that uses the Levenshtein distance to compare two strings.
+ */
+export const Levenshtein: ScorerWithPartial<string, {}> = makePartial(
+  lev,
+  "Levenshtein"
+);
 
 // For back-compat
-export const LevenshteinScorer: Scorer<string, {}> = (args) => {
-  return Levenshtein(args);
-};
-
-Object.defineProperty(LevenshteinScorer, "name", {
-  value: "LevenshteinScorer",
-  configurable: true,
-});
+export const LevenshteinScorer: ScorerWithPartial<string, {}> = makePartial(
+  lev,
+  "LevenshteinScorer"
+);
 
 /**
  * A scorer that uses cosine similarity to compare two strings.
@@ -49,14 +47,14 @@ Object.defineProperty(LevenshteinScorer, "name", {
  * values between this and 1 will be scaled linearly.
  * @returns A score between 0 and 1, where 1 is a perfect match.
  */
-export const EmbeddingSimilarity: Scorer<
+export const EmbeddingSimilarity: ScorerWithPartial<
   string,
   {
     prefix?: string;
     expectedMin?: number;
     model?: string;
   } & OpenAIAuth
-> = async (args) => {
+> = makePartial(async (args) => {
   if (args.expected === undefined) {
     throw new Error("EmbeddingSimilarity requires an expected value");
   }
@@ -90,12 +88,7 @@ export const EmbeddingSimilarity: Scorer<
     score: scaleScore(score ?? 0, expectedMin),
     error: score === null ? "EmbeddingSimilarity failed" : undefined,
   };
-};
-
-Object.defineProperty(EmbeddingSimilarity, "name", {
-  value: "EmbeddingSimilarity",
-  configurable: true,
-});
+}, "EmbeddingSimilarity");
 
 function scaleScore(score: number, expectedMin: number): number {
   return Math.max((score - expectedMin) / (1 - expectedMin), 0);

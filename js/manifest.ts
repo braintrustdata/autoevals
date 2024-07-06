@@ -1,4 +1,3 @@
-import { Scorer } from "@braintrust/core";
 import { JSONDiff, ValidJSON } from "./json";
 import {
   Battle,
@@ -23,9 +22,10 @@ import {
   AnswerCorrectness,
 } from "./ragas";
 import { ListContains } from "./list";
+import { ScorerWithPartial } from "./util";
 
 interface AutoevalMethod {
-  method: Scorer<any, any>;
+  method: ScorerWithPartial<any, any>;
   description: string;
 }
 

@@ -22,7 +22,7 @@ import {
   AnswerCorrectness,
 } from "./ragas";
 import { ListContains } from "./list";
-import { ScorerWithPartial } from "./util";
+import { ScorerWithPartial } from "./partial";
 
 interface AutoevalMethod {
   method: ScorerWithPartial<any, any>;

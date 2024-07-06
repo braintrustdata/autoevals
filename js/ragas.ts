@@ -9,7 +9,7 @@ import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
-import { makePartial, ScorerWithPartial } from "./util";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 const DEFAULT_RAGAS_MODEL = "gpt-3.5-turbo-16k";
 

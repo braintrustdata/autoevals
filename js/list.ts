@@ -1,7 +1,7 @@
 import { Scorer } from "@braintrust/core";
 import { Levenshtein } from "./string";
 import { linearSumAssignment } from "linear-sum-assignment";
-import { makePartial, ScorerWithPartial } from "./util";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 /**
  * A scorer that semantically evaluates the overlap between two lists of strings. It works by

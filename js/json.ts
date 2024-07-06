@@ -2,7 +2,7 @@ import { Scorer } from "@braintrust/core";
 import { NumericDiff } from "./number";
 import { LevenshteinScorer } from "./string";
 import Ajv, { JSONSchemaType, Schema } from "ajv";
-import { makePartial, ScorerWithPartial } from "./util";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 /**
  * A simple scorer that compares JSON objects, using a customizable comparison method for strings

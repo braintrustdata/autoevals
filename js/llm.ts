@@ -9,7 +9,7 @@ import {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
 } from "openai/resources";
-import { makePartial, ScorerWithPartial } from "./util";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";

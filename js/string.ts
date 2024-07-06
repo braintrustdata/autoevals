@@ -2,7 +2,7 @@ import { Scorer, ScorerArgs } from "@braintrust/core";
 import levenshtein from "js-levenshtein";
 import { OpenAIAuth, buildOpenAIClient } from "./oai";
 import cossim from "compute-cosine-similarity";
-import { makePartial, ScorerWithPartial } from "./util";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 const lev: Scorer<string, {}> = (args) => {
   if (args.expected === undefined) {

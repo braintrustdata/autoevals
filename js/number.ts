@@ -1,4 +1,4 @@
-import { makePartial, ScorerWithPartial } from "./util";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 /**
  * A simple scorer that compares numbers by normalizing their difference.

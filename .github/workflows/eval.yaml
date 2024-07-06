@@ -36,6 +36,10 @@ jobs:
         id: install
         run: pnpm install
 
+      - name: Build packages
+        id: build
+        run: pnpm build
+
       - name: Run Evals
         uses: braintrustdata/eval-action@v1
         with:

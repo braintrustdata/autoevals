@@ -163,7 +163,7 @@ npx braintrust run example.eval.js
 - Translation
 - Fine-tuned binary classifiers
 
-### RAGAS
+### RAG
 
 - Context precision
 - Context relevancy

@@ -2,15 +2,13 @@
 import mustache from "mustache";
 
 import { Scorer, ScorerArgs } from "@braintrust/core";
-import { LLMArgs } from "./llm";
+import { DEFAULT_MODEL, LLMArgs } from "./llm";
 import { buildOpenAIClient } from "./oai";
 import OpenAI from "openai";
 import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
-
-const DEFAULT_RAGAS_MODEL = "gpt-3.5-turbo-16k";
 
 type RagasArgs = {
   input?: string;
@@ -864,7 +862,7 @@ function parseArgs(args: ScorerArgs<string, RagasArgs>): {
     OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
     "messages"
   > = {
-    model: args.model ?? DEFAULT_RAGAS_MODEL,
+    model: args.model ?? DEFAULT_MODEL,
     temperature: args.temperature ?? 0,
   };
   if (args.maxTokens) {

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import path from "path";
 
-export const dataDir = path.join(__dirname, "../data");
+export const dataDir = path.join(__dirname, "../datasets");
 
 export const coqaSchema = z.object({
   source: z.string(),

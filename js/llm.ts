@@ -22,6 +22,8 @@ export type LLMArgs = {
   temperature?: number;
 } & OpenAIAuth;
 
+export const DEFAULT_MODEL = "gpt-4o";
+
 const PLAIN_RESPONSE_SCHEMA = {
   properties: {
     choice: { description: "The choice", title: "Choice", type: "string" },
@@ -195,7 +197,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   name,
   promptTemplate,
   choiceScores,
-  model = "gpt-4o",
+  model = DEFAULT_MODEL,
   useCoT: useCoTArg,
   temperature,
 }: {

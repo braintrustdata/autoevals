@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import { coqaCaseSchema, dataDir } from "./datasets";
 import { z } from "zod";
-import { Factuality, NumericDiff } from "autoevals";
+import { DEFAULT_MODEL, Factuality, NumericDiff } from "autoevals";
 
 const experimentNamePrefix = process.env.EXPERIMENT_NAME;
 
@@ -48,4 +48,7 @@ Eval("Autoevals", {
   },
   scores: [NumericDiff],
   experimentName: experimentNamePrefix ?? undefined,
+  metadata: {
+    model: DEFAULT_MODEL,
+  },
 });

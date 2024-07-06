@@ -21,7 +21,7 @@ repos:
       - id: codespell
         exclude: >
           (?x)^(
-              .*\.(json|prisma)
+              .*\.(json|prisma|yaml)
           )$
         args: [-L rouge]
 

@@ -8,6 +8,7 @@ import {
   ChatCompletionCreateParams,
   ChatCompletionMessage,
   ChatCompletionMessageParam,
+  ChatCompletionTool,
 } from "openai/resources";
 
 const NO_COT_SUFFIX =
@@ -15,8 +16,6 @@ const NO_COT_SUFFIX =
 
 const COT_SUFFIX =
   "Answer the question by calling `select_choice` with your reasoning in a step-by-step manner to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a single choice by setting the `choice` parameter to a single choice from {{__choices}}.";
-
-const SUPPORTED_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 
 export type LLMArgs = {
   maxTokens?: number;
@@ -37,9 +36,8 @@ const COT_RESPONSE_SCHEMA = {
     reasons: {
       description:
         "Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.",
-      items: { type: "string" },
-      title: "Reasons",
-      type: "array",
+      title: "Reasoning",
+      type: "string",
     },
     choice: { description: "The choice", title: "Choice", type: "string" },
   },
@@ -48,10 +46,10 @@ const COT_RESPONSE_SCHEMA = {
   type: "object",
 };
 
-export function buildClassificationFunctions(
+export function buildClassificationTools(
   useCoT: boolean,
   choiceStrings: string[]
-) {
+): ChatCompletionTool[] {
   const params = useCoT ? COT_RESPONSE_SCHEMA : PLAIN_RESPONSE_SCHEMA;
   const enumParams = {
     ...params,
@@ -62,9 +60,12 @@ export function buildClassificationFunctions(
   };
   return [
     {
-      name: "select_choice",
-      description: "Call this function to select a choice.",
-      parameters: enumParams,
+      type: "function",
+      function: {
+        name: "select_choice",
+        description: "Call this function to select a choice.",
+        parameters: enumParams,
+      },
     },
   ];
 }
@@ -74,7 +75,7 @@ export type OpenAIClassifierArgs<RenderArgs> = {
   model: string;
   messages: ChatCompletionMessageParam[];
   choiceScores: Record<string, number>;
-  classificationFunctions: ChatCompletionCreateParams.Function[];
+  classificationTools: ChatCompletionTool[];
   cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
@@ -98,25 +99,12 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     messages: messagesArg,
     model,
     choiceScores,
-    classificationFunctions,
+    classificationTools: classificationTools,
     maxTokens,
     temperature,
     cache,
     ...remainingRenderArgs
   } = remaining;
-
-  let found = false;
-  for (const m of SUPPORTED_MODELS) {
-    if (model.startsWith(m)) {
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    throw new Error(
-      `Unsupported model: ${model}. Currently only supports OpenAI chat models.`
-    );
-  }
 
   const extraArgs = {
     temperature: temperature || 0,
@@ -138,8 +126,13 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     {
       model,
       messages,
-      functions: classificationFunctions,
-      function_call: { name: "select_choice" },
+      tools: classificationTools,
+      tool_choice: {
+        type: "function",
+        function: {
+          name: "select_choice",
+        },
+      },
       ...extraArgs,
     },
     {
@@ -168,11 +161,20 @@ function parseResponse(
 ): Omit<Score, "name"> {
   let score = 0;
   const metadata: Record<string, unknown> = {};
-  const args = JSON.parse(resp.function_call!.arguments!);
-  metadata["rationale"] = args["reasons"]?.join("\n");
-  const choice = args["choice"].trim();
+
+  if (!resp.tool_calls || resp.tool_calls.length === 0) {
+    throw new Error("No tool calls in response");
+  }
+  const toolCall = resp.tool_calls[0];
+  if (toolCall.function.name !== "select_choice") {
+    throw new Error("Unexpected tool call");
+  }
+
+  const args = JSON.parse(toolCall.function.arguments);
+  metadata["rationale"] = args["reasons"];
+  const choice = args["choice"]?.trim();
   metadata["choice"] = choice;
-  if (choiceScores[choice] !== undefined) {
+  if (choice && choiceScores[choice] !== undefined) {
     score = choiceScores[choice];
   } else {
     throw new Error(`Unknown score choice ${choice}`);
@@ -193,7 +195,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   name,
   promptTemplate,
   choiceScores,
-  model = "gpt-3.5-turbo",
+  model = "gpt-4o",
   useCoT: useCoTArg,
   temperature,
 }: {
@@ -225,10 +227,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       name,
       messages,
       choiceScores,
-      classificationFunctions: buildClassificationFunctions(
-        useCoT,
-        choiceStrings
-      ),
+      classificationTools: buildClassificationTools(useCoT, choiceStrings),
       model,
       maxTokens,
       temperature,

@@ -5,6 +5,8 @@ import { coqaCaseSchema, dataDir } from "./datasets";
 import { z } from "zod";
 import { Factuality, NumericDiff } from "autoevals";
 
+const experimentNamePrefix = process.env.EXPERIMENT_NAME;
+
 const datasets = [
   {
     name: "Factuality",
@@ -45,4 +47,5 @@ Eval("Autoevals", {
     return result.score ?? -1;
   },
   scores: [NumericDiff],
+  experimentName: experimentNamePrefix ?? undefined,
 });

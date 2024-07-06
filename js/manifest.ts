@@ -23,6 +23,7 @@ import {
 } from "./ragas";
 import { ListContains } from "./list";
 import { ScorerWithPartial } from "./partial";
+import { Moderation } from "./moderation";
 
 interface AutoevalMethod {
   method: ScorerWithPartial<any, any>;
@@ -54,6 +55,11 @@ export const Evaluators: {
         method: Factuality,
         description:
           "Test whether an output is factual, compared to an original (`expected`) value.",
+      },
+      {
+        method: Moderation,
+        description:
+          "A scorer that uses OpenAI's moderation API to determine if AI response contains ANY flagged content.",
       },
       {
         method: Possible,

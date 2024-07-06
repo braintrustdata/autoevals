@@ -1,7 +1,9 @@
-from braintrust_core.score import Score, Scorer
+from braintrust_core.score import Score
+
+from autoevals.partial import ScorerWithPartial
 
 
-class NumericDiff(Scorer):
+class NumericDiff(ScorerWithPartial):
     """
     A simple scorer that compares numbers by normalizing their difference.
     """

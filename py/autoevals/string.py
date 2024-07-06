@@ -1,12 +1,14 @@
 import threading
 
-from braintrust_core.score import Score, Scorer
+from braintrust_core.score import Score
 from Levenshtein import distance
+
+from autoevals.partial import ScorerWithPartial
 
 from .oai import arun_cached_request, run_cached_request
 
 
-class Levenshtein(Scorer):
+class Levenshtein(ScorerWithPartial):
     """
     A simple scorer that uses the Levenshtein distance to compare two strings.
     """
@@ -28,7 +30,7 @@ class Levenshtein(Scorer):
 LevenshteinScorer = Levenshtein  # backcompat
 
 
-class EmbeddingSimilarity(Scorer):
+class EmbeddingSimilarity(ScorerWithPartial):
     """
     A simple scorer that uses cosine similarity to compare two strings.
     """

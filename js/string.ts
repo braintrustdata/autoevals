@@ -4,38 +4,34 @@ import { OpenAIAuth, buildOpenAIClient } from "./oai";
 import cossim from "compute-cosine-similarity";
 import { makePartial, ScorerWithPartial } from "./partial";
 
-const lev: Scorer<string, {}> = (args) => {
-  if (args.expected === undefined) {
-    throw new Error("LevenshteinScorer requires an expected value");
-  }
-
-  const [output, expected] = [`${args.output}`, `${args.expected}`];
-  const maxLen = Math.max(output.length, expected.length);
-
-  let score = 1;
-  if (maxLen > 0) {
-    score = 1 - levenshtein(output, expected) / maxLen;
-  }
-
-  return {
-    name: "Levenshtein",
-    score,
-  };
-};
-
 /**
  * A simple scorer that uses the Levenshtein distance to compare two strings.
  */
 export const Levenshtein: ScorerWithPartial<string, {}> = makePartial(
-  lev,
+  (args) => {
+    if (args.expected === undefined) {
+      throw new Error("LevenshteinScorer requires an expected value");
+    }
+
+    const [output, expected] = [`${args.output}`, `${args.expected}`];
+    const maxLen = Math.max(output.length, expected.length);
+
+    let score = 1;
+    if (maxLen > 0) {
+      score = 1 - levenshtein(output, expected) / maxLen;
+    }
+
+    return {
+      name: "Levenshtein",
+      score,
+    };
+  },
+
   "Levenshtein"
 );
 
 // For back-compat
-export const LevenshteinScorer: ScorerWithPartial<string, {}> = makePartial(
-  lev,
-  "LevenshteinScorer"
-);
+export const LevenshteinScorer: ScorerWithPartial<string, {}> = Levenshtein;
 
 /**
  * A scorer that uses cosine similarity to compare two strings.

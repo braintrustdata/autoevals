@@ -2,6 +2,7 @@ import { Eval, EvalCase, wrapTraced } from "braintrust";
 import path from "path";
 import fs from "fs";
 import {
+  closedQACaseSchema,
   contextRelevancyCaseSchema,
   coqaCaseSchema,
   dataDir,
@@ -9,6 +10,7 @@ import {
 import { z } from "zod";
 import {
   AnswerCorrectness,
+  ClosedQA,
   ContextRelevancy,
   DEFAULT_MODEL,
   Factuality,
@@ -24,14 +26,21 @@ const datasets = [
     parser: coqaCaseSchema,
   },
   {
+    name: "ClosedQA",
+    path: path.join(dataDir, "coqa-closed-qa.json"),
+    parser: closedQACaseSchema,
+  },
+  {
     name: "AnswerCorrectness",
     path: path.join(dataDir, "coqa-factuality.json"),
     parser: coqaCaseSchema,
+    tags: ["ragas"],
   },
   {
     name: "ContextRelevancy",
     path: path.join(dataDir, "coqa-context-relevancy.json"),
     parser: contextRelevancyCaseSchema,
+    tags: ["ragas"],
   },
 ];
 
@@ -42,6 +51,8 @@ const runScorerT = wrapTraced(async function runScorer(
   switch (scorer) {
     case "Factuality":
       return Factuality(input);
+    case "ClosedQA":
+      return ClosedQA(input);
     case "AnswerCorrectness":
       return AnswerCorrectness(input);
     case "ContextRelevancy":
@@ -53,7 +64,7 @@ const runScorerT = wrapTraced(async function runScorer(
 
 Eval("Autoevals", {
   data: () =>
-    datasets.flatMap(({ name, path, parser }) => {
+    datasets.flatMap(({ name, path, parser, tags }) => {
       const data = fs.readFileSync(path, "utf-8");
       return z
         .array(parser)
@@ -62,7 +73,7 @@ Eval("Autoevals", {
           ...d,
           input: { ...d.input, scorer: name },
           metadata: { ...d.metadata, scorer: name },
-          tags: [name],
+          tags: [...(tags ?? []), name],
         }));
     }),
   task: async (input) => {

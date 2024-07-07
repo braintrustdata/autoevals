@@ -36,3 +36,15 @@ export const contextRelevancyCaseSchema = z.object({
   metadata: coqaSchema,
 });
 export type ContextRelevancyCase = z.infer<typeof contextRelevancyCaseSchema>;
+
+export const closedQACaseSchema = z.object({
+  input: z.object({
+    input: z.string(),
+    output: z.string(),
+    criteria: z.string(),
+  }),
+  expected: z.number(),
+  metadata: coqaSchema,
+});
+
+export type ClosedQACase = z.infer<typeof closedQACaseSchema>;

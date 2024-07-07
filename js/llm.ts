@@ -22,7 +22,7 @@ export type LLMArgs = {
   temperature?: number;
 } & OpenAIAuth;
 
-export const DEFAULT_MODEL = "gpt-3.5-turbo";
+export const DEFAULT_MODEL = "gpt-4o";
 
 const PLAIN_RESPONSE_SCHEMA = {
   properties: {

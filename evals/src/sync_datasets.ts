@@ -6,6 +6,7 @@ import {
   dataDir,
   FactualityCase,
   ContextRelevancyCase,
+  ClosedQACase,
 } from "./datasets";
 import path from "path";
 import fs from "fs";
@@ -109,6 +110,29 @@ async function coqaContextRelevancy(): Promise<ContextRelevancyCase[]> {
   return cases;
 }
 
+async function coqaClosedQA(): Promise<ClosedQACase[]> {
+  const df = await getCoqa();
+
+  const cases: ClosedQACase[] = [];
+  for (const metadata of df) {
+    const { questions, answers, story } = metadata;
+
+    const input = `Given the following context: ${story}, \n\n Answer the question: ${questions[0]}`;
+    const criteria = "Is the answer correct?";
+    cases.push({
+      input: { input, output: answers.input_text[0], criteria },
+      expected: 1,
+      metadata,
+    });
+    cases.push({
+      input: { input, output: answers.input_text[1], criteria },
+      expected: 0,
+      metadata,
+    });
+  }
+  return cases;
+}
+
 function saveFile(cases: unknown[], fname: string) {
   fs.writeFileSync(path.join(dataDir, fname), JSON.stringify(cases, null, 2));
 }
@@ -120,6 +144,7 @@ async function main() {
 
   saveFile(await coqaFactuality(), "coqa-factuality.json");
   saveFile(await coqaContextRelevancy(), "coqa-context-relevancy.json");
+  saveFile(await coqaClosedQA(), "coqa-closed-qa.json");
 }
 
 main();

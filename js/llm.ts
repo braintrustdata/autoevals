@@ -5,7 +5,6 @@ import { Score, Scorer, ScorerArgs } from "@braintrust/core";
 import { ChatCache, OpenAIAuth, cachedChatCompletion } from "./oai";
 import { templates } from "./templates";
 import {
-  ChatCompletionCreateParams,
   ChatCompletionMessage,
   ChatCompletionMessageParam,
   ChatCompletionTool,
@@ -22,7 +21,7 @@ export type LLMArgs = {
   temperature?: number;
 } & OpenAIAuth;
 
-export const DEFAULT_MODEL = "gpt-4o";
+export const DEFAULT_MODEL = "gpt-3.5-turbo";
 
 const PLAIN_RESPONSE_SCHEMA = {
   properties: {

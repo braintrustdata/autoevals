@@ -15,6 +15,7 @@ import {
   DEFAULT_MODEL,
   Factuality,
   NumericDiff,
+  Score,
 } from "autoevals";
 
 const experimentNamePrefix = process.env.EXPERIMENT_NAME;
@@ -76,10 +77,15 @@ Eval("Autoevals", {
           tags: [...(tags ?? []), name],
         }));
     }),
-  task: async (input) => {
+  task: async (input, hooks) => {
     const { scorer, ...rest } = input;
-    const result = await runScorerT(scorer, rest);
-    return result.score ?? -1;
+    let result: Score | null = null;
+    try {
+      result = await runScorerT(scorer, rest);
+    } catch (e) {
+      hooks.meta({ error: `${e}` });
+    }
+    return result?.score ?? -1;
   },
   scores: [NumericDiff],
   experimentName: experimentNamePrefix ?? undefined,

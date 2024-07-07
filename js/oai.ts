@@ -64,5 +64,9 @@ export async function cachedChatCompletion(
   options: { cache?: ChatCache } & OpenAIAuth
 ): Promise<ChatCompletion> {
   let openai = buildOpenAIClient(options);
-  return await openai.chat.completions.create(params);
+  console.log("PARAMS", params);
+  const ret = await openai.chat.completions.create(params).withResponse();
+  console.log(ret.response.headers);
+
+  return ret.data;
 }

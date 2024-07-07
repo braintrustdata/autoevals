@@ -1,11 +1,13 @@
 import sys
 
-from braintrust_core.score import Score, Scorer
+from braintrust_core.score import Score
+
+from autoevals.partial import ScorerWithPartial
 
 from .string import Levenshtein
 
 
-class ListContains(Scorer):
+class ListContains(ScorerWithPartial):
     """
     A scorer that semantically evaluates the overlap between two lists of strings. It works by
     computing the pairwise similarity between each element of the output and the expected value,

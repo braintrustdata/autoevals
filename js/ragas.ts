@@ -9,6 +9,7 @@ import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 const DEFAULT_RAGAS_MODEL = "gpt-3.5-turbo-16k";
 
@@ -56,12 +57,12 @@ const entitySchema = z.object({
  * Estimates context recall by estimating TP and FN using annotated answer and
  * retrieved context.
  */
-export const ContextEntityRecall: Scorer<
+export const ContextEntityRecall: ScorerWithPartial<
   string,
   RagasArgs & {
     pairwiseScorer?: Scorer<string, {}>;
   }
-> = async (args) => {
+> = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
 
   const { expected, context } = checkRequired(
@@ -114,12 +115,7 @@ export const ContextEntityRecall: Scorer<
       expectedEntities: expectedEntities.entities,
     },
   };
-};
-
-Object.defineProperty(ContextEntityRecall, "name", {
-  value: "ContextEntityRecall",
-  configurable: true,
-});
+}, "ContextEntityRecall");
 
 const SENTENCE_PROMPT = `Please extract relevant sentences from the provided context that is absolutely required answer the following question. If no relevant sentences are found, or if you believe the question cannot be answered from the given context, return an empty array.  While extracting candidate sentences you're not allowed to make any changes to sentences from given context.
 
@@ -144,46 +140,53 @@ const relevantSentencesSchema = z.object({
     .describe("List of referenced sentences"),
 });
 
-export const ContextRelevancy: Scorer<string, RagasArgs> = async (args) => {
-  const { chatArgs, client, ...inputs } = parseArgs(args);
+export const ContextRelevancy: ScorerWithPartial<string, RagasArgs> =
+  makePartial(async (args) => {
+    const { chatArgs, client, ...inputs } = parseArgs(args);
 
-  const { input, context } = checkRequired(
-    { input: inputs.input, context: inputs.context },
-    "ContextRelevancy"
-  );
+    const { input, context } = checkRequired(
+      { input: inputs.input, context: inputs.context },
+      "ContextRelevancy"
+    );
 
-  const response = await client.chat.completions.create({
-    ...chatArgs,
-    messages: [
-      {
-        role: "user",
-        content: mustache.render(SENTENCE_PROMPT, { question: input, context }),
-      },
-    ],
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "extract_sentences",
-          description: "Extract relevant sentences from a given context",
-          parameters: zodToJsonSchema(relevantSentencesSchema),
+    const response = await client.chat.completions.create({
+      ...chatArgs,
+      messages: [
+        {
+          role: "user",
+          content: mustache.render(SENTENCE_PROMPT, {
+            question: input,
+            context,
+          }),
         },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "extract_sentences",
+            description: "Extract relevant sentences from a given context",
+            parameters: zodToJsonSchema(relevantSentencesSchema),
+          },
+        },
+      ],
+      tool_choice: {
+        type: "function",
+        function: { name: "extract_sentences" },
       },
-    ],
-    tool_choice: { type: "function", function: { name: "extract_sentences" } },
-  });
+    });
 
-  const sentences = relevantSentencesSchema.parse(mustParseArgs(response));
-  return {
-    name: "ContextRelevancy",
-    score:
-      sentences.sentences.map((s) => s.sentence).join("").length /
-      context.length,
-    metadata: {
-      relevantSentences: sentences.sentences,
-    },
-  };
-};
+    const sentences = relevantSentencesSchema.parse(mustParseArgs(response));
+    return {
+      name: "ContextRelevancy",
+      score:
+        sentences.sentences.map((s) => s.sentence).join("").length /
+        context.length,
+      metadata: {
+        relevantSentences: sentences.sentences,
+      },
+    };
+  }, "ContextRelevancy");
 
 const CONTEXT_RECALL_PROMPT = `Given a context, and an answer, analyze each sentence in the answer and classify if the sentence can be attributed to the given context or not. Use only "Yes" (1) or "No" (0) as a binary classification. Output json with reason.
 
@@ -233,51 +236,61 @@ const contextRecallSchema = z.object({
   ),
 });
 
-export const ContextRecall: Scorer<string, RagasArgs> = async (args) => {
-  const { chatArgs, client, ...inputs } = parseArgs(args);
-  const { input, expected, context } = checkRequired(
-    { input: inputs.input, expected: inputs.expected, context: inputs.context },
-    "ContextRecall"
-  );
-
-  const response = await client.chat.completions.create({
-    ...chatArgs,
-    messages: [
+export const ContextRecall: ScorerWithPartial<string, RagasArgs> = makePartial(
+  async (args) => {
+    const { chatArgs, client, ...inputs } = parseArgs(args);
+    const { input, expected, context } = checkRequired(
       {
-        role: "user",
-        content: mustache.render(CONTEXT_RECALL_PROMPT, {
-          question: input,
-          answer: expected,
-          context,
-        }),
+        input: inputs.input,
+        expected: inputs.expected,
+        context: inputs.context,
       },
-    ],
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "extract_statements",
-          parameters: zodToJsonSchema(contextRecallSchema),
+      "ContextRecall"
+    );
+
+    const response = await client.chat.completions.create({
+      ...chatArgs,
+      messages: [
+        {
+          role: "user",
+          content: mustache.render(CONTEXT_RECALL_PROMPT, {
+            question: input,
+            answer: expected,
+            context,
+          }),
         },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "extract_statements",
+            parameters: zodToJsonSchema(contextRecallSchema),
+          },
+        },
+      ],
+      tool_choice: {
+        type: "function",
+        function: { name: "extract_statements" },
       },
-    ],
-    tool_choice: { type: "function", function: { name: "extract_statements" } },
-  });
+    });
 
-  const statements = contextRecallSchema.parse(mustParseArgs(response));
+    const statements = contextRecallSchema.parse(mustParseArgs(response));
 
-  return {
-    name: "ContextRecall",
-    score:
-      statements.statements.reduce(
-        (acc, { attributed }) => acc + attributed,
-        0
-      ) / statements.statements.length,
-    metadata: {
-      statements: statements.statements,
-    },
-  };
-};
+    return {
+      name: "ContextRecall",
+      score:
+        statements.statements.reduce(
+          (acc, { attributed }) => acc + attributed,
+          0
+        ) / statements.statements.length,
+      metadata: {
+        statements: statements.statements,
+      },
+    };
+  },
+  "ContextRecall"
+);
 
 const CONTEXT_PRECISION_PROMPT = `Given question, answer and context verify if the context was useful in arriving at the given answer. Give verdict as "1" if useful and "0" if not with json output.
 
@@ -323,48 +336,54 @@ const contextPrecisionSchema = z.object({
   verdict: z.number().describe("Binary (0/1) verdict of verification"),
 });
 
-export const ContextPrecision: Scorer<string, RagasArgs> = async (args) => {
-  const { chatArgs, client, ...inputs } = parseArgs(args);
-  const { input, expected, context } = checkRequired(
-    { input: inputs.input, expected: inputs.expected, context: inputs.context },
-    "ContextPrecision"
-  );
-
-  const response = await client.chat.completions.create({
-    ...chatArgs,
-    messages: [
+export const ContextPrecision: ScorerWithPartial<string, RagasArgs> =
+  makePartial(async (args) => {
+    const { chatArgs, client, ...inputs } = parseArgs(args);
+    const { input, expected, context } = checkRequired(
       {
-        role: "user",
-        content: mustache.render(CONTEXT_PRECISION_PROMPT, {
-          question: input,
-          answer: expected,
-          context,
-        }),
+        input: inputs.input,
+        expected: inputs.expected,
+        context: inputs.context,
       },
-    ],
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "verify",
-          description: "Verify if context was useful in arriving at the answer",
-          parameters: zodToJsonSchema(contextPrecisionSchema),
+      "ContextPrecision"
+    );
+
+    const response = await client.chat.completions.create({
+      ...chatArgs,
+      messages: [
+        {
+          role: "user",
+          content: mustache.render(CONTEXT_PRECISION_PROMPT, {
+            question: input,
+            answer: expected,
+            context,
+          }),
         },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "verify",
+            description:
+              "Verify if context was useful in arriving at the answer",
+            parameters: zodToJsonSchema(contextPrecisionSchema),
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "verify" } },
+    });
+
+    const precision = contextPrecisionSchema.parse(mustParseArgs(response));
+
+    return {
+      name: "ContextPrecision",
+      score: precision.verdict,
+      metadata: {
+        precision,
       },
-    ],
-    tool_choice: { type: "function", function: { name: "verify" } },
-  });
-
-  const precision = contextPrecisionSchema.parse(mustParseArgs(response));
-
-  return {
-    name: "ContextPrecision",
-    score: precision.verdict,
-    metadata: {
-      precision,
-    },
-  };
-};
+    };
+  }, "ContextPrecision");
 
 const LONG_FORM_ANSWER_PROMPT = `Create one or more statements from each sentence in the given answer.
 
@@ -448,89 +467,90 @@ const statementFaithfulnessSchema = z.object({
 /**
  * Measures factual consistency of the generated answer with the given context.
  */
-export const Faithfulness: Scorer<string, RagasArgs> = async (args) => {
-  const { chatArgs, client, ...inputs } = parseArgs(args);
+export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
+  async (args) => {
+    const { chatArgs, client, ...inputs } = parseArgs(args);
 
-  const { input, context, output } = checkRequired(
-    { input: inputs.input, context: inputs.context, output: inputs.output },
-    "Faithfulness"
-  );
+    const { input, context, output } = checkRequired(
+      { input: inputs.input, context: inputs.context, output: inputs.output },
+      "Faithfulness"
+    );
 
-  const extractedStatementsResponse = await client.chat.completions.create({
-    ...chatArgs,
-    messages: [
-      {
-        role: "user",
-        content: mustache.render(LONG_FORM_ANSWER_PROMPT, {
-          question: input,
-          answer: output,
-        }),
-      },
-    ],
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "extract_statements",
-          description: "Extract statements from an answer given a question",
-          parameters: zodToJsonSchema(extractedStatementsSchema),
+    const extractedStatementsResponse = await client.chat.completions.create({
+      ...chatArgs,
+      messages: [
+        {
+          role: "user",
+          content: mustache.render(LONG_FORM_ANSWER_PROMPT, {
+            question: input,
+            answer: output,
+          }),
         },
-      },
-    ],
-    tool_choice: { type: "function", function: { name: "extract_statements" } },
-  });
-
-  const statements = extractedStatementsSchema.parse(
-    mustParseArgs(extractedStatementsResponse)
-  ).statements;
-
-  const faithfulnessResponse = await client.chat.completions.create({
-    ...chatArgs,
-    messages: [
-      {
-        role: "user",
-        content: mustache.render(NLI_STATEMENTS_PROMPT, {
-          context,
-          statements,
-        }),
-      },
-    ],
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "judge_statements",
-          description:
-            "Judge whether the statements are faithful to the context",
-          parameters: zodToJsonSchema(statementFaithfulnessSchema),
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "extract_statements",
+            description: "Extract statements from an answer given a question",
+            parameters: zodToJsonSchema(extractedStatementsSchema),
+          },
         },
+      ],
+      tool_choice: {
+        type: "function",
+        function: { name: "extract_statements" },
       },
-    ],
-    tool_choice: { type: "function", function: { name: "judge_statements" } },
-  });
+    });
 
-  const faithfulness = statementFaithfulnessSchema.parse(
-    mustParseArgs(faithfulnessResponse)
-  ).faithfulness;
-  const score = faithfulness.length
-    ? faithfulness.reduce((acc, { verdict }) => acc + verdict, 0) /
-      faithfulness.length
-    : 0;
+    const statements = extractedStatementsSchema.parse(
+      mustParseArgs(extractedStatementsResponse)
+    ).statements;
 
-  return {
-    name: "Faithfulness",
-    score,
-    metadata: {
-      statements,
-      faithfulness,
-    },
-  };
-};
+    const faithfulnessResponse = await client.chat.completions.create({
+      ...chatArgs,
+      messages: [
+        {
+          role: "user",
+          content: mustache.render(NLI_STATEMENTS_PROMPT, {
+            context,
+            statements,
+          }),
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "judge_statements",
+            description:
+              "Judge whether the statements are faithful to the context",
+            parameters: zodToJsonSchema(statementFaithfulnessSchema),
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "judge_statements" } },
+    });
 
-Object.defineProperty(Faithfulness, "name", {
-  value: "Faithfulness",
-  configurable: true,
-});
+    const faithfulness = statementFaithfulnessSchema.parse(
+      mustParseArgs(faithfulnessResponse)
+    ).faithfulness;
+    const score = faithfulness.length
+      ? faithfulness.reduce((acc, { verdict }) => acc + verdict, 0) /
+        faithfulness.length
+      : 0;
+
+    return {
+      name: "Faithfulness",
+      score,
+      metadata: {
+        statements,
+        faithfulness,
+      },
+    };
+  },
+  "Faithfulness"
+);
 
 const QUESTION_GEN_PROMPT = `Generate a question for the given answer and Identify if answer is noncommittal. Give noncommittal as 1 if the answer is noncommittal and 0 if the answer is committal. A noncommittal answer is one that is evasive, vague, or ambiguous. For example, "I don't know" or "I'm not sure" are noncommittal answers
 
@@ -580,12 +600,12 @@ const questionGenSchema = z.object({
  * Scores the relevancy of the generated answer to the given question.
  * Answers with incomplete, redundant or unnecessary information are penalized.
  */
-export const AnswerRelevancy: Scorer<
+export const AnswerRelevancy: ScorerWithPartial<
   string,
   RagasArgs & {
     strictness?: number;
   }
-> = async (args) => {
+> = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
 
   const { input, context, output } = checkRequired(
@@ -654,42 +674,33 @@ export const AnswerRelevancy: Scorer<
       similarity,
     },
   };
-};
-
-Object.defineProperty(AnswerRelevancy, "name", {
-  value: "AnswerRelevancy",
-  configurable: true,
-});
+}, "AnswerRelevancy");
 
 /**
  * Scores the semantic similarity between the generated answer and ground truth.
  */
-export const AnswerSimilarity: Scorer<string, RagasArgs> = async (args) => {
-  const { chatArgs, client, ...inputs } = parseArgs(args);
+export const AnswerSimilarity: ScorerWithPartial<string, RagasArgs> =
+  makePartial(async (args) => {
+    const { chatArgs, client, ...inputs } = parseArgs(args);
 
-  const { output, expected } = checkRequired(
-    { output: inputs.output, expected: inputs.expected },
-    "AnswerSimilarity"
-  );
+    const { output, expected } = checkRequired(
+      { output: inputs.output, expected: inputs.expected },
+      "AnswerSimilarity"
+    );
 
-  const { score, error } = await EmbeddingSimilarity({
-    output,
-    expected,
-    expectedMin: 0,
-    model: args.model,
-  });
+    const { score, error } = await EmbeddingSimilarity({
+      output,
+      expected,
+      expectedMin: 0,
+      model: args.model,
+    });
 
-  return {
-    name: "AnswerSimilarity",
-    score,
-    error,
-  };
-};
-
-Object.defineProperty(AnswerSimilarity, "name", {
-  value: "AnswerSimilarity",
-  configurable: true,
-});
+    return {
+      name: "AnswerSimilarity",
+      score,
+      error,
+    };
+  }, "AnswerSimilarity");
 
 const CORRECTNESS_PROMPT = `Given a ground truth and an answer, analyze each statement in the answer and classify them in one of the following categories:
 
@@ -751,14 +762,14 @@ function computeF1Score(classification: AnswerCorrectnessClassification) {
  * Measures answer correctness compared to ground truth using a weighted
  * average of factuality and semantic similarity.
  */
-export const AnswerCorrectness: Scorer<
+export const AnswerCorrectness: ScorerWithPartial<
   string,
   RagasArgs & {
     factualityWeight?: number;
     answerSimilarityWeight?: number;
     answerSimilarity?: Scorer<string, {}>;
   }
-> = async (args) => {
+> = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
 
   const { input, output, expected } = checkRequired(
@@ -832,12 +843,7 @@ export const AnswerCorrectness: Scorer<
       answerSimilarityScore,
     },
   };
-};
-
-Object.defineProperty(AnswerCorrectness, "name", {
-  value: "AnswerCorrectness",
-  configurable: true,
-});
+}, "AnswerCorrectness");
 
 function parseArgs(args: ScorerArgs<string, RagasArgs>): {
   output: string;

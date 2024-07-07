@@ -37,3 +37,4 @@ export * from "./json";
 export * from "./templates";
 export * from "./ragas";
 export { Evaluators } from "./manifest";
+export { makePartial, ScorerWithPartial } from "./partial";

@@ -9,6 +9,7 @@ import {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
 } from "openai/resources";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
@@ -281,14 +282,17 @@ export function LLMClassifierFromSpecFile<RenderArgs>(
 function buildLLMClassifier<RenderArgs>(
   name: string,
   templateName: keyof typeof templates
-) {
+): ScorerWithPartial<string, LLMClassifierArgs<RenderArgs>> {
   if (!(templateName in templates)) {
     throw new Error(`Model template ${name} not found`);
   }
 
-  return LLMClassifierFromSpecFile<RenderArgs>(
-    name,
-    templateName as keyof typeof templates
+  return makePartial(
+    LLMClassifierFromSpecFile<RenderArgs>(
+      name,
+      templateName as keyof typeof templates
+    ),
+    name
   );
 }
 

@@ -1,27 +1,51 @@
 import { Eval, EvalCase, wrapTraced } from "braintrust";
 import path from "path";
 import fs from "fs";
-import { coqaCaseSchema, dataDir } from "./datasets";
+import {
+  contextRelevancyCaseSchema,
+  coqaCaseSchema,
+  dataDir,
+} from "./datasets";
 import { z } from "zod";
-import { DEFAULT_MODEL, Factuality, NumericDiff } from "autoevals";
+import {
+  AnswerCorrectness,
+  ContextRelevancy,
+  DEFAULT_MODEL,
+  Factuality,
+  NumericDiff,
+} from "autoevals";
 
 const experimentNamePrefix = process.env.EXPERIMENT_NAME;
 
 const datasets = [
   {
     name: "Factuality",
-    path: path.join(dataDir, "coqa.json"),
+    path: path.join(dataDir, "coqa-factuality.json"),
     parser: coqaCaseSchema,
+  },
+  {
+    name: "AnswerCorrectness",
+    path: path.join(dataDir, "coqa-factuality.json"),
+    parser: coqaCaseSchema,
+  },
+  {
+    name: "ContextRelevancy",
+    path: path.join(dataDir, "coqa-context-relevancy.json"),
+    parser: contextRelevancyCaseSchema,
   },
 ];
 
-const runScorer = wrapTraced(async function runScorer(
+const runScorerT = wrapTraced(async function runScorer(
   scorer: string,
   input: any
 ) {
   switch (scorer) {
     case "Factuality":
       return Factuality(input);
+    case "AnswerCorrectness":
+      return AnswerCorrectness(input);
+    case "ContextRelevancy":
+      return ContextRelevancy(input);
     default:
       throw new Error(`Unknown scorer: ${scorer}`);
   }
@@ -43,7 +67,7 @@ Eval("Autoevals", {
     }),
   task: async (input) => {
     const { scorer, ...rest } = input;
-    const result = await runScorer(scorer, rest);
+    const result = await runScorerT(scorer, rest);
     return result.score ?? -1;
   },
   scores: [NumericDiff],

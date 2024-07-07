@@ -1,20 +1,28 @@
 import { duckq, getDuckDBConn } from "./duckdb";
 
 import { z } from "zod";
-import { Factuality } from "autoevals";
-import { coqaSchema, dataDir, FactualityCase } from "./datasets";
+import {
+  coqaSchema,
+  dataDir,
+  FactualityCase,
+  ContextRelevancyCase,
+} from "./datasets";
 import path from "path";
 import fs from "fs";
 
-async function coqaFactuality(): Promise<FactualityCase[]> {
+async function getCoqa(): Promise<z.infer<typeof coqaSchema>[]> {
   const conn = getDuckDBConn();
-  const df = z.array(coqaSchema).parse(
+  return z.array(coqaSchema).parse(
     await duckq(
       conn,
       `SELECT * FROM 'hf://datasets/stanfordnlp/coqa/data/validation-00000-of-00001.parquet'
-        LIMIT 10`
+        LIMIT 20`
     )
   );
+}
+
+async function coqaFactuality(): Promise<FactualityCase[]> {
+  const df = await getCoqa();
 
   // For each question, capture the correct answer, make a superset by concatenating answers
   // together, and pick a different answer as a completely wrong one
@@ -57,6 +65,50 @@ async function coqaFactuality(): Promise<FactualityCase[]> {
   return cases;
 }
 
+async function coqaContextRelevancy(): Promise<ContextRelevancyCase[]> {
+  const df = await getCoqa();
+
+  const cases: ContextRelevancyCase[] = [];
+  for (const metadata of df) {
+    const { story, questions, answers } = metadata;
+
+    const input = questions[0];
+    const contexts = answers.answer_start.map((answer_start, i) =>
+      story.substring(answer_start, answers.answer_end[i])
+    );
+
+    cases.push({
+      input: {
+        input,
+        context: contexts[0],
+      },
+      expected: 1,
+      metadata,
+    });
+
+    cases.push({
+      input: {
+        input,
+        context: contexts[1],
+      },
+      expected: 0,
+      metadata,
+    });
+
+    const concat = `${contexts[0]} ${contexts[1]}`;
+    cases.push({
+      input: {
+        input,
+        context: concat,
+      },
+      expected: contexts[0].length / concat.length,
+      metadata,
+    });
+  }
+
+  return cases;
+}
+
 function saveFile(cases: unknown[], fname: string) {
   fs.writeFileSync(path.join(dataDir, fname), JSON.stringify(cases, null, 2));
 }
@@ -66,7 +118,8 @@ async function main() {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  saveFile(await coqaFactuality(), "coqa.json");
+  saveFile(await coqaFactuality(), "coqa-factuality.json");
+  saveFile(await coqaContextRelevancy(), "coqa-context-relevancy.json");
 }
 
 main();

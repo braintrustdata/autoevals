@@ -26,3 +26,13 @@ export const coqaCaseSchema = z.object({
 });
 
 export type FactualityCase = z.infer<typeof coqaCaseSchema>;
+
+export const contextRelevancyCaseSchema = z.object({
+  input: z.object({
+    input: z.string(),
+    context: z.string(),
+  }),
+  expected: z.number(),
+  metadata: coqaSchema,
+});
+export type ContextRelevancyCase = z.infer<typeof contextRelevancyCaseSchema>;

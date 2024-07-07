@@ -2,12 +2,9 @@ import { Scorer, ScorerArgs } from "@braintrust/core";
 
 export interface ScorerWithPartial<Output, Extra>
   extends Scorer<Output, Extra> {
-  partial: <T extends Partial<ScorerArgs<Output, Extra>>>(
-    args: T
-  ) => Scorer<
+  partial: <T extends keyof Extra>(args: { [K in T]: Extra[K] }) => Scorer<
     Output,
-    // Mark all of the provided parameters as optional in the new scorer
-    Omit<Extra, keyof T> & { [K in keyof T]?: T[K] | undefined }
+    Omit<Extra, T> & Partial<Pick<Extra, T>>
   >;
 }
 

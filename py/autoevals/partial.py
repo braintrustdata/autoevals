@@ -23,4 +23,5 @@ class ScorerWithPartial(Scorer):
             def _cls_name(cls_):
                 return cls._cls_name()
 
+        PartialScorer.__name__ = cls.__name__
         return PartialScorer

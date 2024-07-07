@@ -200,11 +200,12 @@ class ModelGradedSpec:
     temperature: Optional[float] = None
 
 
-# XXX: Document that prompts are expected to be mustache templates
 class LLMClassifier(OpenAILLMClassifier):
     """
     An LLM-based classifier that wraps `OpenAILLMClassifier` and provides a standard way to
     apply chain of thought, parse the output, and score the result."""
+
+    _SPEC_FILE_CONTENTS: Optional[str] = None
 
     def __init__(
         self,
@@ -250,8 +251,10 @@ class LLMClassifier(OpenAILLMClassifier):
 
     @classmethod
     def from_spec_file(cls, name: str, path: str, **kwargs):
-        with open(path) as f:
-            spec = yaml.safe_load(f)
+        if cls._SPEC_FILE_CONTENTS is None:
+            with open(path) as f:
+                cls._SPEC_FILE_CONTENTS = f.read()
+        spec = yaml.safe_load(cls._SPEC_FILE_CONTENTS)
         return cls.from_spec(name, ModelGradedSpec(**spec), **kwargs)
 
 
@@ -276,7 +279,7 @@ class SpecFileClassifier(LLMClassifier):
             kwargs["base_url"] = base_url
 
         # convert FooBar to foo_bar
-        cls_name = cls._cls_name()
+        cls_name = cls.__name__
         template_name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls_name).lower()
 
         template_path = os.path.join(SCRIPT_DIR, "templates", template_name + ".yaml")

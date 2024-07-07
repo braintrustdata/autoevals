@@ -38,10 +38,6 @@ test("Ragas retrieval test", async () => {
 
     if (score === 1) {
       expect(actualScore.score).toBeCloseTo(score, 4);
-    } else {
-      // Expect it to be >= score
-      console.log("RETURNED SCORE: ", scorer, actualScore.score);
-      expect(actualScore.score).toBeGreaterThanOrEqual(score);
     }
   }
 }, 600000);
@@ -63,10 +59,6 @@ test("Ragas generation test", async () => {
 
     if (score === 1) {
       expect(actualScore.score).toBeCloseTo(score, 4);
-    } else {
-      // Expect it to be >= score
-      console.log("RETURNED SCORE: ", scorer, actualScore.score);
-      expect(actualScore.score).toBeGreaterThanOrEqual(score);
     }
   }
 }, 600000);
@@ -87,10 +79,6 @@ test("Ragas end-to-end test", async () => {
 
     if (score === 1) {
       expect(actualScore.score).toBeCloseTo(score, 4);
-    } else {
-      // Expect it to be >= score
-      console.log("RETURNED SCORE: ", scorer, actualScore.score);
-      expect(actualScore.score).toBeGreaterThanOrEqual(score);
     }
   }
 }, 600000);

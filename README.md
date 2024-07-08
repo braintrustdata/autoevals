@@ -8,7 +8,7 @@ It bundles together a variety of automatic evaluation methods including:
 - Statistical (e.g. BLEU)
 - Model-based (using LLMs)
 
-Autoevals is developed by the team at [BrainTrust](https://braintrustdata.com/).
+Autoevals is developed by the team at [Braintrust](https://braintrust.dev/).
 
 Autoevals uses model-graded evaluation for a variety of subjective tasks including fact checking,
 safety, and more. Many of these evaluations are adapted from OpenAI's excellent [evals](https://github.com/openai/evals)
@@ -78,7 +78,7 @@ import { Factuality } from "autoevals";
 
 ## Using Braintrust with Autoevals
 
-Once you grade an output using Autoevals, it's convenient to use [BrainTrust](https://www.braintrustdata.com/docs/libs/python) to log and compare your evaluation results.
+Once you grade an output using Autoevals, it's convenient to use [Braintrust](https://www.braintrustdata.com/docs/libs/python) to log and compare your evaluation results.
 
 ### Python
 
@@ -340,4 +340,4 @@ There is nothing particularly novel about the evaluation methods in this library
 
 ## Documentation
 
-The full docs are available [here](https://www.braintrustdata.com/docs/autoevals/overview).
+The full docs are available [here](https://www.braintrust.dev/docs/reference/autoevals).

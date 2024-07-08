@@ -78,7 +78,7 @@ import { Factuality } from "autoevals";
 
 ## Using Braintrust with Autoevals
 
-Once you grade an output using Autoevals, it's convenient to use [Braintrust](https://www.braintrustdata.com/docs/libs/python) to log and compare your evaluation results.
+Once you grade an output using Autoevals, it's convenient to use [Braintrust](https://www.braintrust.dev/docs/libs/python) to log and compare your evaluation results.
 
 ### Python
 

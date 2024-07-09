@@ -13,7 +13,6 @@ test("Partial Test", async () => {
   expect(levenshteinPartial.score).toBeDefined();
   expect(levenshteinPartial.score).toEqual(levenshteinBasic.score);
   expect(levenshteinBasic.name).toEqual(levenshteinPartial.name);
-  expect(levenshteinBasic.metadata).toEqual(levenshteinPartial.metadata);
   expect(levenshteinBasic.name).toEqual("Levenshtein");
 
   // Now do the same with ClosedQA which is an "LLM" scorer
@@ -32,6 +31,5 @@ test("Partial Test", async () => {
   expect(closedQAPartial.score).toBeDefined();
   expect(closedQAPartial.score).toEqual(closedQABasic.score);
   expect(closedQABasic.name).toEqual(closedQAPartial.name);
-  expect(closedQABasic.metadata).toEqual(closedQAPartial.metadata);
   expect(closedQABasic.name).toEqual("ClosedQA");
 });

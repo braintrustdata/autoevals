@@ -2,50 +2,42 @@ import { Scorer } from "@braintrust/core";
 import { NumericDiff } from "./number";
 import { LevenshteinScorer } from "./string";
 import Ajv, { JSONSchemaType, Schema } from "ajv";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 /**
  * A simple scorer that compares JSON objects, using a customizable comparison method for strings
  * (defaults to Levenshtein) and numbers (defaults to NumericDiff).
  */
-export const JSONDiff: Scorer<
+export const JSONDiff: ScorerWithPartial<
   any,
   { stringScorer?: Scorer<string, {}>; numberScorer?: Scorer<number, {}> }
-> = async ({
-  output,
-  expected,
-  stringScorer = LevenshteinScorer,
-  numberScorer = NumericDiff,
-}) => {
-  return {
-    name: "JSONDiff",
-    score: await jsonDiff(output, expected, stringScorer, numberScorer),
-  };
-};
-
-Object.defineProperty(JSONDiff, "name", {
-  value: "JSONDiff",
-  configurable: true,
-});
+> = makePartial(
+  async ({
+    output,
+    expected,
+    stringScorer = LevenshteinScorer,
+    numberScorer = NumericDiff,
+  }) => {
+    return {
+      name: "JSONDiff",
+      score: await jsonDiff(output, expected, stringScorer, numberScorer),
+    };
+  },
+  "JSONDiff"
+);
 
 /**
  * A binary scorer that evaluates the validity of JSON output, optionally validating against a
  * JSON Schema definition (see https://json-schema.org/learn/getting-started-step-by-step#create).
  */
-export const ValidJSON: Scorer<string, { schema?: any }> = async ({
-  output,
-  schema,
-}) => {
-  return {
-    name: "ValidJSON",
-    score: validJSON(output, schema),
-    metadata: { schema },
-  };
-};
-
-Object.defineProperty(ValidJSON, "name", {
-  value: "ValidJSON",
-  configurable: true,
-});
+export const ValidJSON: ScorerWithPartial<string, { schema?: any }> =
+  makePartial(async ({ output, schema }) => {
+    return {
+      name: "ValidJSON",
+      score: validJSON(output, schema),
+      metadata: { schema },
+    };
+  }, "ValidJSON");
 
 async function jsonDiff(
   o1: any,

@@ -3,11 +3,13 @@ import json
 from braintrust_core.score import Score, Scorer
 from jsonschema import ValidationError, validate
 
+from autoevals.partial import ScorerWithPartial
+
 from .number import NumericDiff
 from .string import Levenshtein
 
 
-class JSONDiff(Scorer):
+class JSONDiff(ScorerWithPartial):
     """
     A simple scorer that compares JSON objects, using a customizable comparison method for strings
     (defaults to Levenshtein) and numbers (defaults to NumericDiff).
@@ -48,7 +50,7 @@ class JSONDiff(Scorer):
             return self.string_scorer.eval(json.dumps(o1, **kwargs), json.dumps(o2, **kwargs)).score
 
 
-class ValidJSON(Scorer):
+class ValidJSON(ScorerWithPartial):
     """
     A binary scorer that evaluates the validity of JSON output, optionally validating against a
     JSON Schema definition (see https://json-schema.org/learn/getting-started-step-by-step#create).

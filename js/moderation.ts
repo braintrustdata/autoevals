@@ -1,6 +1,6 @@
-import { Scorer } from "@braintrust/core";
 import { OpenAIAuth, buildOpenAIClient } from "./oai";
 import { Moderation as ModerationResult } from "openai/resources";
+import { makePartial, ScorerWithPartial } from "./partial";
 
 const MODERATION_NAME = "Moderation";
 
@@ -30,12 +30,12 @@ function computeScore(result: ModerationResult, threshold?: number): number {
  * be considered.
  * @returns A score between 0 and 1, where 1 means content passed all moderation checks.
  */
-export const Moderation: Scorer<
+export const Moderation: ScorerWithPartial<
   string,
   {
     threshold?: number;
   } & OpenAIAuth
-> = async (args) => {
+> = makePartial(async (args) => {
   const threshold = args.threshold ?? undefined;
   const output = args.output;
 
@@ -58,9 +58,4 @@ export const Moderation: Scorer<
         undefined,
     },
   };
-};
-
-Object.defineProperty(Moderation, "name", {
-  value: MODERATION_NAME,
-  configurable: true,
-});
+}, MODERATION_NAME);

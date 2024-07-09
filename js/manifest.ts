@@ -1,4 +1,3 @@
-import { Scorer } from "@braintrust/core";
 import { JSONDiff, ValidJSON } from "./json";
 import {
   Battle,
@@ -23,9 +22,11 @@ import {
   AnswerCorrectness,
 } from "./ragas";
 import { ListContains } from "./list";
+import { ScorerWithPartial } from "./partial";
+import { Moderation } from "./moderation";
 
 interface AutoevalMethod {
-  method: Scorer<any, any>;
+  method: ScorerWithPartial<any, any>;
   description: string;
 }
 
@@ -54,6 +55,11 @@ export const Evaluators: {
         method: Factuality,
         description:
           "Test whether an output is factual, compared to an original (`expected`) value.",
+      },
+      {
+        method: Moderation,
+        description:
+          "A scorer that uses OpenAI's moderation API to determine if AI response contains ANY flagged content.",
       },
       {
         method: Possible,

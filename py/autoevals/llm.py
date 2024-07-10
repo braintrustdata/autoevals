@@ -29,6 +29,7 @@ single choice by setting the `choice` parameter to a single choice from {{__choi
     "\n", " "
 )
 
+DEFAULT_MODEL = "gpt-4o"
 
 PLAIN_RESPONSE_SCHEMA = {
     "properties": {"choice": {"description": "The choice", "title": "Choice", "type": "string"}},
@@ -41,9 +42,8 @@ COT_RESPONSE_SCHEMA = {
     "properties": {
         "reasons": {
             "description": "Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.",
-            "items": {"type": "string"},
-            "title": "Reasons",
-            "type": "array",
+            "title": "Reasoning",
+            "type": "string",
         },
         "choice": {"description": "The choice", "title": "Choice", "type": "string"},
     },
@@ -53,7 +53,7 @@ COT_RESPONSE_SCHEMA = {
 }
 
 
-def build_classification_functions(useCoT, choice_strings):
+def build_classification_tools(useCoT, choice_strings):
     params = COT_RESPONSE_SCHEMA if useCoT else PLAIN_RESPONSE_SCHEMA
     enum_params = {
         **params,
@@ -63,7 +63,14 @@ def build_classification_functions(useCoT, choice_strings):
         },
     }
     return [
-        {"name": "select_choice", "description": "Call this function to select a choice.", "parameters": enum_params}
+        {
+            "type": "function",
+            "function": {
+                "name": "select_choice",
+                "description": "Call this function to select a choice.",
+                "parameters": enum_params,
+            },
+        }
     ]
 
 
@@ -101,7 +108,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         messages: List,
         model,
         choice_scores,
-        classification_functions,
+        classification_tools,
         render_args=None,
         max_tokens=None,
         temperature=None,
@@ -130,7 +137,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
             self.render_args.update(render_args)
 
         self.choice_scores = choice_scores
-        self.classification_functions = classification_functions
+        self.classification_tools = classification_tools
 
     def _name(self):
         return self.name
@@ -139,8 +146,8 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         return dict(
             model=self.model,
             messages=self._render_messages(output=output, expected=expected, **kwargs),
-            functions=self.classification_functions,
-            function_call={"name": "select_choice"},
+            tools=self.classification_tools,
+            tool_choice={"type": "function", "function": {"name": "select_choice"}},
         )
 
     def _render_messages(self, **kwargs):
@@ -168,12 +175,17 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
     def _process_response(self, resp):
         metadata = {}
-        args = json.loads(resp["function_call"]["arguments"])
+        if "tool_calls" not in resp:
+            raise ValueError("No tool call found in response")
+        tool_call = resp["tool_calls"][0]
+        if tool_call["function"]["name"] != "select_choice":
+            raise ValueError(f"Unexpected tool call ({tool_call['function']['name']}) found in response")
+        args = json.loads(tool_call["function"]["arguments"])
+
+        metadata["choice"] = args["choice"].strip()
         if "reasons" in args:
             metadata["rationale"] = "\n".join(args["reasons"])
-        if "function_call" not in resp:
-            raise ValueError("No function call found in response")
-        metadata["choice"] = args["choice"].strip()
+
         score = self.choice_scores[metadata["choice"]]
         return Score(name=self.name, score=score, metadata=metadata)
 
@@ -212,7 +224,7 @@ class LLMClassifier(OpenAILLMClassifier):
         name,
         prompt_template,
         choice_scores,
-        model="gpt-3.5-turbo",
+        model=DEFAULT_MODEL,
         use_cot=True,
         max_tokens=512,
         temperature=0,
@@ -236,7 +248,7 @@ class LLMClassifier(OpenAILLMClassifier):
             messages=messages,
             model=model,
             choice_scores=choice_scores,
-            classification_functions=build_classification_functions(use_cot, choice_strings),
+            classification_tools=build_classification_tools(use_cot, choice_strings),
             max_tokens=max_tokens,
             temperature=temperature,
             engine=engine,

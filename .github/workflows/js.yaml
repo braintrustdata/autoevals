@@ -18,11 +18,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            !node_modules/.cache/turbo
+          key: ${{ matrix.runner }}-${{ matrix.node_version }}-node-${{ env.nodeModulesCacheHash }}
+          restore-keys: |
+            ${{ matrix.runner }}-${{ matrix.node_version }}-node-
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "npm"
       - uses: pnpm/action-setup@v2
         with:
           version: 8

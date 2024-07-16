@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "./jsdist",
+    "lib": ["es2015", "dom"],
+    "target": "ES2018",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["js"],
+  "exclude": ["node_modules/**"]
+}

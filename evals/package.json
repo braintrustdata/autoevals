@@ -1,0 +1,24 @@
+{
+  "name": "@braintrust/autoevals-evals",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sync": "tsx src/sync_datasets.ts",
+    "eval": "braintrust eval"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "autoevals": "workspace:*",
+    "braintrust": "^0.0.140",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "duckdb": "^1.0.0",
+    "tsx": "^3.14.0"
+  }
+}

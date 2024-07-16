@@ -1,7 +1,8 @@
 import {
   ChatCompletion,
-  ChatCompletionCreateParams,
   ChatCompletionMessageParam,
+  ChatCompletionTool,
+  ChatCompletionToolChoiceOption,
 } from "openai/resources";
 import { OpenAI } from "openai";
 
@@ -10,8 +11,8 @@ import { Env } from "./env";
 export interface CachedLLMParams {
   model: string;
   messages: ChatCompletionMessageParam[];
-  functions?: ChatCompletionCreateParams.Function[];
-  function_call?: ChatCompletionCreateParams["function_call"];
+  tools?: ChatCompletionTool[];
+  tool_choice?: ChatCompletionToolChoiceOption;
   temperature?: number;
   max_tokens?: number;
 }

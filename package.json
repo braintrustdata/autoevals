@@ -2,6 +2,11 @@
   "name": "autoevals",
   "version": "0.0.0",
   "description": "Universal library for evaluating AI models",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/braintrustdata/autoevals.git"
+  },
+  "homepage": "https://www.braintrust.dev/docs",
   "main": "./jsdist/index.js",
   "module": "./jsdist/index.mjs",
   "types": "./jsdist/index.d.ts",

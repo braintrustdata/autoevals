@@ -42,7 +42,7 @@ class Moderation(OpenAIScorer):
         )
 
     async def _run_eval_async(self, output, expected=None, **kwargs) -> Score:
-        moderation_response = await arun_cached_request(REQUEST_TYPE, input=output, **self.extra_args)["results"][0]
+        moderation_response = (await arun_cached_request(REQUEST_TYPE, input=output, **self.extra_args))["results"][0]
         return self.__postprocess_response(moderation_response)
 
     @staticmethod

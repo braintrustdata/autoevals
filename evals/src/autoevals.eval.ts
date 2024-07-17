@@ -47,7 +47,7 @@ const datasets = [
 
 const runScorerT = wrapTraced(async function runScorer(
   scorer: string,
-  input: any
+  input: any,
 ) {
   switch (scorer) {
     case "Factuality":

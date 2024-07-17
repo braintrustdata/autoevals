@@ -17,8 +17,8 @@ async function getCoqa(): Promise<z.infer<typeof coqaSchema>[]> {
     await duckq(
       conn,
       `SELECT * FROM 'hf://datasets/stanfordnlp/coqa/data/validation-00000-of-00001.parquet'
-        LIMIT 20`
-    )
+        LIMIT 20`,
+    ),
   );
 }
 
@@ -75,7 +75,7 @@ async function coqaContextRelevancy(): Promise<ContextRelevancyCase[]> {
 
     const input = questions[0];
     const contexts = answers.answer_start.map((answer_start, i) =>
-      story.substring(answer_start, answers.answer_end[i])
+      story.substring(answer_start, answers.answer_end[i]),
     );
 
     cases.push({

@@ -27,7 +27,7 @@ export const Levenshtein: ScorerWithPartial<string, {}> = makePartial(
     };
   },
 
-  "Levenshtein"
+  "Levenshtein",
 );
 
 // For back-compat
@@ -70,13 +70,13 @@ export const EmbeddingSimilarity: ScorerWithPartial<
       openai.embeddings.create({
         input,
         model: args.model ?? "text-embedding-ada-002",
-      })
-    )
+      }),
+    ),
   );
 
   const score = cossim(
     outputResult.data[0].embedding,
-    expectedResult.data[0].embedding
+    expectedResult.data[0].embedding,
   );
 
   return {

@@ -65,11 +65,11 @@ export const ContextEntityRecall: ScorerWithPartial<
 
   const { expected, context } = checkRequired(
     { expected: inputs.expected, context: inputs.context },
-    "ContextEntityRecall"
+    "ContextEntityRecall",
   );
 
   const makeArgs = (
-    text: string
+    text: string,
   ): OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming => ({
     ...chatArgs,
     messages: [
@@ -131,9 +131,9 @@ const relevantSentencesSchema = z.object({
         reasons: z
           .array(z.string())
           .describe(
-            "Reasons why the sentence is relevant. Explain your thinking step by step."
+            "Reasons why the sentence is relevant. Explain your thinking step by step.",
           ),
-      })
+      }),
     )
     .describe("List of referenced sentences"),
 });
@@ -144,7 +144,7 @@ export const ContextRelevancy: ScorerWithPartial<string, RagasArgs> =
 
     const { input, context } = checkRequired(
       { input: inputs.input, context: inputs.context },
-      "ContextRelevancy"
+      "ContextRelevancy",
     );
 
     const response = await client.chat.completions.create({
@@ -230,7 +230,7 @@ const contextRecallSchema = z.object({
       statement: z.string(),
       attributed: z.number(),
       reason: z.string(),
-    })
+    }),
   ),
 });
 
@@ -243,7 +243,7 @@ export const ContextRecall: ScorerWithPartial<string, RagasArgs> = makePartial(
         expected: inputs.expected,
         context: inputs.context,
       },
-      "ContextRecall"
+      "ContextRecall",
     );
 
     const response = await client.chat.completions.create({
@@ -280,14 +280,14 @@ export const ContextRecall: ScorerWithPartial<string, RagasArgs> = makePartial(
       score:
         statements.statements.reduce(
           (acc, { attributed }) => acc + attributed,
-          0
+          0,
         ) / statements.statements.length,
       metadata: {
         statements: statements.statements,
       },
     };
   },
-  "ContextRecall"
+  "ContextRecall",
 );
 
 const CONTEXT_PRECISION_PROMPT = `Given question, answer and context verify if the context was useful in arriving at the given answer. Give verdict as "1" if useful and "0" if not with json output.
@@ -343,7 +343,7 @@ export const ContextPrecision: ScorerWithPartial<string, RagasArgs> =
         expected: inputs.expected,
         context: inputs.context,
       },
-      "ContextPrecision"
+      "ContextPrecision",
     );
 
     const response = await client.chat.completions.create({
@@ -458,7 +458,7 @@ const statementFaithfulnessSchema = z.object({
       statement: z.string().describe("the original statement, word-by-word"),
       verdict: z.number().describe("the verdict(0/1) of the faithfulness."),
       reason: z.string().describe("the reason of the verdict"),
-    })
+    }),
   ),
 });
 
@@ -471,7 +471,7 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
 
     const { input, context, output } = checkRequired(
       { input: inputs.input, context: inputs.context, output: inputs.output },
-      "Faithfulness"
+      "Faithfulness",
     );
 
     const extractedStatementsResponse = await client.chat.completions.create({
@@ -502,7 +502,7 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
     });
 
     const statements = extractedStatementsSchema.parse(
-      mustParseArgs(extractedStatementsResponse)
+      mustParseArgs(extractedStatementsResponse),
     ).statements;
 
     const faithfulnessResponse = await client.chat.completions.create({
@@ -531,7 +531,7 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
     });
 
     const faithfulness = statementFaithfulnessSchema.parse(
-      mustParseArgs(faithfulnessResponse)
+      mustParseArgs(faithfulnessResponse),
     ).faithfulness;
     const score = faithfulness.length
       ? faithfulness.reduce((acc, { verdict }) => acc + verdict, 0) /
@@ -547,7 +547,7 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
       },
     };
   },
-  "Faithfulness"
+  "Faithfulness",
 );
 
 const QUESTION_GEN_PROMPT = `Generate a question for the given answer and Identify if answer is noncommittal. Give noncommittal as 1 if the answer is noncommittal and 0 if the answer is committal. A noncommittal answer is one that is evasive, vague, or ambiguous. For example, "I don't know" or "I'm not sure" are noncommittal answers
@@ -608,7 +608,7 @@ export const AnswerRelevancy: ScorerWithPartial<
 
   const { input, context, output } = checkRequired(
     { input: inputs.input, context: inputs.context, output: inputs.output },
-    "AnswerRelevancy"
+    "AnswerRelevancy",
   );
 
   const strictness = args.strictness ?? 3;
@@ -641,12 +641,12 @@ export const AnswerRelevancy: ScorerWithPartial<
           type: "function",
           function: { name: "generate_question" },
         },
-      })
-    )
+      }),
+    ),
   );
 
   const questions = responses.map((r) =>
-    questionGenSchema.parse(mustParseArgs(r))
+    questionGenSchema.parse(mustParseArgs(r)),
   );
 
   const similarity = await Promise.all(
@@ -656,7 +656,7 @@ export const AnswerRelevancy: ScorerWithPartial<
         expected: input,
       });
       return { question, score };
-    })
+    }),
   );
 
   const score = questions.some(({ noncommittal }) => noncommittal)
@@ -683,7 +683,7 @@ export const AnswerSimilarity: ScorerWithPartial<string, RagasArgs> =
 
     const { output, expected } = checkRequired(
       { output: inputs.output, expected: inputs.expected },
-      "AnswerSimilarity"
+      "AnswerSimilarity",
     );
 
     const { score, error } = await EmbeddingSimilarity({
@@ -772,7 +772,7 @@ export const AnswerCorrectness: ScorerWithPartial<
 
   const { input, output, expected } = checkRequired(
     { input: inputs.input, output: inputs.output, expected: inputs.expected },
-    "AnswerCorrectness"
+    "AnswerCorrectness",
   );
 
   const factualityWeight = args.factualityWeight ?? 0.75;
@@ -820,7 +820,7 @@ export const AnswerCorrectness: ScorerWithPartial<
   ]);
 
   const factuality = answerCorrectnessClassificationSchema.parse(
-    mustParseArgs(factualityResponse)
+    mustParseArgs(factualityResponse),
   );
   const factualityScore = computeF1Score(factuality);
   const answerSimilarityScore = answerSimilarityResult?.score ?? 0;
@@ -889,13 +889,13 @@ function flatenContext(context?: string | string[]): string | undefined {
   return context === undefined
     ? context
     : Array.isArray(context)
-    ? context.join("\n")
-    : context;
+      ? context.join("\n")
+      : context;
 }
 
 function checkRequired<T>(
   args: Record<string, T | undefined>,
-  name: string
+  name: string,
 ): Record<string, T> {
   for (const [key, value] of Object.entries(args)) {
     if (value === undefined) {
@@ -907,7 +907,7 @@ function checkRequired<T>(
 }
 
 function mustParseArgs(
-  resp: OpenAI.Chat.Completions.ChatCompletion
+  resp: OpenAI.Chat.Completions.ChatCompletion,
 ): Record<string, unknown> {
   const args = resp.choices[0]?.message.tool_calls?.[0]?.function.arguments;
   if (!args) {

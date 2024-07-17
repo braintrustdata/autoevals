@@ -25,8 +25,8 @@ repos:
           )$
         args: [-L rouge]
 
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.7.1
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.3.2
     hooks:
       - id: prettier
         exclude: ^(extension/|.*\.json$)

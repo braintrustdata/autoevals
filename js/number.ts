@@ -22,5 +22,5 @@ export const NumericDiff: ScorerWithPartial<number, {}> = makePartial(
       score,
     };
   },
-  "NumericDiff"
+  "NumericDiff",
 );

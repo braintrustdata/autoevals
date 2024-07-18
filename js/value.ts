@@ -19,7 +19,7 @@ export const ExactMatch: ScorerWithPartial<unknown, {}> = makePartial(
       score,
     };
   },
-  "ExactMatch"
+  "ExactMatch",
 );
 
 function needsJSON(value: unknown): boolean {

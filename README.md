@@ -188,6 +188,7 @@ npx braintrust run example.eval.js
 ### Heuristic
 
 - Levenshtein distance
+- Exact match
 - Numeric difference
 - JSON diff
 - Jaccard distance

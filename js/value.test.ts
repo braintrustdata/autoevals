@@ -1,6 +1,7 @@
 import { ListContains } from "./list";
 import { NumericDiff } from "./number";
 import { LevenshteinScorer } from "./string";
+import { ExactMatch } from "./value";
 
 test("Levenshtein Test", async () => {
   const cases = [
@@ -88,4 +89,33 @@ test("ListContains Test", async () => {
       })
     ).score
   ).toBe(1);
+});
+
+test("ExactMatch", async () => {
+  const cases = [
+    { output: "hello", expected: "hello", expectedScore: 1 },
+    { output: "hello", expected: "world", expectedScore: 0 },
+    { output: 123, expected: 123, expectedScore: 1 },
+    { output: 123, expected: "123", expectedScore: 1 },
+    { output: { a: 1, b: 2 }, expected: { a: 1, b: 2 }, expectedScore: 1 },
+    { output: { a: 1, b: 2 }, expected: { a: 1, b: 3 }, expectedScore: 0 },
+    { output: [1, 2, 3], expected: [1, 2, 3], expectedScore: 1 },
+    { output: [1, 2, 3], expected: [3, 2, 1], expectedScore: 0 },
+    { output: { a: 1, b: 2 }, expected: { b: 2, a: 1 }, expectedScore: 0 }, // Order matters
+    { output: { a: 1, b: 2 }, expected: '{"a": 1, "b": 2}', expectedScore: 1 }, // String representation matches dict
+    { output: { a: 1, b: 2 }, expected: '{"a":1, "b":2}', expectedScore: 1 }, // String representation matches dict
+    { output: { a: 1, b: 2 }, expected: '{"b":2, "a":1}', expectedScore: 0 },
+    {
+      output: { a: 1, b: 2 },
+      expected: { b: 2, a: 1, c: 3 },
+      expectedScore: 0,
+    }, // Extra key, not equal
+    { output: null, expected: null, expectedScore: 1 },
+    { output: null, expected: undefined, expectedScore: 1 },
+  ];
+
+  for (const { output, expected, expectedScore } of cases) {
+    const score = (await ExactMatch({ output, expected })).score;
+    expect(score).toBeCloseTo(expectedScore, 4);
+  }
 });

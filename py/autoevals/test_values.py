@@ -1,8 +1,10 @@
+import pytest
 from pytest import approx
 
 from autoevals.list import ListContains
 from autoevals.number import NumericDiff
 from autoevals.string import LevenshteinScorer
+from autoevals.value import ExactMatch
 
 
 def test_levenshtein():
@@ -77,3 +79,30 @@ def test_list_contains():
     assert (
         ListContains(pairwise_evaluator=LevenshteinScorer(), allow_extra_entities=True)(["a", "b"], ["a"]).score == 1
     )
+
+
+def test_exact_match():
+    cases = [
+        ["hello", "hello", 1],
+        ["hello", "world", 0],
+        [123, 123, 1],
+        [123, "123", 1],
+        [{"a": 1, "b": 2}, {"a": 1, "b": 2}, 1],
+        [{"a": 1, "b": 2}, {"a": 1, "b": 3}, 0],
+        [[1, 2, 3], [1, 2, 3], 1],
+        [[1, 2, 3], [3, 2, 1], 0],
+        [{"a": 1, "b": 2}, {"b": 2, "a": 1}, 0],  # Order matters
+        [{"a": 1, "b": 2}, '{"a": 1, "b": 2}', 1],  # String representation matches dict
+        [{"a": 1, "b": 2}, '{"a":1, "b":2}', 1],  # String representation matches dict
+        [{"a": 1, "b": 2}, '{"b": 2, "a": 1}', 0],
+        [{"a": 1, "b": 2}, {"b": 2, "a": 1, "c": 3}, 0],  # Extra key, not equal
+        [None, None, 1],
+        [None, "None", 1],
+    ]
+
+    for output, expected, expected_score in cases:
+        assert ExactMatch()(output, expected).score == approx(expected_score, abs=1e-4), (
+            output,
+            expected,
+            expected_score,
+        )

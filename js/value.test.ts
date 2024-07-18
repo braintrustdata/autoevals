@@ -87,7 +87,7 @@ test("ListContains Test", async () => {
         expected: ["b"],
         allowExtraEntities: true,
       })
-    ).score
+    ).score,
   ).toBe(1);
 });
 

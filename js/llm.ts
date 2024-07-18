@@ -50,7 +50,7 @@ const COT_RESPONSE_SCHEMA = {
 
 export function buildClassificationTools(
   useCoT: boolean,
-  choiceStrings: string[]
+  choiceStrings: string[],
 ): ChatCompletionTool[] {
   const params = useCoT ? COT_RESPONSE_SCHEMA : PLAIN_RESPONSE_SCHEMA;
   const enumParams = {
@@ -83,7 +83,7 @@ export type OpenAIClassifierArgs<RenderArgs> = {
   RenderArgs;
 
 export async function OpenAIClassifier<RenderArgs, Output>(
-  args: ScorerArgs<Output, OpenAIClassifierArgs<RenderArgs>>
+  args: ScorerArgs<Output, OpenAIClassifierArgs<RenderArgs>>,
 ): Promise<Score> {
   const {
     name,
@@ -144,7 +144,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
       openAiBaseUrl,
       openAiDefaultHeaders,
       openAiDangerouslyAllowBrowser,
-    }
+    },
   );
 
   if (resp.choices.length > 0) {
@@ -159,7 +159,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
 
 function parseResponse(
   resp: ChatCompletionMessage,
-  choiceScores: Record<string, number>
+  choiceScores: Record<string, number>,
 ): Omit<Score, "name"> {
   let score = 0;
   const metadata: Record<string, unknown> = {};
@@ -210,7 +210,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
   const ret = async (
-    runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>
+    runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>,
   ) => {
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
 
@@ -259,7 +259,7 @@ export interface ModelGradedSpec {
 
 export function LLMClassifierFromSpec<RenderArgs>(
   name: string,
-  spec: ModelGradedSpec
+  spec: ModelGradedSpec,
 ): Scorer<any, LLMClassifierArgs<RenderArgs>> {
   return LLMClassifierFromTemplate({
     name,
@@ -273,7 +273,7 @@ export function LLMClassifierFromSpec<RenderArgs>(
 
 export function LLMClassifierFromSpecFile<RenderArgs>(
   name: string,
-  templateName: keyof typeof templates
+  templateName: keyof typeof templates,
 ): Scorer<any, LLMClassifierArgs<RenderArgs>> {
   const doc = yaml.load(templates[templateName]) as ModelGradedSpec;
   return LLMClassifierFromSpec(name, doc);
@@ -281,7 +281,7 @@ export function LLMClassifierFromSpecFile<RenderArgs>(
 
 function buildLLMClassifier<RenderArgs>(
   name: string,
-  templateName: keyof typeof templates
+  templateName: keyof typeof templates,
 ): ScorerWithPartial<string, LLMClassifierArgs<RenderArgs>> {
   if (!(templateName in templates)) {
     throw new Error(`Model template ${name} not found`);
@@ -290,9 +290,9 @@ function buildLLMClassifier<RenderArgs>(
   return makePartial(
     LLMClassifierFromSpecFile<RenderArgs>(
       name,
-      templateName as keyof typeof templates
+      templateName as keyof typeof templates,
     ),
-    name
+    name,
   );
 }
 
@@ -302,7 +302,7 @@ function buildLLMClassifier<RenderArgs>(
  */
 export const Battle = buildLLMClassifier<{ instructions: string }>(
   "Battle",
-  "battle"
+  "battle",
 );
 
 /**
@@ -311,7 +311,7 @@ export const Battle = buildLLMClassifier<{ instructions: string }>(
  */
 export const ClosedQA = buildLLMClassifier<{ input: string; criteria: any }>(
   "ClosedQA",
-  "closed_q_a"
+  "closed_q_a",
 );
 
 /**
@@ -333,7 +333,7 @@ export const Factuality = buildLLMClassifier<{
  */
 export const Possible = buildLLMClassifier<{ input: string }>(
   "Possible",
-  "possible"
+  "possible",
 );
 
 /**
@@ -351,7 +351,7 @@ export const Sql = buildLLMClassifier<{ input: string }>("Sql", "sql");
  */
 export const Summary = buildLLMClassifier<{ input: string }>(
   "Summary",
-  "summary"
+  "summary",
 );
 
 /**

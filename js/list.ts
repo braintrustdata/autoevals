@@ -44,10 +44,10 @@ export const ListContains: ScorerWithPartial<
                 output: output_item,
                 expected: expected_item,
               })
-            ).score ?? 0
-        )
-      )
-    )
+            ).score ?? 0,
+        ),
+      ),
+    ),
   );
 
   if (similarities.length === 1 && similarities[0].length === 1) {
@@ -68,7 +68,7 @@ export const ListContains: ScorerWithPartial<
             expected: expected[c],
             score: similarities[r][c],
           }
-        : null
+        : null,
     )
     .filter((pair) => pair !== null) as Array<{
     output: string;

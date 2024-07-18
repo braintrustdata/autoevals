@@ -10,7 +10,7 @@ export interface ScorerWithPartial<Output, Extra>
 
 export function makePartial<Output, Extra>(
   fn: Scorer<Output, Extra>,
-  name?: string
+  name?: string,
 ): ScorerWithPartial<Output, Extra> {
   const ret: any = fn.bind({});
   ret.partial = (args: Partial<ScorerArgs<Output, Extra>>) => {

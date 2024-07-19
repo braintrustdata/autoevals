@@ -24,6 +24,7 @@ import {
 import { ListContains } from "./list";
 import { ScorerWithPartial } from "./partial";
 import { Moderation } from "./moderation";
+import { ExactMatch } from "./value";
 
 interface AutoevalMethod {
   method: ScorerWithPartial<any, any>;
@@ -163,6 +164,11 @@ export const Evaluators: {
       {
         method: Levenshtein,
         description: "Uses the Levenshtein distance to compare two strings.",
+      },
+      {
+        method: ExactMatch,
+        description:
+          "Compares two values for exact equality. If the values are objects, they are converted to JSON strings before comparison.",
       },
       {
         method: NumericDiff,

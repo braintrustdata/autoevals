@@ -30,6 +30,18 @@ export interface OpenAIAuth {
   openAiDangerouslyAllowBrowser?: boolean;
 }
 
+export function extractOpenAIArgs<T extends Record<string, unknown>>(
+  args: OpenAIAuth & T,
+): OpenAIAuth {
+  return {
+    openAiApiKey: args.openAiApiKey,
+    openAiOrganizationId: args.openAiOrganizationId,
+    openAiBaseUrl: args.openAiBaseUrl,
+    openAiDefaultHeaders: args.openAiDefaultHeaders,
+    openAiDangerouslyAllowBrowser: args.openAiDangerouslyAllowBrowser,
+  };
+}
+
 const PROXY_URL = "https://braintrustproxy.com/v1";
 
 export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
@@ -64,6 +76,6 @@ export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth,
 ): Promise<ChatCompletion> {
-  let openai = buildOpenAIClient(options);
+  const openai = buildOpenAIClient(options);
   return await openai.chat.completions.create(params);
 }

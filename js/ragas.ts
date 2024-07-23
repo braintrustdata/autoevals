@@ -3,7 +3,7 @@ import mustache from "mustache";
 
 import { Scorer, ScorerArgs } from "@braintrust/core";
 import { DEFAULT_MODEL, LLMArgs } from "./llm";
-import { buildOpenAIClient } from "./oai";
+import { buildOpenAIClient, extractOpenAIArgs } from "./oai";
 import OpenAI from "openai";
 import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
@@ -99,7 +99,7 @@ export const ContextEntityRecall: ScorerWithPartial<
   const [expectedEntities, contextEntities] = responses.map(mustParseArgs);
 
   const score = await ListContains({
-    ...args, // To propagate the OpenAI args
+    ...extractOpenAIArgs(args),
     pairwiseScorer: args.pairwiseScorer ?? EmbeddingSimilarity,
     allowExtraEntities: true,
     output: entitySchema.parse(contextEntities).entities,
@@ -653,7 +653,7 @@ export const AnswerRelevancy: ScorerWithPartial<
   const similarity = await Promise.all(
     questions.map(async ({ question }) => {
       const { score } = await EmbeddingSimilarity({
-        ...args,
+        ...extractOpenAIArgs(args),
         output: question,
         expected: input,
       });
@@ -689,7 +689,7 @@ export const AnswerSimilarity: ScorerWithPartial<string, RagasArgs> =
     );
 
     const { score, error } = await EmbeddingSimilarity({
-      ...args, // To propagate the OpenAI args
+      ...extractOpenAIArgs(args),
       output,
       expected,
       expectedMin: 0,

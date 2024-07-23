@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-PROXY_URL = "https://braintrustproxy.com/v1"
+PROXY_URL = "https://api.braintrust.dev/v1/proxy"
 
 
 @dataclass

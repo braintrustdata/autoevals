@@ -99,6 +99,7 @@ export const ContextEntityRecall: ScorerWithPartial<
   const [expectedEntities, contextEntities] = responses.map(mustParseArgs);
 
   const score = await ListContains({
+    ...args, // To propagate the OpenAI args
     pairwiseScorer: args.pairwiseScorer ?? EmbeddingSimilarity,
     allowExtraEntities: true,
     output: entitySchema.parse(contextEntities).entities,
@@ -652,6 +653,7 @@ export const AnswerRelevancy: ScorerWithPartial<
   const similarity = await Promise.all(
     questions.map(async ({ question }) => {
       const { score } = await EmbeddingSimilarity({
+        ...args,
         output: question,
         expected: input,
       });
@@ -679,7 +681,7 @@ export const AnswerRelevancy: ScorerWithPartial<
  */
 export const AnswerSimilarity: ScorerWithPartial<string, RagasArgs> =
   makePartial(async (args) => {
-    const { chatArgs, client, ...inputs } = parseArgs(args);
+    const { ...inputs } = parseArgs(args);
 
     const { output, expected } = checkRequired(
       { output: inputs.output, expected: inputs.expected },
@@ -687,10 +689,10 @@ export const AnswerSimilarity: ScorerWithPartial<string, RagasArgs> =
     );
 
     const { score, error } = await EmbeddingSimilarity({
+      ...args, // To propagate the OpenAI args
       output,
       expected,
       expectedMin: 0,
-      model: args.model,
     });
 
     return {
@@ -854,16 +856,7 @@ function parseArgs(args: ScorerArgs<string, RagasArgs>): {
   >;
   client: OpenAI;
 } {
-  const {
-    input,
-    output,
-    expected,
-    context,
-    model,
-    temperature,
-    maxTokens,
-    ...clientArgs
-  } = args;
+  const { input, output, expected, context, ...clientArgs } = args;
   const chatArgs: Omit<
     OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
     "messages"

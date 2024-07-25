@@ -36,7 +36,7 @@ export const Evaluators: {
   methods: AutoevalMethod[];
 }[] = [
   {
-    label: "Model-based classification",
+    label: "LLM-as-a-Judge",
     methods: [
       {
         method: Battle,

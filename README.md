@@ -4,9 +4,9 @@ Autoevals is a tool to quickly and easily evaluate AI model outputs.
 
 It bundles together a variety of automatic evaluation methods including:
 
+- LLM-as-a-Judge
 - Heuristic (e.g. Levenshtein distance)
 - Statistical (e.g. BLEU)
-- Model-based (using LLMs)
 
 Autoevals is developed by the team at [Braintrust](https://braintrust.dev/).
 
@@ -150,7 +150,7 @@ npx braintrust run example.eval.js
 
 ## Supported Evaluation Methods
 
-### Model-Based Classification
+### LLM-as-a-Judge
 
 - Battle
 - ClosedQA

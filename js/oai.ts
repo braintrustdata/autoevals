@@ -42,7 +42,7 @@ export function extractOpenAIArgs<T extends Record<string, unknown>>(
   };
 }
 
-const PROXY_URL = "https://braintrustproxy.com/v1";
+const PROXY_URL = "https://api.braintrust.dev/v1/proxy";
 
 export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
   const {

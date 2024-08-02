@@ -59,6 +59,7 @@ class EmbeddingSimilarity(ScorerWithPartial):
             self.extra_args["base_url"] = base_url
 
     async def _a_embed(self, value):
+        value = normalize_value(value, maybe_object=False)
         with self._CACHE_LOCK:
             if value in self._CACHE:
                 return self._CACHE[value]
@@ -71,6 +72,7 @@ class EmbeddingSimilarity(ScorerWithPartial):
         return result
 
     def _embed(self, value):
+        value = normalize_value(value, maybe_object=False)
         with self._CACHE_LOCK:
             if value in self._CACHE:
                 return self._CACHE[value]

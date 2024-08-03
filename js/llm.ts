@@ -1,9 +1,8 @@
-import * as yaml from "js-yaml";
 import mustache from "mustache";
 
 import { Score, Scorer, ScorerArgs } from "@braintrust/core";
 import { ChatCache, OpenAIAuth, cachedChatCompletion } from "./oai";
-import { templates } from "./templates";
+import { ModelGradedSpec, templates } from "./templates";
 import {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
@@ -217,7 +216,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
-    let maxTokens = 512;
+    const maxTokens = 512;
     const messages: ChatCompletionMessageParam[] = [
       {
         role: "user",
@@ -249,14 +248,6 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   return ret;
 }
 
-export interface ModelGradedSpec {
-  prompt: string;
-  choice_scores: Record<string, number>;
-  model?: string;
-  use_cot?: boolean;
-  temperature?: number;
-}
-
 export function LLMClassifierFromSpec<RenderArgs>(
   name: string,
   spec: ModelGradedSpec,
@@ -275,7 +266,7 @@ export function LLMClassifierFromSpecFile<RenderArgs>(
   name: string,
   templateName: keyof typeof templates,
 ): Scorer<any, LLMClassifierArgs<RenderArgs>> {
-  const doc = yaml.load(templates[templateName]) as ModelGradedSpec;
+  const doc = templates[templateName];
   return LLMClassifierFromSpec(name, doc);
 }
 

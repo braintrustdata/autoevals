@@ -72,7 +72,7 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
 }
 
 declare global {
-  // eslint-disable-next-line
+  /* eslint-disable no-var */
   var __inherited_braintrust_wrap_openai: ((openai: any) => any) | undefined;
 }
 

@@ -15,6 +15,9 @@ export interface CachedLLMParams {
   tool_choice?: ChatCompletionToolChoiceOption;
   temperature?: number;
   max_tokens?: number;
+  span_info?: {
+    span_attributes?: Record<string, string>;
+  };
 }
 
 export interface ChatCache {
@@ -69,6 +72,7 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
 }
 
 declare global {
+  // eslint-disable-next-line
   var __inherited_braintrust_wrap_openai: ((openai: any) => any) | undefined;
 }
 
@@ -77,5 +81,16 @@ export async function cachedChatCompletion(
   options: { cache?: ChatCache } & OpenAIAuth,
 ): Promise<ChatCompletion> {
   const openai = buildOpenAIClient(options);
-  return await openai.chat.completions.create(params);
+
+  const fullParams = {
+    ...params,
+    span_info: {
+      span_attributes: {
+        ...params.span_info?.span_attributes,
+        purpose: "scorer",
+      },
+    },
+  };
+
+  return await openai.chat.completions.create(fullParams);
 }

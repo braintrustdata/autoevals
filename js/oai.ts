@@ -82,15 +82,17 @@ export async function cachedChatCompletion(
 ): Promise<ChatCompletion> {
   const openai = buildOpenAIClient(options);
 
-  const fullParams = {
-    ...params,
-    span_info: {
-      span_attributes: {
-        ...params.span_info?.span_attributes,
-        purpose: "scorer",
-      },
-    },
-  };
+  const fullParams = globalThis.__inherited_braintrust_wrap_openai
+    ? {
+        ...params,
+        span_info: {
+          span_attributes: {
+            ...params.span_info?.span_attributes,
+            purpose: "scorer",
+          },
+        },
+      }
+    : params;
 
   return await openai.chat.completions.create(fullParams);
 }

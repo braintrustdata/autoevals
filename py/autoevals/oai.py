@@ -18,7 +18,12 @@ class OpenAIWrapper:
     RateLimitError: Exception
 
 
+_WRAPPED_OPENAI = False
+
+
 def prepare_openai(is_async=False, api_key=None, base_url=None):
+    global _WRAPPED_OPENAI
+
     if api_key is None:
         api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("BRAINTRUST_API_KEY")
     if base_url is None:
@@ -60,6 +65,7 @@ def prepare_openai(is_async=False, api_key=None, base_url=None):
         from braintrust.oai import wrap_openai
 
         openai_obj = wrap_openai(openai_obj)
+        _WRAPPED_OPENAI = True
     except ImportError:
         pass
 
@@ -103,7 +109,8 @@ def post_process_response(resp):
 
 
 def set_span_purpose(kwargs):
-    kwargs.setdefault("span_info", {}).setdefault("span_attributes", {})["purpose"] = "scorer"
+    if _WRAPPED_OPENAI:
+        kwargs.setdefault("span_info", {}).setdefault("span_attributes", {})["purpose"] = "scorer"
 
 
 def run_cached_request(request_type="complete", api_key=None, base_url=None, **kwargs):

@@ -16,7 +16,7 @@ export interface CachedLLMParams {
   temperature?: number;
   max_tokens?: number;
   span_info?: {
-    span_attributes?: Record<string, string>;
+    spanAttributes?: Record<string, string>;
   };
 }
 
@@ -86,8 +86,8 @@ export async function cachedChatCompletion(
     ? {
         ...params,
         span_info: {
-          span_attributes: {
-            ...params.span_info?.span_attributes,
+          spanAttributes: {
+            ...params.span_info?.spanAttributes,
             purpose: "scorer",
           },
         },

@@ -4,6 +4,7 @@ from braintrust_core.score import Score
 from Levenshtein import distance
 
 from autoevals.partial import ScorerWithPartial
+from autoevals.value import normalize_value
 
 from .oai import arun_cached_request, run_cached_request
 

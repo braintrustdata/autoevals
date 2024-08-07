@@ -56,10 +56,12 @@ def prepare_openai(is_async=False, api_key=None, base_url=None):
             openai.api_key = api_key
         openai.api_base = base_url
 
+    wrapped = False
     try:
         from braintrust.oai import wrap_openai
 
         openai_obj = wrap_openai(openai_obj)
+        wrapped = True
     except ImportError:
         pass
 
@@ -89,7 +91,7 @@ def prepare_openai(is_async=False, api_key=None, base_url=None):
             RateLimitError=rate_limit_error,
         )
 
-    return wrapper
+    return wrapper, wrapped
 
 
 def post_process_response(resp):
@@ -102,8 +104,14 @@ def post_process_response(resp):
         return resp.dict()
 
 
+def set_span_purpose(kwargs):
+    kwargs.setdefault("span_info", {}).setdefault("span_attributes", {})["purpose"] = "scorer"
+
+
 def run_cached_request(request_type="complete", api_key=None, base_url=None, **kwargs):
-    wrapper = prepare_openai(is_async=False, api_key=api_key, base_url=base_url)
+    wrapper, wrapped = prepare_openai(is_async=False, api_key=api_key, base_url=base_url)
+    if wrapped:
+        set_span_purpose(kwargs)
 
     retries = 0
     sleep_time = 0.1
@@ -120,7 +128,9 @@ def run_cached_request(request_type="complete", api_key=None, base_url=None, **k
 
 
 async def arun_cached_request(request_type="complete", api_key=None, base_url=None, **kwargs):
-    wrapper = prepare_openai(is_async=True, api_key=api_key, base_url=base_url)
+    wrapper, wrapped = prepare_openai(is_async=True, api_key=api_key, base_url=base_url)
+    if wrapped:
+        set_span_purpose(kwargs)
 
     retries = 0
     sleep_time = 0.1

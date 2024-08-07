@@ -184,7 +184,9 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
         metadata["choice"] = args["choice"].strip()
         if "reasons" in args:
-            metadata["rationale"] = "\n".join(args["reasons"])
+            metadata["rationale"] = (
+                "\n".join(args["reasons"]) if isinstance(args["reasons"], list) else args["reasons"]
+            )
 
         score = self.choice_scores[metadata["choice"]]
         return Score(name=self.name, score=score, metadata=metadata)

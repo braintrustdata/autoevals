@@ -31,6 +31,7 @@ interface AutoevalMethod {
   method: ScorerWithPartial<any, any>;
   description: string;
   template?: ModelGradedSpec;
+  requiresExtraParams?: boolean;
 }
 
 export const Evaluators: {
@@ -45,12 +46,14 @@ export const Evaluators: {
         description:
           "Test whether an output _better_ performs the `instructions` than the original (expected) value.",
         template: templates.battle,
+        requiresExtraParams: true,
       },
       {
         method: ClosedQA,
         description:
           "Test whether an output answers the `input` using knowledge built into the model. You can specify `criteria` to further constrain the answer.",
         template: templates.closed_q_a,
+        requiresExtraParams: true,
       },
       {
         method: Humor,
@@ -96,6 +99,7 @@ export const Evaluators: {
         description:
           "Test whether an `output` is as good of a translation of the `input` in the specified `language` as an expert (`expected`) value.",
         template: templates.translation,
+        requiresExtraParams: true,
       },
     ],
   },

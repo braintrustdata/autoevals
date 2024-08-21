@@ -20,7 +20,7 @@
  *
  *   const result = await Factuality({ output, expected, input });
  *   console.log(`Factuality score: ${result.score}`);
- *   console.log(`Factuality metadata: ${result.metadata.rationale}`);
+ *   console.log(`Factuality metadata: ${result.metadata?.rationale}`);
  * })();
  * ```
  *

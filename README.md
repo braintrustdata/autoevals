@@ -267,12 +267,15 @@ Issue Description: {{input}}
 
   const choiceScores = { 1: 1, 2: 0 };
 
-  const evaluator = LLMClassifierFromTemplate({
-    name: "TitleQuality",
-    promptTemplate,
-    choiceScores,
-    useCoT: true,
-  });
+  const evaluator =
+    LLMClassifierFromTemplate <
+    { input: string } >
+    {
+      name: "TitleQuality",
+      promptTemplate,
+      choiceScores,
+      useCoT: true,
+    };
 
   const input = `As suggested by Nicolo, we should standardize the error responses coming from GoTrue, postgres, and realtime (and any other/future APIs) so that it's better DX when writing a client,
 We can make this change on the servers themselves, but since postgrest and gotrue are fully/partially external may be harder to change, it might be an option to transform the errors within the client libraries/supabase-js, could be messy?
@@ -316,7 +319,15 @@ print(f"Banana score: {result.score}")
 ```javascript
 import { Score } from "autoevals";
 
-const bananaScorer = ({ output, expected, input }): Score => {
+const bananaScorer = ({
+  output,
+  expected,
+  input,
+}: {
+  output: string;
+  expected: string;
+  input: string;
+}): Score => {
   return { name: "banana_scorer", score: output.includes("banana") ? 1 : 0 };
 };
 
@@ -325,7 +336,7 @@ const bananaScorer = ({ output, expected, input }): Score => {
   const output = "3";
   const expected = "3 bananas";
 
-  const result = await bananaScorer({ output, expected, input });
+  const result = bananaScorer({ output, expected, input });
   console.log(`Banana score: ${result.score}`);
 })();
 ```

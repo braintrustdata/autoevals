@@ -49,7 +49,7 @@ export interface AzureOpenAiAuth {
 }
 
 export function extractOpenAIArgs<T extends Record<string, unknown>>(
-  args: OpenAIAuth & T
+  args: OpenAIAuth & T,
 ): OpenAIAuth {
   return {
     openAiApiKey: args.openAiApiKey,

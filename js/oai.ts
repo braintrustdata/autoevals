@@ -103,7 +103,7 @@ declare global {
 
 export async function cachedChatCompletion(
   params: CachedLLMParams,
-  options: { cache?: ChatCache } & OpenAIAuth
+  options: { cache?: ChatCache } & OpenAIAuth,
 ): Promise<ChatCompletion> {
   const openai = buildOpenAIClient(options);
 

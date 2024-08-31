@@ -69,8 +69,8 @@ importers:
         specifier: ^3.14.0
         version: 3.14.0
       typedoc:
-        specifier: ^0.25.4
-        version: 0.25.13(typescript@5.5.3)
+        specifier: ^0.26.6
+        version: 0.26.6(typescript@5.5.3)
       typedoc-plugin-markdown:
         specifier: ^3.17.1
         version: 3.17.1(typedoc@0.25.13)
@@ -1748,6 +1748,15 @@ packages:
     dev: true
     optional: true
 
+  /@shikijs/core@1.15.2:
+    resolution:
+      {
+        integrity: sha512-hi6XZuwHYn6bU4wtXZxST8ynM55aiU2+rVU9aPIrSxqKmEKl4d65puwGsggwcZWTET+7zGXKe7AUj46iQ8Aq8w==,
+      }
+    dependencies:
+      "@types/hast": 3.0.4
+    dev: true
+
   /@sinclair/typebox@0.27.8:
     resolution:
       {
@@ -1838,6 +1847,15 @@ packages:
       "@types/node": 20.14.10
     dev: true
 
+  /@types/hast@3.0.4:
+    resolution:
+      {
+        integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==,
+      }
+    dependencies:
+      "@types/unist": 3.0.3
+    dev: true
+
   /@types/istanbul-lib-coverage@2.0.6:
     resolution:
       {
@@ -1925,6 +1943,13 @@ packages:
     resolution:
       {
         integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==,
+      }
+    dev: true
+
+  /@types/unist@3.0.3:
+    resolution:
+      {
+        integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==,
       }
     dev: true
 
@@ -2135,7 +2160,6 @@ packages:
       {
         integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==,
       }
-    dev: false
 
   /array-union@2.1.0:
     resolution:
@@ -2861,6 +2885,14 @@ packages:
       iconv-lite: 0.6.3
     dev: true
     optional: true
+
+  /entities@4.5.0:
+    resolution:
+      {
+        integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==,
+      }
+    engines: { node: ">=0.12" }
+    dev: true
 
   /env-paths@2.2.1:
     resolution:
@@ -4374,6 +4406,15 @@ packages:
       }
     dev: true
 
+  /linkify-it@5.0.0:
+    resolution:
+      {
+        integrity: sha512-5aHCbzQRADcdP+ATqnDuhhJ/MRIqDkZX5pyjFHRRysS8vZ5AbqGEoFIb6pYHPZ+L/OC2Lc+xT8uHVVR5CAK/wQ==,
+      }
+    dependencies:
+      uc.micro: 2.1.0
+    dev: true
+
   /load-tsconfig@0.2.5:
     resolution:
       {
@@ -4502,6 +4543,21 @@ packages:
       tmpl: 1.0.5
     dev: true
 
+  /markdown-it@14.1.0:
+    resolution:
+      {
+        integrity: sha512-a54IwgWPaeBCAAsv13YgmALOF1elABB08FxO9i+r4VFk5Vl4pKokRPeX8u5TCgSsPi6ec1otfLjdOpVcgbpshg==,
+      }
+    hasBin: true
+    dependencies:
+      argparse: 2.0.1
+      entities: 4.5.0
+      linkify-it: 5.0.0
+      mdurl: 2.0.0
+      punycode.js: 2.3.1
+      uc.micro: 2.1.0
+    dev: true
+
   /marked@4.3.0:
     resolution:
       {
@@ -4509,6 +4565,13 @@ packages:
       }
     engines: { node: ">= 12" }
     hasBin: true
+    dev: true
+
+  /mdurl@2.0.0:
+    resolution:
+      {
+        integrity: sha512-Lf+9+2r+Tdp5wXDXC4PcIBjTDtq4UKjCPMQhKIuzpJNW0b96kVqSwW0bT7FhRSfmAiFYgP+SCRvdrDozfh0U5w==,
+      }
     dev: true
 
   /merge-stream@2.0.0:
@@ -5226,6 +5289,14 @@ packages:
       sisteransi: 1.0.5
     dev: true
 
+  /punycode.js@2.3.1:
+    resolution:
+      {
+        integrity: sha512-uxFIHU0YlHYhDQtV4R9J6a52SLx28BCjT+4ieh7IGbgwVJWO+km431c4yRlREUAsAmt/uMjQUyQHNEPf0M39CA==,
+      }
+    engines: { node: ">=6" }
+    dev: true
+
   /punycode@2.3.1:
     resolution:
       {
@@ -5470,6 +5541,16 @@ packages:
       jsonc-parser: 3.3.1
       vscode-oniguruma: 1.7.0
       vscode-textmate: 8.0.0
+    dev: true
+
+  /shiki@1.15.2:
+    resolution:
+      {
+        integrity: sha512-M+7QZQZiZw/cZeizrC/yryG3eeG8pTUhu7ZaHxVyzPNFIRIlN46YBciquoNPCiXiwLnx6JB62f3lSuSYQrus1w==,
+      }
+    dependencies:
+      "@shikijs/core": 1.15.2
+      "@types/hast": 3.0.4
     dev: true
 
   /signal-exit@3.0.7:
@@ -6012,6 +6093,24 @@ packages:
       typescript: 5.5.3
     dev: true
 
+  /typedoc@0.26.6(typescript@5.5.3):
+    resolution:
+      {
+        integrity: sha512-SfEU3SH3wHNaxhFPjaZE2kNl/NFtLNW5c1oHsg7mti7GjmUj1Roq6osBQeMd+F4kL0BoRBBr8gQAuqBlfFu8LA==,
+      }
+    engines: { node: ">= 18" }
+    hasBin: true
+    peerDependencies:
+      typescript: 4.6.x || 4.7.x || 4.8.x || 4.9.x || 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x || 5.5.x
+    dependencies:
+      lunr: 2.3.9
+      markdown-it: 14.1.0
+      minimatch: 9.0.5
+      shiki: 1.15.2
+      typescript: 5.5.3
+      yaml: 2.5.0
+    dev: true
+
   /typescript@5.5.3:
     resolution:
       {
@@ -6019,6 +6118,13 @@ packages:
       }
     engines: { node: ">=14.17" }
     hasBin: true
+    dev: true
+
+  /uc.micro@2.1.0:
+    resolution:
+      {
+        integrity: sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A==,
+      }
     dev: true
 
   /uglify-js@3.18.0:
@@ -6301,6 +6407,15 @@ packages:
       }
     engines: { node: ">= 14" }
     hasBin: true
+
+  /yaml@2.5.0:
+    resolution:
+      {
+        integrity: sha512-2wWLbGbYDiSqqIKoPjar3MPgB94ErzCtrNE1FdqGuaO0pi2JGjmE8aW8TDZwzU7vuxcGRdL/4gPQwQ7hD5AMSw==,
+      }
+    engines: { node: ">= 14" }
+    hasBin: true
+    dev: true
 
   /yargs-parser@21.1.1:
     resolution:

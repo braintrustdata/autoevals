@@ -17,6 +17,14 @@ type RagasArgs = {
   model?: string;
 } & LLMArgs;
 
+interface RagasEmbeddingModelArgs extends Record<string, unknown> {
+  /**
+    @default
+    If not provided, the default model of {@link EmbeddingSimilarity} is used.
+  */
+  embeddingModel?: string;
+}
+
 const ENTITY_PROMPT = `Given a text, extract unique entities without repetition. Ensure you consider different forms or mentions of the same entity as a single entity.
 
 The output should be a well-formatted JSON instance that conforms to the JSON schema below.
@@ -603,12 +611,7 @@ export const AnswerRelevancy: ScorerWithPartial<
   string,
   RagasArgs & {
     strictness?: number;
-    /**
-      @default
-      If not provided, the default model of {@link EmbeddingSimilarity} is used.
-     */
-    embeddingModel?: string;
-  }
+  } & RagasEmbeddingModelArgs
 > = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
 
@@ -685,28 +688,31 @@ export const AnswerRelevancy: ScorerWithPartial<
 /**
  * Scores the semantic similarity between the generated answer and ground truth.
  */
-export const AnswerSimilarity: ScorerWithPartial<string, RagasArgs> =
-  makePartial(async (args) => {
-    const { ...inputs } = parseArgs(args);
+export const AnswerSimilarity: ScorerWithPartial<
+  string,
+  RagasArgs & RagasEmbeddingModelArgs
+> = makePartial(async (args) => {
+  const { ...inputs } = parseArgs(args);
 
-    const { output, expected } = checkRequired(
-      { output: inputs.output, expected: inputs.expected },
-      "AnswerSimilarity",
-    );
+  const { output, expected } = checkRequired(
+    { output: inputs.output, expected: inputs.expected },
+    "AnswerSimilarity",
+  );
 
-    const { score, error } = await EmbeddingSimilarity({
-      ...extractOpenAIArgs(args),
-      output,
-      expected,
-      expectedMin: 0,
-    });
+  const { score, error } = await EmbeddingSimilarity({
+    ...extractOpenAIArgs(args),
+    output,
+    expected,
+    expectedMin: 0,
+    model: args.embeddingModel,
+  });
 
-    return {
-      name: "AnswerSimilarity",
-      score,
-      error,
-    };
-  }, "AnswerSimilarity");
+  return {
+    name: "AnswerSimilarity",
+    score,
+    error,
+  };
+}, "AnswerSimilarity");
 
 const CORRECTNESS_PROMPT = `Given a ground truth and an answer, analyze each statement in the answer and classify them in one of the following categories:
 
@@ -774,7 +780,7 @@ export const AnswerCorrectness: ScorerWithPartial<
     factualityWeight?: number;
     answerSimilarityWeight?: number;
     answerSimilarity?: Scorer<string, {}>;
-  }
+  } & RagasEmbeddingModelArgs
 > = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
 

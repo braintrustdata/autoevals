@@ -777,7 +777,7 @@ export const AnswerCorrectness: ScorerWithPartial<
     factualityWeight?: number;
     answerSimilarityWeight?: number;
     answerSimilarity?: Scorer<string, {}>;
-  } & RagasEmbeddingModelArgs
+  }
 > = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
 

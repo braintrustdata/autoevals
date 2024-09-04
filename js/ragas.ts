@@ -688,31 +688,28 @@ export const AnswerRelevancy: ScorerWithPartial<
 /**
  * Scores the semantic similarity between the generated answer and ground truth.
  */
-export const AnswerSimilarity: ScorerWithPartial<
-  string,
-  RagasArgs & RagasEmbeddingModelArgs
-> = makePartial(async (args) => {
-  const { ...inputs } = parseArgs(args);
+export const AnswerSimilarity: ScorerWithPartial<string, RagasArgs> =
+  makePartial(async (args) => {
+    const { ...inputs } = parseArgs(args);
 
-  const { output, expected } = checkRequired(
-    { output: inputs.output, expected: inputs.expected },
-    "AnswerSimilarity",
-  );
+    const { output, expected } = checkRequired(
+      { output: inputs.output, expected: inputs.expected },
+      "AnswerSimilarity",
+    );
 
-  const { score, error } = await EmbeddingSimilarity({
-    ...extractOpenAIArgs(args),
-    output,
-    expected,
-    expectedMin: 0,
-    model: args.embeddingModel,
-  });
+    const { score, error } = await EmbeddingSimilarity({
+      ...extractOpenAIArgs(args),
+      output,
+      expected,
+      expectedMin: 0,
+    });
 
-  return {
-    name: "AnswerSimilarity",
-    score,
-    error,
-  };
-}, "AnswerSimilarity");
+    return {
+      name: "AnswerSimilarity",
+      score,
+      error,
+    };
+  }, "AnswerSimilarity");
 
 const CORRECTNESS_PROMPT = `Given a ground truth and an answer, analyze each statement in the answer and classify them in one of the following categories:
 

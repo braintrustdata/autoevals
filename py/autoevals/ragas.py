@@ -19,6 +19,7 @@ def check_required(name, **kwargs):
 
 
 DEFAULT_RAGAS_MODEL = "gpt-3.5-turbo-16k"
+DEFAULT_RAGAS_EMBEDDING_MODEL = "text-embedding-ada-002"
 
 ENTITY_PROMPT = """Given a text, extract unique entities without repetition. Ensure you consider different forms or mentions of the same entity as a single entity.
 
@@ -830,12 +831,20 @@ class AnswerRelevancy(OpenAILLMScorer):
     Answers with incomplete, redundant or unnecessary information are penalized.
     """
 
-    def __init__(self, model=DEFAULT_RAGAS_MODEL, strictness=3, temperature=0.5, **kwargs):
+    def __init__(
+        self,
+        model=DEFAULT_RAGAS_MODEL,
+        strictness=3,
+        temperature=0.5,
+        embedding_model=DEFAULT_RAGAS_EMBEDDING_MODEL,
+        **kwargs,
+    ):
         super().__init__(temperature=temperature, **kwargs)
 
         self.model = model
         self.strictness = strictness
         self.temperature = temperature
+        self.embedding_model = embedding_model
 
     def _postprocess(self, questions, similarity):
         score = (
@@ -866,7 +875,7 @@ class AnswerRelevancy(OpenAILLMScorer):
         )
         similarity = await asyncio.gather(
             *[
-                EmbeddingSimilarity().eval_async(output=q["question"], expected=input, model=self.model)
+                EmbeddingSimilarity().eval_async(output=q["question"], expected=input, model=self.embedding_model)
                 for q in questions
             ]
         )
@@ -894,7 +903,7 @@ class AnswerSimilarity(OpenAILLMScorer):
     Measures the similarity between the generated answer and the expected answer.
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_EMBEDDING_MODEL, **kwargs):
         super().__init__(**kwargs)
 
         self.model = model

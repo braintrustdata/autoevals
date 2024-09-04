@@ -603,6 +603,11 @@ export const AnswerRelevancy: ScorerWithPartial<
   string,
   RagasArgs & {
     strictness?: number;
+    /**
+      @default
+      If not provided, the default model of {@link EmbeddingSimilarity} is
+     */
+    embeddingModel?: string;
   }
 > = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
@@ -656,6 +661,7 @@ export const AnswerRelevancy: ScorerWithPartial<
         ...extractOpenAIArgs(args),
         output: question,
         expected: input,
+        model: args.embeddingModel,
       });
       return { question, score };
     }),

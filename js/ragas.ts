@@ -605,7 +605,7 @@ export const AnswerRelevancy: ScorerWithPartial<
     strictness?: number;
     /**
       @default
-      If not provided, the default model of {@link EmbeddingSimilarity} is
+      If not provided, the default model of {@link EmbeddingSimilarity} is used.
      */
     embeddingModel?: string;
   }

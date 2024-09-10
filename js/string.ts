@@ -87,5 +87,5 @@ export const EmbeddingSimilarity: ScorerWithPartial<
 }, "EmbeddingSimilarity");
 
 function scaleScore(score: number, expectedMin: number): number {
-  return Math.max((score - expectedMin) / (1 - expectedMin), 0);
+  return Math.min(Math.max((score - expectedMin) / (1 - expectedMin), 0), 1);
 }

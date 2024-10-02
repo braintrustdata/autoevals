@@ -1,6 +1,8 @@
 import asyncio
 
 import chevron
+import openai
+import pytest
 
 from autoevals.llm import *
 from autoevals.llm import build_classification_tools
@@ -14,7 +16,15 @@ def test_template_html():
     assert chevron.render(template_triple, dict(output="Template<Foo>")) == "Template<Foo>"
 
 
-def test_openai():
+@pytest.fixture
+def custom_client():
+    # A specific client object may be passed
+    # in lieu of automatic client creation in `LLMClassifier`
+    yield openai.OpenAI()
+
+
+@pytest.mark.parametrize("client", [(None), (custom_client)])
+def test_openai(client):
     e = OpenAILLMClassifier(
         "title",
         messages=[
@@ -42,6 +52,7 @@ the select_choice function with "1" or "2".""",
         choice_scores={"1": 1, "2": 0},
         classification_tools=build_classification_tools(useCoT=True, choice_strings=["1", "2"]),
         max_tokens=500,
+        client=client,
     )
 
     page_content = """
@@ -60,7 +71,8 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
     assert response.error is None
 
 
-def test_llm_classifier():
+@pytest.mark.parametrize("client", [(None), (custom_client)])
+def test_llm_classifier(client):
     for use_cot in [True, False]:
         e = LLMClassifier(
             "title",
@@ -76,6 +88,7 @@ Issue Description: {{page_content}}
 2: {{expected}}""",
             {"1": 1, "2": 0},
             use_cot=use_cot,
+            client=client,
         )
 
         page_content = """

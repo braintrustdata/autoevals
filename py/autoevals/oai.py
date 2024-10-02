@@ -47,9 +47,9 @@ def prepare_openai(is_async=False, api_key=None, base_url=None, client=None):
     is_v1 = False
 
     if client is not None:
-        # v1+ AzureOpenAI and OpenAI clients have a `_version` attribute
-        is_v1 = getattr(client, "_version", "0") >= "1"
         openai_obj = client
+        # Custom clients require v1+ (non-legacy) API
+        is_v1 = True
     elif hasattr(openai, "OpenAI"):
         # This is the new v1 API
         is_v1 = True

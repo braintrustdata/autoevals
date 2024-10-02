@@ -18,7 +18,9 @@ class OpenAIWrapper:
     RateLimitError: Exception
 
 
-def prepare_openai(is_async=False, api_key=None, base_url=None):
+def prepare_openai(is_async=False, api_key=None, base_url=None, client=None):
+    if client is not None and (api_key is not None or base_url is not None):
+        raise ValueError("Cannot specify both `client` and `api_key`/`base_url`")
     if api_key is None:
         api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("BRAINTRUST_API_KEY")
     if base_url is None:
@@ -44,7 +46,11 @@ def prepare_openai(is_async=False, api_key=None, base_url=None):
     openai_obj = openai
     is_v1 = False
 
-    if hasattr(openai, "OpenAI"):
+    if client is not None:
+        # v1+ AzureOpenAI and OpenAI clients have a `_version` attribute
+        is_v1 = getattr(client, "_version", "0") >= "1"
+        openai_obj = client
+    elif hasattr(openai, "OpenAI"):
         # This is the new v1 API
         is_v1 = True
         if is_async:
@@ -108,8 +114,8 @@ def set_span_purpose(kwargs):
     kwargs.setdefault("span_info", {}).setdefault("span_attributes", {})["purpose"] = "scorer"
 
 
-def run_cached_request(request_type="complete", api_key=None, base_url=None, **kwargs):
-    wrapper, wrapped = prepare_openai(is_async=False, api_key=api_key, base_url=base_url)
+def run_cached_request(request_type="complete", api_key=None, base_url=None, client=None, **kwargs):
+    wrapper, wrapped = prepare_openai(is_async=False, api_key=api_key, base_url=base_url, client=client)
     if wrapped:
         set_span_purpose(kwargs)
 
@@ -127,8 +133,8 @@ def run_cached_request(request_type="complete", api_key=None, base_url=None, **k
     return resp
 
 
-async def arun_cached_request(request_type="complete", api_key=None, base_url=None, **kwargs):
-    wrapper, wrapped = prepare_openai(is_async=True, api_key=api_key, base_url=base_url)
+async def arun_cached_request(request_type="complete", api_key=None, base_url=None, client=None, **kwargs):
+    wrapper, wrapped = prepare_openai(is_async=True, api_key=api_key, base_url=base_url, client=client)
     if wrapped:
         set_span_purpose(kwargs)
 

@@ -79,12 +79,15 @@ class OpenAIScorer(ScorerWithPartial):
         self,
         api_key=None,
         base_url=None,
+        client=None,
     ):
         self.extra_args = {}
         if api_key:
             self.extra_args["api_key"] = api_key
         if base_url:
             self.extra_args["base_url"] = base_url
+        if client:
+            self.extra_args["client"] = client
 
 
 class OpenAILLMScorer(OpenAIScorer):
@@ -93,10 +96,12 @@ class OpenAILLMScorer(OpenAIScorer):
         temperature=None,
         api_key=None,
         base_url=None,
+        client=None,
     ):
         super().__init__(
             api_key=api_key,
             base_url=base_url,
+            client=client,
         )
         self.extra_args["temperature"] = temperature or 0
 
@@ -115,10 +120,12 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         engine=None,
         api_key=None,
         base_url=None,
+        client=None,
     ):
         super().__init__(
             api_key=api_key,
             base_url=base_url,
+            client=client,
         )
 
         self.name = name
@@ -233,6 +240,7 @@ class LLMClassifier(OpenAILLMClassifier):
         engine=None,
         api_key=None,
         base_url=None,
+        client=None,
         **extra_render_args,
     ):
         choice_strings = list(choice_scores.keys())
@@ -256,6 +264,7 @@ class LLMClassifier(OpenAILLMClassifier):
             engine=engine,
             api_key=api_key,
             base_url=base_url,
+            client=client,
             render_args={"__choices": choice_strings, **extra_render_args},
         )
 
@@ -274,7 +283,15 @@ class LLMClassifier(OpenAILLMClassifier):
 
 class SpecFileClassifier(LLMClassifier):
     def __new__(
-        cls, model=None, engine=None, use_cot=None, max_tokens=None, temperature=None, api_key=None, base_url=None
+        cls,
+        model=None,
+        engine=None,
+        use_cot=None,
+        max_tokens=None,
+        temperature=None,
+        api_key=None,
+        base_url=None,
+        client=None,
     ):
         kwargs = {}
         if model is not None:
@@ -291,6 +308,8 @@ class SpecFileClassifier(LLMClassifier):
             kwargs["api_key"] = api_key
         if base_url is not None:
             kwargs["base_url"] = base_url
+        if client is not None:
+            kwargs["client"] = client
 
         # convert FooBar to foo_bar
         cls_name = cls.__name__

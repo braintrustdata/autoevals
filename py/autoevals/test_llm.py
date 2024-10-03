@@ -1,8 +1,9 @@
 import asyncio
 
+from unittest import mock
+
 import chevron
 import openai
-import pytest
 
 from autoevals.llm import *
 from autoevals.llm import build_classification_tools
@@ -16,15 +17,58 @@ def test_template_html():
     assert chevron.render(template_triple, dict(output="Template<Foo>")) == "Template<Foo>"
 
 
-@pytest.fixture
-def custom_client():
-    # A specific client object may be passed
-    # in lieu of automatic client creation in `LLMClassifier`
-    yield openai.OpenAI()
+def test_custom_client():
+    custom_client = openai.OpenAI()
+    scorer = LLMClassifier(
+        name="Comparator",
+        prompt_template=(
+            "Evaluate two responses and indicate which better answers the user question.\n"
+            "Question:{{input}}\n"
+            "Response A: {{output}}\nResponse B: {{expected}}\n\n."
+            "Your output should be one of A, B, or Tie."
+        ),
+        choice_scores={"A": 1, "B": 0, "Tie": 0.5},
+        use_cot=True,
+        client=custom_client,
+    )
+
+    class MockResponse:
+        def dict(self):
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "arguments": '{"reasons":"...","choice":"Tie"}',
+                                        "name": "select_choice",
+                                    },
+                                    "type": "function",
+                                }
+                            ],
+                        },
+                    }
+                ],
+                "usage": {
+                    "completion_tokens": 65,
+                    "prompt_tokens": 220,
+                    "total_tokens": 285,
+                },
+            }
+
+    with mock.patch.object(
+        custom_client.chat.completions,
+        "create",
+        return_value=MockResponse(),
+    ) as m:
+        score = scorer.eval(input="What is the capital of France?", output="Paris", expected="Paris")
+        assert score.score == 0.5
+        m.assert_called_once()
 
 
-@pytest.mark.parametrize("client", [(None), (custom_client)])
-def test_openai(client):
+def test_openai():
     e = OpenAILLMClassifier(
         "title",
         messages=[
@@ -52,7 +96,6 @@ the select_choice function with "1" or "2".""",
         choice_scores={"1": 1, "2": 0},
         classification_tools=build_classification_tools(useCoT=True, choice_strings=["1", "2"]),
         max_tokens=500,
-        client=client,
     )
 
     page_content = """
@@ -71,8 +114,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
     assert response.error is None
 
 
-@pytest.mark.parametrize("client", [(None), (custom_client)])
-def test_llm_classifier(client):
+def test_llm_classifier():
     for use_cot in [True, False]:
         e = LLMClassifier(
             "title",
@@ -88,7 +130,6 @@ Issue Description: {{page_content}}
 2: {{expected}}""",
             {"1": 1, "2": 0},
             use_cot=use_cot,
-            client=client,
         )
 
         page_content = """

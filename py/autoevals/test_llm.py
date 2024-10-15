@@ -1,6 +1,9 @@
 import asyncio
 
+from unittest import mock
+
 import chevron
+import openai
 
 from autoevals.llm import *
 from autoevals.llm import build_classification_tools
@@ -12,6 +15,57 @@ def test_template_html():
 
     assert chevron.render(template_double, dict(output="Template<Foo>")) == "Template&lt;Foo&gt;"
     assert chevron.render(template_triple, dict(output="Template<Foo>")) == "Template<Foo>"
+
+
+def test_custom_client():
+    custom_client = openai.OpenAI()
+    scorer = LLMClassifier(
+        name="Comparator",
+        prompt_template=(
+            "Evaluate two responses and indicate which better answers the user question.\n"
+            "Question:{{input}}\n"
+            "Response A: {{output}}\nResponse B: {{expected}}\n\n."
+            "Your output should be one of A, B, or Tie."
+        ),
+        choice_scores={"A": 1, "B": 0, "Tie": 0.5},
+        use_cot=True,
+        client=custom_client,
+    )
+
+    class MockResponse:
+        def dict(self):
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "tool_calls": [
+                                {
+                                    "function": {
+                                        "arguments": '{"reasons":"...","choice":"Tie"}',
+                                        "name": "select_choice",
+                                    },
+                                    "type": "function",
+                                }
+                            ],
+                        },
+                    }
+                ],
+                "usage": {
+                    "completion_tokens": 65,
+                    "prompt_tokens": 220,
+                    "total_tokens": 285,
+                },
+            }
+
+    with mock.patch.object(
+        custom_client.chat.completions,
+        "create",
+        return_value=MockResponse(),
+    ) as m:
+        score = scorer.eval(input="What is the capital of France?", output="Paris", expected="Paris")
+        assert score.score == 0.5
+        m.assert_called_once()
 
 
 def test_openai():

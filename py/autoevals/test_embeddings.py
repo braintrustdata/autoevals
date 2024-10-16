@@ -1,4 +1,7 @@
+import asyncio
+
 from autoevals import EmbeddingSimilarity
+from autoevals.value import normalize_value
 
 SYNONYMS = [
     ("water", ["water", "H2O", "agua"]),
@@ -27,3 +30,21 @@ def test_embeddings():
             result = evaluator(word1, word2)
             print(f"[{word1}]", f"[{word2}]", result)
             assert result.score < 0.5
+
+
+VALUES = [
+    ("water", "wind"),
+    (["cold", "water"], ["cold", "wind"]),
+    ({"water": "wet"}, {"wind": "dry"}),
+]
+
+
+def test_embedding_values():
+    for run_async in [False, True]:
+        evaluator = EmbeddingSimilarity()
+        for (word1, word2) in VALUES:
+            if run_async:
+                result = asyncio.run(evaluator.eval_async(word1, word2))
+            else:
+                result = evaluator(word1, word2)
+            print(f"[{word1}]", f"[{word2}]", f"run_async={run_async}", result)

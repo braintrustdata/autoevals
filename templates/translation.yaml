@@ -1,5 +1,5 @@
 prompt: |-
-  You are comparing the submitted translation to an expert translation of a sentence from {language} to English. Here is the data:
+  You are comparing the submitted translation to an expert translation of a sentence from {{{language}}} to English. Here is the data:
   [BEGIN DATA]
   ************
   [Sentence]: {{{input}}}

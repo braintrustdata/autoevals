@@ -20,7 +20,7 @@
  *
  *   const result = await Factuality({ output, expected, input });
  *   console.log(`Factuality score: ${result.score}`);
- *   console.log(`Factuality metadata: ${result.metadata.rationale}`);
+ *   console.log(`Factuality metadata: ${result.metadata?.rationale}`);
  * })();
  * ```
  *
@@ -36,5 +36,6 @@ export * from "./number";
 export * from "./json";
 export * from "./templates";
 export * from "./ragas";
+export * from "./value";
 export { Evaluators } from "./manifest";
 export { makePartial, ScorerWithPartial } from "./partial";

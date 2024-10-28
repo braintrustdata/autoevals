@@ -79,6 +79,7 @@ test("Ragas end-to-end test", async () => {
 
     if (score === 1) {
       expect(actualScore.score).toBeCloseTo(score, 4);
+      expect(actualScore.score).toBeLessThanOrEqual(1);
     }
   }
 }, 600000);

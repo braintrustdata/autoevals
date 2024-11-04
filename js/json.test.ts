@@ -1,4 +1,6 @@
 import { JSONDiff, ValidJSON } from "./json";
+import { NumericDiff } from "./number";
+import { ExactMatch } from "./value";
 
 test("JSON String Test", async () => {
   const cases = [
@@ -103,5 +105,58 @@ test("Valid JSON Test", async () => {
   for (const { output, expected, schema } of cases) {
     const score = (await ValidJSON({ output, schema })).score;
     expect(score).toEqual(expected);
+  }
+});
+
+test("Semantic JSON Test", async () => {
+  const cases = [
+    { a: '{"x": 1, "y": 2}', b: '{"y": 2, "x": 1}', expected: 1 },
+    {
+      a: '{"zs": ["a", "b"], "x": 1, "y": 2}',
+      b: '{"y": 2, "zs": ["a", "b"], "x": 1}',
+      expected: 1,
+    },
+    {
+      a: '{"o1": {"x": 1, "y": 2}}',
+      b: '{"o1": {"y": 2, "x": 1}}',
+      expected: 1,
+    },
+    {
+      a: '{"xs": [{"o1": {"x": 1, "y": [2]}}]}',
+      b: '{"xs": [{"o1": {"y": [2], "x": 1}}]}',
+      expected: 1,
+    },
+    {
+      a: '{"o1": {"x": 2, "y": 2}}',
+      b: '{"o1": {"y": 2, "x": 1}}',
+      expected: 0.83333,
+    },
+    {
+      a: '{"o1": {"x": 2, "y": 2}}',
+      b: '{"o1": {"y": 2, "x": 1}}',
+      expected: 0.83333,
+    },
+    { a: '{"x": 1, "y": 2}', b: '{"x": 1, "z": 2}', expected: 0.3333 },
+    { a: "[1, 2]", b: "[1, 2]", expected: 1 },
+    { a: "[1, 2]", b: "[2, 1]", expected: 0.66667 },
+  ];
+
+  for (const { a, b, expected } of cases) {
+    for (const exactNumber of [true, false]) {
+      const score = (
+        await JSONDiff({
+          output: a,
+          expected: b,
+          numberScorer: exactNumber ? ExactMatch : NumericDiff,
+        })
+      ).score;
+      if (!exactNumber) {
+        expect(score).toBeCloseTo(expected);
+      } else {
+        expect(Math.round((score ?? 0) * 100)).toBeLessThanOrEqual(
+          Math.round(expected * 100),
+        );
+      }
+    }
   }
 });

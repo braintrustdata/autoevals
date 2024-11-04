@@ -10,17 +10,28 @@ import { makePartial, ScorerWithPartial } from "./partial";
  */
 export const JSONDiff: ScorerWithPartial<
   any,
-  { stringScorer?: Scorer<string, {}>; numberScorer?: Scorer<number, {}> }
+  {
+    stringScorer?: Scorer<string, object>;
+    numberScorer?: Scorer<number, object>;
+    preserveStrings?: boolean;
+  }
 > = makePartial(
   async ({
     output,
     expected,
     stringScorer = LevenshteinScorer,
     numberScorer = NumericDiff,
+    preserveStrings = false,
   }) => {
     return {
       name: "JSONDiff",
-      score: await jsonDiff(output, expected, stringScorer, numberScorer),
+      score: await jsonDiff(
+        output,
+        expected,
+        stringScorer,
+        numberScorer,
+        preserveStrings,
+      ),
     };
   },
   "JSONDiff",
@@ -42,9 +53,19 @@ export const ValidJSON: ScorerWithPartial<string, { schema?: any }> =
 async function jsonDiff(
   o1: any,
   o2: any,
-  stringScorer: Scorer<string, {}>,
-  numberScorer: Scorer<number, {}>,
+  stringScorer: Scorer<string, object>,
+  numberScorer: Scorer<number, object>,
+  preserveStrings: boolean,
 ): Promise<number | null> {
+  if (!preserveStrings) {
+    if (typeof o1 === "string" && validJSON(o1) === 1) {
+      o1 = JSON.parse(o1);
+    }
+    if (typeof o2 === "string" && validJSON(o2) === 1) {
+      o2 = JSON.parse(o2);
+    }
+  }
+
   if (isObject(o1) && isObject(o2)) {
     if (Object.keys(o1).length == 0 && Object.keys(o2).length == 0) {
       return 1;
@@ -58,9 +79,12 @@ async function jsonDiff(
       ),
     );
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const baseScores = (
       await Promise.all(
-        allKeys.map((k) => jsonDiff(o1[k], o2[k], stringScorer, numberScorer)),
+        allKeys.map((k) =>
+          jsonDiff(o1[k], o2[k], stringScorer, numberScorer, preserveStrings),
+        ),
       )
     ).filter((s) => s !== null) as number[];
     return baseScores.reduce((acc, s) => acc + s, 0) / baseScores.length;
@@ -69,11 +93,14 @@ async function jsonDiff(
       return 1;
     }
 
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const baseScores = (
       await Promise.all(
         Array.from({
           length: Math.min(o1.length, o2.length),
-        }).map((_, i) => jsonDiff(o1[i], o2[i], stringScorer, numberScorer)),
+        }).map((_, i) =>
+          jsonDiff(o1[i], o2[i], stringScorer, numberScorer, preserveStrings),
+        ),
       )
     ).filter((s) => s !== null) as number[];
     return (
@@ -134,7 +161,9 @@ function validJSON<T>(output: string, schema?: Schema | JSONSchemaType<T>) {
     if (isObject(parsed) || isArray(parsed)) {
       return 1;
     }
-  } catch (err) {}
+  } catch {
+    // Ignore errors
+  }
 
   return 0;
 }

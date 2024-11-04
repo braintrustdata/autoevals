@@ -1,6 +1,8 @@
 from pytest import approx
 
 from autoevals.json import JSONDiff, ValidJSON
+from autoevals.number import NumericDiff
+from autoevals.value import ExactMatch
 
 
 def test_string_as_json():
@@ -98,3 +100,46 @@ def test_valid_json():
     for output, expected, schema in cases:
         print(f"[{output}]", expected)
         assert evaluator(output, schema).score == expected
+
+
+def test_semantic_json():
+    cases = [
+        ('{"x": 1, "y": 2}', '{"y": 2, "x": 1}', 1),
+        (
+            '{"zs": ["a", "b"], "x": 1, "y": 2}',
+            '{"y": 2, "zs": ["a", "b"], "x": 1}',
+            1,
+        ),
+        (
+            '{"o1": {"x": 1, "y": 2}}',
+            '{"o1": {"y": 2, "x": 1}}',
+            1,
+        ),
+        (
+            '{"xs": [{"o1": {"x": 1, "y": [2]}}]}',
+            '{"xs": [{"o1": {"y": [2], "x": 1}}]}',
+            1,
+        ),
+        (
+            '{"o1": {"x": 2, "y": 2}}',
+            '{"o1": {"y": 2, "x": 1}}',
+            0.83333,
+        ),
+        (
+            '{"o1": {"x": 2, "y": 2}}',
+            '{"o1": {"y": 2, "x": 1}}',
+            0.83333,
+        ),
+        ('{"x": 1, "y": 2}', '{"x": 1, "z": 2}', 0.3333),
+        ("[1, 2]", "[1, 2]", 1),
+        ("[1, 2]", "[2, 1]", 0.66667),
+    ]
+
+    evaluator = JSONDiff()
+    for a, b, expected in cases:
+        for exact_number in [True, False]:
+            score = evaluator(a, b, number_scorer=ExactMatch() if exact_number else NumericDiff()).score
+            if not exact_number:
+                assert abs(score - expected) < 0.0001
+            else:
+                assert round(score * 100) <= round(expected * 100)

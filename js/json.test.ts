@@ -132,7 +132,7 @@ test("Semantic JSON Test", async () => {
       expected: 0.83333,
     },
     {
-      a: '{"o1": {"x": 2, "y": 2}}',
+      a: { o1: { x: 2, y: 2 } },
       b: '{"o1": {"y": 2, "x": 1}}',
       expected: 0.83333,
     },

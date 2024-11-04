@@ -15,14 +15,22 @@ class JSONDiff(ScorerWithPartial):
     (defaults to Levenshtein) and numbers (defaults to NumericDiff).
     """
 
-    def __init__(self, string_scorer: Scorer = None, number_scorer: Scorer = None):
+    def __init__(self, string_scorer: Scorer = None, number_scorer: Scorer = None, preserve_strings: bool = False):
         self.string_scorer = string_scorer or Levenshtein()
         self.number_scorer = number_scorer or NumericDiff()
+        self.preserve_strings = preserve_strings
+        self._valid_json = ValidJSON()
 
     def _run_eval_sync(self, output, expected=None, **kwargs):
         return Score(name=self._name(), score=self.json_diff(output, expected))
 
     def json_diff(self, o1, o2):
+        if not self.preserve_strings:
+            if isinstance(o1, str) and self._valid_json.valid_json(o1) == 1:
+                o1 = json.loads(o1)
+            if isinstance(o2, str) and self._valid_json.valid_json(o2) == 1:
+                o2 = json.loads(o2)
+
         if isinstance(o1, dict) and isinstance(o2, dict):
             if len(o1) == 0 and len(o2) == 0:
                 return 1

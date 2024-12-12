@@ -7,7 +7,7 @@ from Levenshtein import distance
 from autoevals.partial import ScorerWithPartial
 from autoevals.value import normalize_value
 
-from .oai import AutoEvalClient, arun_cached_request, run_cached_request
+from .oai import LLMClient, arun_cached_request, run_cached_request
 
 
 class Levenshtein(ScorerWithPartial):
@@ -49,7 +49,7 @@ class EmbeddingSimilarity(ScorerWithPartial):
         expected_min=0.7,
         api_key=None,
         base_url=None,
-        client: Optional[AutoEvalClient] = None,
+        client: Optional[LLMClient] = None,
     ):
         """
         Create a new EmbeddingSimilarity scorer.

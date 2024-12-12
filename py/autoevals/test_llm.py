@@ -217,7 +217,7 @@ def test_factuality_client():
 
     client.complete.return_value = completion
 
-    llm = Factuality(client=cast(AutoEvalClient, client))
+    llm = Factuality(client=cast(LLMClient, client))
     result = llm.eval(
         output="6",
         expected="6",

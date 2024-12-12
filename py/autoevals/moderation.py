@@ -4,7 +4,7 @@ from braintrust_core.score import Score
 
 from autoevals.llm import OpenAIScorer
 
-from .oai import AutoEvalClient, arun_cached_request, run_cached_request
+from .oai import LLMClient, arun_cached_request, run_cached_request
 
 REQUEST_TYPE = "moderation"
 
@@ -22,7 +22,7 @@ class Moderation(OpenAIScorer):
         threshold=None,
         api_key=None,
         base_url=None,
-        client: Optional[AutoEvalClient] = None,
+        client: Optional[LLMClient] = None,
     ):
         """
         Create a new Moderation scorer.
@@ -71,4 +71,5 @@ class Moderation(OpenAIScorer):
         return 1
 
 
+__all__ = ["Moderation"]
 __all__ = ["Moderation"]

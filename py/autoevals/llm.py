@@ -10,7 +10,7 @@ from braintrust_core.score import Score
 
 from autoevals.partial import ScorerWithPartial
 
-from .oai import AutoEvalClient, arun_cached_request, run_cached_request
+from .oai import LLMClient, arun_cached_request, run_cached_request
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -78,7 +78,7 @@ class OpenAIScorer(ScorerWithPartial):
         self,
         api_key=None,
         base_url=None,
-        client: Optional[AutoEvalClient] = None,
+        client: Optional[LLMClient] = None,
     ):
         self.extra_args = {}
         if api_key:
@@ -95,7 +95,7 @@ class OpenAILLMScorer(OpenAIScorer):
         temperature=None,
         api_key=None,
         base_url=None,
-        client: Optional[AutoEvalClient] = None,
+        client: Optional[LLMClient] = None,
     ):
         super().__init__(
             api_key=api_key,
@@ -119,7 +119,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         engine=None,
         api_key=None,
         base_url=None,
-        client: Optional[AutoEvalClient] = None,
+        client: Optional[LLMClient] = None,
     ):
         super().__init__(
             client=client,
@@ -240,7 +240,7 @@ class LLMClassifier(OpenAILLMClassifier):
         engine=None,
         api_key=None,
         base_url=None,
-        client: Optional[AutoEvalClient] = None,
+        client: Optional[LLMClient] = None,
         **extra_render_args,
     ):
         choice_strings = list(choice_scores.keys())
@@ -269,11 +269,11 @@ class LLMClassifier(OpenAILLMClassifier):
         )
 
     @classmethod
-    def from_spec(cls, name: str, spec: ModelGradedSpec, client: Optional[AutoEvalClient] = None, **kwargs):
+    def from_spec(cls, name: str, spec: ModelGradedSpec, client: Optional[LLMClient] = None, **kwargs):
         return cls(name, spec.prompt, spec.choice_scores, client=client, **kwargs)
 
     @classmethod
-    def from_spec_file(cls, name: str, path: str, client: Optional[AutoEvalClient] = None, **kwargs):
+    def from_spec_file(cls, name: str, path: str, client: Optional[LLMClient] = None, **kwargs):
         if cls._SPEC_FILE_CONTENTS is None:
             with open(path) as f:
                 cls._SPEC_FILE_CONTENTS = f.read()
@@ -291,7 +291,7 @@ class SpecFileClassifier(LLMClassifier):
         temperature=None,
         api_key=None,
         base_url=None,
-        client: Optional[AutoEvalClient] = None,
+        client: Optional[LLMClient] = None,
     ):
         kwargs = {}
         if model is not None:
@@ -385,4 +385,5 @@ class Translation(SpecFileClassifier):
     Test whether an `output` is as good of a translation of the `input` in the specified `language`
     as an expert (`expected`) value.."""
 
+    pass
     pass

@@ -36,6 +36,7 @@ from .list import *
 from .llm import *
 from .moderation import *
 from .number import *
+from .oai import init
 from .ragas import *
 from .string import *
 from .value import ExactMatch

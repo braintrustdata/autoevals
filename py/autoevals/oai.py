@@ -3,8 +3,8 @@ import os
 import sys
 import textwrap
 import time
+from contextvars import ContextVar
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Optional
 
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
@@ -19,6 +19,13 @@ class AutoEvalClient:
     embed: Any
     moderation: Any
     RateLimitError: Exception
+
+
+_client_var = ContextVar[Optional[AutoEvalClient]]("client")
+
+
+def init(*, client: Optional[AutoEvalClient] = None):
+    _client_var.set(client)
 
 
 def prepare_openai(client: Optional[AutoEvalClient] = None, is_async=False, api_key=None, base_url=None):
@@ -54,6 +61,8 @@ def prepare_openai(client: Optional[AutoEvalClient] = None, is_async=False, api_
     Raises:
         ImportError: If the OpenAI package is not installed
     """
+    client = client or _client_var.get(None)
+
     openai = getattr(client, "openai", None)
     if not openai:
         try:
@@ -115,7 +124,6 @@ def prepare_openai(client: Optional[AutoEvalClient] = None, is_async=False, api_
         complete_fn = None
         rate_limit_error = None
 
-        # TODO: allow overriding globally
         Client = AutoEvalClient
 
         if is_v1:

@@ -5,93 +5,146 @@ import textwrap
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
 
 
 @dataclass
-class OpenAIWrapper:
+class AutoEvalClient:
+    # TODO: add docs
+    # TODO: how to type if we don't depend on openai
+    openai: Any
     complete: Any
     embed: Any
     moderation: Any
     RateLimitError: Exception
 
 
-def prepare_openai(is_async=False, api_key=None, base_url=None):
-    if api_key is None:
-        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("BRAINTRUST_API_KEY")
-    if base_url is None:
-        base_url = os.environ.get("OPENAI_BASE_URL", PROXY_URL)
+def prepare_openai(client: Optional[AutoEvalClient] = None, is_async=False, api_key=None, base_url=None):
+    """Prepares and configures an OpenAI client for use with AutoEval, if client is not provided.
 
-    try:
-        import openai
-    except Exception as e:
-        print(
-            textwrap.dedent(
-                f"""\
-            Unable to import openai: {e}
+    This function handles both v0 and v1 of the OpenAI SDK, configuring the client
+    with the appropriate authentication and base URL settings.
 
-            Please install it, e.g. with
+    We will also attempt to enable Braintrust tracing export, if you've configured tracing.
 
-              pip install 'openai'
-            """
-            ),
-            file=sys.stderr,
-        )
-        raise
+    Args:
+        client (Optional[AutoEvalClient], optional): Existing AutoEvalClient instance.
+            If provided, this client will be used instead of creating a new one.
+
+        is_async (bool, optional): Whether to create a client with async operations. Defaults to False.
+            Deprecated: Use the `client` argument and set the `openai` with the async/sync that you'd like to use.
+
+        api_key (str, optional): OpenAI API key. If not provided, will look for
+            OPENAI_API_KEY or BRAINTRUST_API_KEY in environment variables.
+
+            Deprecated: Use the `client` argument and set the `openai`.
+
+        base_url (str, optional): Base URL for API requests. If not provided, will
+            use OPENAI_BASE_URL from environment or fall back to PROXY_URL.
+
+            Deprecated: Use the `client` argument and set the `openai`.
+
+    Returns:
+        Tuple[AutoEvalClient, bool]: A tuple containing:
+            - The configured AutoEvalClient instance, or the client you've provided
+            - A boolean indicating whether the client was wrapped with Braintrust tracing
+
+    Raises:
+        ImportError: If the OpenAI package is not installed
+    """
+    openai = getattr(client, "openai", None)
+    if not openai:
+        try:
+            import openai
+        except Exception as e:
+            print(
+                textwrap.dedent(
+                    f"""\
+                Unable to import openai: {e}
+
+                Please install it, e.g. with
+
+                pip install 'openai'
+                """
+                ),
+                file=sys.stderr,
+            )
+            raise
 
     openai_obj = openai
+
     is_v1 = False
 
     if hasattr(openai, "OpenAI"):
         # This is the new v1 API
         is_v1 = True
-        if is_async:
-            openai_obj = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
-        else:
-            openai_obj = openai.OpenAI(api_key=api_key, base_url=base_url)
-    else:
-        if api_key:
-            openai.api_key = api_key
-        openai.api_base = base_url
 
+    if client is None:
+        # prepare the default openai sdk, if not provided
+        if api_key is None:
+            api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("BRAINTRUST_API_KEY")
+        if base_url is None:
+            base_url = os.environ.get("OPENAI_BASE_URL", PROXY_URL)
+
+        if is_v1:
+            if is_async:
+                openai_obj = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
+            else:
+                openai_obj = openai.OpenAI(api_key=api_key, base_url=base_url)
+        else:
+            if api_key:
+                openai.api_key = api_key
+            openai.api_base = base_url
+
+    # optimistically wrap openai instance for tracing
     wrapped = False
     try:
-        from braintrust.oai import wrap_openai
+        from braintrust.oai import NamedWrapper, wrap_openai
 
-        openai_obj = wrap_openai(openai_obj)
+        if not isinstance(openai_obj, NamedWrapper):
+            openai_obj = wrap_openai(openai_obj)
+
         wrapped = True
     except ImportError:
         pass
 
-    complete_fn = None
-    rate_limit_error = None
-    if is_v1:
-        wrapper = OpenAIWrapper(
-            complete=openai_obj.chat.completions.create,
-            embed=openai_obj.embeddings.create,
-            moderation=openai_obj.moderations.create,
-            RateLimitError=openai.RateLimitError,
-        )
-    else:
-        rate_limit_error = openai.error.RateLimitError
-        if is_async:
-            complete_fn = openai_obj.ChatCompletion.acreate
-            embedding_fn = openai_obj.Embedding.acreate
-            moderation_fn = openai_obj.Moderations.acreate
-        else:
-            complete_fn = openai_obj.ChatCompletion.create
-            embedding_fn = openai_obj.Embedding.create
-            moderation_fn = openai_obj.Moderations.create
-        wrapper = OpenAIWrapper(
-            complete=complete_fn,
-            embed=embedding_fn,
-            moderation=moderation_fn,
-            RateLimitError=rate_limit_error,
-        )
+    if client is None:
+        # prepare the default client if not provided
+        complete_fn = None
+        rate_limit_error = None
 
-    return wrapper, wrapped
+        # TODO: allow overriding globally
+        Client = AutoEvalClient
+
+        if is_v1:
+            client = Client(
+                openai=openai,
+                complete=openai_obj.chat.completions.create,
+                embed=openai_obj.embeddings.create,
+                moderation=openai_obj.moderations.create,
+                RateLimitError=openai.RateLimitError,
+            )
+        else:
+            rate_limit_error = openai.error.RateLimitError
+            if is_async:
+                complete_fn = openai_obj.ChatCompletion.acreate
+                embedding_fn = openai_obj.Embedding.acreate
+                moderation_fn = openai_obj.Moderations.acreate
+            else:
+                complete_fn = openai_obj.ChatCompletion.create
+                embedding_fn = openai_obj.Embedding.create
+                moderation_fn = openai_obj.Moderations.create
+            client = Client(
+                openai=openai,
+                complete=complete_fn,
+                embed=embedding_fn,
+                moderation=moderation_fn,
+                RateLimitError=rate_limit_error,
+            )
+
+    return client, wrapped
 
 
 def post_process_response(resp):
@@ -108,8 +161,10 @@ def set_span_purpose(kwargs):
     kwargs.setdefault("span_info", {}).setdefault("span_attributes", {})["purpose"] = "scorer"
 
 
-def run_cached_request(request_type="complete", api_key=None, base_url=None, **kwargs):
-    wrapper, wrapped = prepare_openai(is_async=False, api_key=api_key, base_url=base_url)
+def run_cached_request(
+    *, client: Optional[AutoEvalClient] = None, request_type="complete", api_key=None, base_url=None, **kwargs
+):
+    wrapper, wrapped = prepare_openai(client=client, is_async=False, api_key=api_key, base_url=base_url)
     if wrapped:
         set_span_purpose(kwargs)
 
@@ -127,8 +182,10 @@ def run_cached_request(request_type="complete", api_key=None, base_url=None, **k
     return resp
 
 
-async def arun_cached_request(request_type="complete", api_key=None, base_url=None, **kwargs):
-    wrapper, wrapped = prepare_openai(is_async=True, api_key=api_key, base_url=base_url)
+async def arun_cached_request(
+    *, client: Optional[AutoEvalClient] = None, request_type="complete", api_key=None, base_url=None, **kwargs
+):
+    wrapper, wrapped = prepare_openai(client=client, is_async=True, api_key=api_key, base_url=base_url)
     if wrapped:
         set_span_purpose(kwargs)
 

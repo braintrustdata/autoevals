@@ -1,4 +1,3 @@
-import abc
 import json
 import os
 import re
@@ -11,7 +10,7 @@ from braintrust_core.score import Score
 
 from autoevals.partial import ScorerWithPartial
 
-from .oai import arun_cached_request, run_cached_request
+from .oai import AutoEvalClient, arun_cached_request, run_cached_request
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -79,12 +78,15 @@ class OpenAIScorer(ScorerWithPartial):
         self,
         api_key=None,
         base_url=None,
+        client: Optional[AutoEvalClient] = None,
     ):
         self.extra_args = {}
         if api_key:
             self.extra_args["api_key"] = api_key
         if base_url:
             self.extra_args["base_url"] = base_url
+
+        self.client = client
 
 
 class OpenAILLMScorer(OpenAIScorer):
@@ -93,10 +95,12 @@ class OpenAILLMScorer(OpenAIScorer):
         temperature=None,
         api_key=None,
         base_url=None,
+        client: Optional[AutoEvalClient] = None,
     ):
         super().__init__(
             api_key=api_key,
             base_url=base_url,
+            client=client,
         )
         self.extra_args["temperature"] = temperature or 0
 
@@ -115,8 +119,10 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         engine=None,
         api_key=None,
         base_url=None,
+        client: Optional[AutoEvalClient] = None,
     ):
         super().__init__(
+            client=client,
             api_key=api_key,
             base_url=base_url,
         )
@@ -162,6 +168,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
     def _request_args(self, output, expected, **kwargs):
         ret = {
+            "client": self.client,
             **self.extra_args,
             **self._build_args(output, expected, **kwargs),
         }
@@ -233,6 +240,7 @@ class LLMClassifier(OpenAILLMClassifier):
         engine=None,
         api_key=None,
         base_url=None,
+        client: Optional[AutoEvalClient] = None,
         **extra_render_args,
     ):
         choice_strings = list(choice_scores.keys())
@@ -257,6 +265,7 @@ class LLMClassifier(OpenAILLMClassifier):
             api_key=api_key,
             base_url=base_url,
             render_args={"__choices": choice_strings, **extra_render_args},
+            client=client,
         )
 
     @classmethod

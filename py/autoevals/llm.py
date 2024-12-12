@@ -269,21 +269,29 @@ class LLMClassifier(OpenAILLMClassifier):
         )
 
     @classmethod
-    def from_spec(cls, name: str, spec: ModelGradedSpec, **kwargs):
-        return cls(name, spec.prompt, spec.choice_scores, **kwargs)
+    def from_spec(cls, name: str, spec: ModelGradedSpec, client: Optional[AutoEvalClient] = None, **kwargs):
+        return cls(name, spec.prompt, spec.choice_scores, client=client, **kwargs)
 
     @classmethod
-    def from_spec_file(cls, name: str, path: str, **kwargs):
+    def from_spec_file(cls, name: str, path: str, client: Optional[AutoEvalClient] = None, **kwargs):
         if cls._SPEC_FILE_CONTENTS is None:
             with open(path) as f:
                 cls._SPEC_FILE_CONTENTS = f.read()
         spec = yaml.safe_load(cls._SPEC_FILE_CONTENTS)
-        return cls.from_spec(name, ModelGradedSpec(**spec), **kwargs)
+        return cls.from_spec(name, ModelGradedSpec(**spec), client=client, **kwargs)
 
 
 class SpecFileClassifier(LLMClassifier):
     def __new__(
-        cls, model=None, engine=None, use_cot=None, max_tokens=None, temperature=None, api_key=None, base_url=None
+        cls,
+        model=None,
+        engine=None,
+        use_cot=None,
+        max_tokens=None,
+        temperature=None,
+        api_key=None,
+        base_url=None,
+        client: Optional[AutoEvalClient] = None,
     ):
         kwargs = {}
         if model is not None:
@@ -311,7 +319,7 @@ class SpecFileClassifier(LLMClassifier):
 
         extra_render_args = cls._partial_args() if hasattr(cls, "_partial_args") else {}
 
-        return LLMClassifier.from_spec_file(cls_name, template_path, **kwargs, **extra_render_args)
+        return LLMClassifier.from_spec_file(cls_name, template_path, client=client, **kwargs, **extra_render_args)
 
 
 class Battle(SpecFileClassifier):

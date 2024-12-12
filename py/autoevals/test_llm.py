@@ -3,6 +3,7 @@ from typing import cast
 from unittest.mock import Mock
 
 import chevron
+import pytest
 import respx
 
 from autoevals import init
@@ -227,6 +228,12 @@ def test_factuality_client():
     assert client.complete.call_count == 1
 
     assert result.score == 1
+
+
+@pytest.fixture(autouse=True)
+def reset_client():
+    yield
+    init(client=None)
 
 
 # make sure we deny any leaked calls to OpenAI

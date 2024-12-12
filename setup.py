@@ -23,6 +23,7 @@ extras_require = {
         "isort==5.12.0",
         "pre-commit",
         "pytest",
+        "respx",
         "twine",
     ],
     "doc": ["pydoc-markdown"],

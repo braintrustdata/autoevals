@@ -107,6 +107,63 @@ def test_nested_async():
     asyncio.run(nested_async())
 
 
+@respx.mock
+def test_factuality():
+    # something is wrong with respx that it couldn't match the url from openai
+    respx.route().respond(
+        json={
+            "id": "chatcmpl-AdiS4bHWjqSclA5rx7OkuZ6EA9QIp",
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": None,
+                    "message": {
+                        "content": None,
+                        "refusal": None,
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_JKoeGAX2zGPJAmF2muDgjpHp",
+                                "function": {
+                                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
+                                    "name": "select_choice",
+                                },
+                                "type": "function",
+                            }
+                        ],
+                    },
+                }
+            ],
+            "created": 1734029028,
+            "model": "gpt-4o-2024-08-06",
+            "object": "chat.completion",
+            "system_fingerprint": "fp_cc5cf1c6e3",
+            "usage": {
+                "completion_tokens": 149,
+                "prompt_tokens": 404,
+                "total_tokens": 553,
+                "completion_tokens_details": {
+                    "accepted_prediction_tokens": 0,
+                    "audio_tokens": 0,
+                    "reasoning_tokens": 0,
+                    "rejected_prediction_tokens": 0,
+                },
+                "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
+            },
+        }
+    )
+
+    llm = Factuality(base_url="https://api.openai.com/v1/")
+    result = llm.eval(
+        output="6",
+        expected="6",
+        input="Add the following numbers: 1, 2, 3",
+    )
+
+    assert result.score == 1
+
+
 def test_battle():
     for use_cot in [True, False]:
         print("use_cot", use_cot)

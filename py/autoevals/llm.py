@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -226,7 +227,7 @@ class LLMClassifier(OpenAILLMClassifier):
     An LLM-based classifier that wraps `OpenAILLMClassifier` and provides a standard way to
     apply chain of thought, parse the output, and score the result."""
 
-    _SPEC_FILE_CONTENTS: Optional[str] = None
+    _SPEC_FILE_CONTENTS: Dict[str, str] = defaultdict(str)
 
     def __init__(
         self,
@@ -274,10 +275,10 @@ class LLMClassifier(OpenAILLMClassifier):
 
     @classmethod
     def from_spec_file(cls, name: str, path: str, client: Optional[LLMClient] = None, **kwargs):
-        if cls._SPEC_FILE_CONTENTS is None:
+        if cls._SPEC_FILE_CONTENTS[name] == "":
             with open(path) as f:
-                cls._SPEC_FILE_CONTENTS = f.read()
-        spec = yaml.safe_load(cls._SPEC_FILE_CONTENTS)
+                cls._SPEC_FILE_CONTENTS[name] = f.read()
+        spec = yaml.safe_load(cls._SPEC_FILE_CONTENTS[name])
         return cls.from_spec(name, ModelGradedSpec(**spec), client=client, **kwargs)
 
 
@@ -385,5 +386,4 @@ class Translation(SpecFileClassifier):
     Test whether an `output` is as good of a translation of the `input` in the specified `language`
     as an expert (`expected`) value.."""
 
-    pass
     pass

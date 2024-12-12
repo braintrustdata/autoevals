@@ -35,7 +35,6 @@ class Moderation(OpenAIScorer):
         super().__init__(api_key=api_key, base_url=base_url, client=client)
         self.threshold = threshold
 
-    # need to check who calls _run_eval_a?sync
     def _run_eval_sync(self, output, __expected=None):
         moderation_response = run_cached_request(
             client=self.client, request_type=REQUEST_TYPE, input=output, **self.extra_args
@@ -71,5 +70,6 @@ class Moderation(OpenAIScorer):
         return 1
 
 
+__all__ = ["Moderation"]
 __all__ = ["Moderation"]
 __all__ = ["Moderation"]

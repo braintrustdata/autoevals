@@ -71,6 +71,15 @@ _client_var = ContextVar[Optional[LLMClient]]("client")
 
 
 def init(*, client: Optional[LLMClient] = None):
+    """Initialize Autoevals with an optional custom LLM client.
+
+    This function sets up the global client context for Autoevals to use. If no client is provided,
+    the default OpenAI client will be used.
+
+    Args:
+        client (Optional[LLMClient]): A custom LLM client instance that implements the LLMClient interface.
+            If None, the default OpenAI client will be used.\
+    """
     _client_var.set(client)
 
 
@@ -255,15 +264,4 @@ async def arun_cached_request(
             await asyncio.sleep(sleep_time)
             retries += 1
 
-    return resp
-    return resp
-    return resp
-    return resp
-    return resp
-    return resp
-    return resp
-    return resp
-    return resp
-    return resp
-    return resp
     return resp

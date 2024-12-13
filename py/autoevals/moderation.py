@@ -1,8 +1,10 @@
+from typing import Optional
+
 from braintrust_core.score import Score
 
 from autoevals.llm import OpenAIScorer
 
-from .oai import arun_cached_request, run_cached_request
+from .oai import LLMClient, arun_cached_request, run_cached_request
 
 REQUEST_TYPE = "moderation"
 
@@ -15,7 +17,13 @@ class Moderation(OpenAIScorer):
     threshold = None
     extra_args = {}
 
-    def __init__(self, threshold=None, api_key=None, base_url=None):
+    def __init__(
+        self,
+        threshold=None,
+        api_key=None,
+        base_url=None,
+        client: Optional[LLMClient] = None,
+    ):
         """
         Create a new Moderation scorer.
 
@@ -24,11 +32,13 @@ class Moderation(OpenAIScorer):
         :param api_key: OpenAI key
         :param base_url: Base URL to be used to reach OpenAI moderation endpoint.
         """
-        super().__init__(api_key=api_key, base_url=base_url)
+        super().__init__(api_key=api_key, base_url=base_url, client=client)
         self.threshold = threshold
 
     def _run_eval_sync(self, output, __expected=None):
-        moderation_response = run_cached_request(REQUEST_TYPE, input=output, **self.extra_args)["results"][0]
+        moderation_response = run_cached_request(
+            client=self.client, request_type=REQUEST_TYPE, input=output, **self.extra_args
+        )["results"][0]
         return self.__postprocess_response(moderation_response)
 
     def __postprocess_response(self, moderation_response) -> Score:
@@ -42,7 +52,9 @@ class Moderation(OpenAIScorer):
         )
 
     async def _run_eval_async(self, output, expected=None, **kwargs) -> Score:
-        moderation_response = (await arun_cached_request(REQUEST_TYPE, input=output, **self.extra_args))["results"][0]
+        moderation_response = (
+            await arun_cached_request(client=self.client, request_type=REQUEST_TYPE, input=output, **self.extra_args)
+        )["results"][0]
         return self.__postprocess_response(moderation_response)
 
     @staticmethod
@@ -58,4 +70,6 @@ class Moderation(OpenAIScorer):
         return 1
 
 
+__all__ = ["Moderation"]
+__all__ = ["Moderation"]
 __all__ = ["Moderation"]

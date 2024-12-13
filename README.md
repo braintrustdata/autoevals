@@ -60,6 +60,37 @@ print(f"Factuality score: {result.score}")
 print(f"Factuality metadata: {result.metadata['rationale']}")
 ```
 
+#### Custom Client
+
+If you need to use a custom OpenAI client, you can initialize the library with a custom client.
+
+```python
+import openai
+from autoevals import init
+from autoevals.oai import LLMClient
+
+openai_client = openai.OpenAI(base_url="https://api.openai.com/v1/")
+
+class CustomClient(LLMClient):
+    openai=openai_client  # you can also pass in openai module and we will instantiate it for you
+    embed = openai.embeddings.create
+    moderation = openai.moderations.create
+    RateLimitError = openai.RateLimitError
+
+    def complete(self, **kwargs):
+        # make adjustments as needed
+        return self.openai.chat.completions.create(**kwargs)
+
+# Autoevals will now use your custom client
+client = init(client=CustomClient)
+```
+
+If you only need to use a custom client for a specific evaluator, you can pass in the client to the evaluator.
+
+```python
+evaluator = Factuality(client=CustomClient)
+```
+
 ### Node.js
 
 ```javascript

@@ -2,13 +2,14 @@
 
 import asyncio
 import json
+from typing import Optional
 
 import chevron
 
 from . import Score
 from .list import ListContains
 from .llm import OpenAILLMScorer
-from .oai import arun_cached_request, run_cached_request
+from .oai import LLMClient, arun_cached_request, run_cached_request
 from .string import EmbeddingSimilarity
 
 
@@ -76,13 +77,13 @@ def extract_entities_request(text, **extra_args):
     )
 
 
-async def aextract_entities(text, **extra_args):
-    response = await arun_cached_request(**extract_entities_request(text=text, **extra_args))
+async def aextract_entities(*, text, client: Optional[LLMClient] = None, **extra_args):
+    response = await arun_cached_request(client=client, **extract_entities_request(text=text, **extra_args))
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
 
-def extract_entities(text, **extra_args):
-    response = run_cached_request(**extract_entities_request(text=text, **extra_args))
+def extract_entities(*, text, client: Optional[LLMClient] = None, **extra_args):
+    response = run_cached_request(client=client, **extract_entities_request(text=text, **extra_args))
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
 
@@ -92,12 +93,12 @@ class ContextEntityRecall(OpenAILLMScorer):
     retrieved context.
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+        super().__init__(client=client, **kwargs)
 
         self.extraction_model = model
         self.contains_scorer = ListContains(
-            pairwise_scorer=pairwise_scorer or EmbeddingSimilarity(), allow_extra_entities=True
+            pairwise_scorer=pairwise_scorer or EmbeddingSimilarity(client=client), allow_extra_entities=True
         )
 
     async def _run_eval_async(self, output, expected=None, context=None, **kwargs):
@@ -106,8 +107,8 @@ class ContextEntityRecall(OpenAILLMScorer):
         context = "\n".join(context) if isinstance(context, list) else context
 
         expected_entities_future, context_entities_future = (
-            aextract_entities(text=expected, model=self.extraction_model, **self.extra_args),
-            aextract_entities(text=context, model=self.extraction_model, **self.extra_args),
+            aextract_entities(client=self.client, text=expected, model=self.extraction_model, **self.extra_args),
+            aextract_entities(client=self.client, text=context, model=self.extraction_model, **self.extra_args),
         )
 
         expected_entities = [e for e in (await expected_entities_future)["entities"]]
@@ -127,10 +128,16 @@ class ContextEntityRecall(OpenAILLMScorer):
         context = "\n".join(context) if isinstance(context, list) else context
 
         expected_entities = [
-            e for e in (extract_entities(text=expected, model=self.extraction_model, **self.extra_args))["entities"]
+            e
+            for e in (
+                extract_entities(client=self.client, text=expected, model=self.extraction_model, **self.extra_args)
+            )["entities"]
         ]
         context_entities = [
-            e for e in (extract_entities(text=context, model=self.extraction_model, **self.extra_args))["entities"]
+            e
+            for e in (
+                extract_entities(client=self.client, text=context, model=self.extraction_model, **self.extra_args)
+            )["entities"]
         ]
 
         score = self.contains_scorer.eval(output=context_entities, expected=expected_entities)
@@ -208,8 +215,8 @@ class ContextRelevancy(OpenAILLMScorer):
     self-consistency checks. The number of relevant sentences and is used as the score.
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+        super().__init__(client=client, **kwargs)
 
         self.model = model
 
@@ -234,7 +241,8 @@ class ContextRelevancy(OpenAILLMScorer):
         return self._postprocess(
             context,
             await arun_cached_request(
-                **extract_sentences_request(question=input, context=context, model=self.model, **self.extra_args)
+                client=self.client,
+                **extract_sentences_request(question=input, context=context, model=self.model, **self.extra_args),
             ),
         )
 
@@ -247,7 +255,8 @@ class ContextRelevancy(OpenAILLMScorer):
         return self._postprocess(
             context,
             run_cached_request(
-                **extract_sentences_request(question=input, context=context, model=self.model, **self.extra_args)
+                client=self.client,
+                **extract_sentences_request(question=input, context=context, model=self.model, **self.extra_args),
             ),
         )
 
@@ -342,8 +351,8 @@ class ContextRecall(OpenAILLMScorer):
     retrieved context.
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+        super().__init__(client=client, **kwargs)
 
         self.model = model
 
@@ -369,9 +378,10 @@ class ContextRecall(OpenAILLMScorer):
 
         return self._postprocess(
             await arun_cached_request(
+                client=self.client,
                 **extract_context_recall_request(
                     question=input, answer=expected, context=context, model=self.model, **self.extra_args
-                )
+                ),
             )
         )
 
@@ -383,9 +393,10 @@ class ContextRecall(OpenAILLMScorer):
 
         return self._postprocess(
             run_cached_request(
+                client=self.client,
                 **extract_context_recall_request(
                     question=input, answer=expected, context=context, model=self.model, **self.extra_args
-                )
+                ),
             )
         )
 
@@ -475,8 +486,8 @@ class ContextPrecision(OpenAILLMScorer):
     relevant items selected by the model are ranked higher or not.
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+        super().__init__(client=client, **kwargs)
 
         self.model = model
 
@@ -499,9 +510,10 @@ class ContextPrecision(OpenAILLMScorer):
 
         return self._postprocess(
             await arun_cached_request(
+                client=self.client,
                 **extract_context_precision_request(
                     question=input, answer=expected, context=context, model=self.model, **self.extra_args
-                )
+                ),
             )
         )
 
@@ -513,9 +525,10 @@ class ContextPrecision(OpenAILLMScorer):
 
         return self._postprocess(
             run_cached_request(
+                client=self.client,
                 **extract_context_precision_request(
                     question=input, answer=expected, context=context, model=self.model, **self.extra_args
-                )
+                ),
             )
         )
 
@@ -679,25 +692,31 @@ def extract_faithfulness_request(context, statements, **extra_args):
     )
 
 
-async def aextract_statements(question, answer, **extra_args):
-    response = await arun_cached_request(**extract_statements_request(question=question, answer=answer, **extra_args))
-    return load_function_call(response)
-
-
-def extract_statements(question, answer, **extra_args):
-    response = run_cached_request(**extract_statements_request(question=question, answer=answer, **extra_args))
-    return load_function_call(response)
-
-
-async def aextract_faithfulness(context, statements, **extra_args):
+async def aextract_statements(question, answer, client: Optional[LLMClient] = None, **extra_args):
     response = await arun_cached_request(
-        **extract_faithfulness_request(context=context, statements=statements, **extra_args)
+        client=client, **extract_statements_request(question=question, answer=answer, **extra_args)
     )
     return load_function_call(response)
 
 
-def extract_faithfulness(context, statements, **extra_args):
-    response = run_cached_request(**extract_faithfulness_request(context=context, statements=statements, **extra_args))
+def extract_statements(question, answer, client: Optional[LLMClient] = None, **extra_args):
+    response = run_cached_request(
+        client=client, **extract_statements_request(question=question, answer=answer, **extra_args)
+    )
+    return load_function_call(response)
+
+
+async def aextract_faithfulness(context, statements, client: Optional[LLMClient] = None, **extra_args):
+    response = await arun_cached_request(
+        client=client, **extract_faithfulness_request(context=context, statements=statements, **extra_args)
+    )
+    return load_function_call(response)
+
+
+def extract_faithfulness(context, statements, client: Optional[LLMClient] = None, **extra_args):
+    response = run_cached_request(
+        client=client, **extract_faithfulness_request(context=context, statements=statements, **extra_args)
+    )
     return load_function_call(response)
 
 
@@ -706,20 +725,24 @@ class Faithfulness(OpenAILLMScorer):
     Measures factual consistency of a generated answer against the given context.
     """
 
-    def __init__(self, model=DEFAULT_RAGAS_MODEL, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+        super().__init__(client=client, **kwargs)
 
         self.model = model
 
     async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
         check_required("Faithfulness", input=input, output=output, context=context)
 
-        statements = (await aextract_statements(question=input, answer=expected, model=self.model, **self.extra_args))[
-            "statements"
-        ]
+        statements = (
+            await aextract_statements(
+                client=self.client, question=input, answer=expected, model=self.model, **self.extra_args
+            )
+        )["statements"]
 
         faithfulness = (
-            await aextract_faithfulness(context=context, statements=statements, model=self.model, **self.extra_args)
+            await aextract_faithfulness(
+                client=self.client, context=context, statements=statements, model=self.model, **self.extra_args
+            )
         )["faithfulness"]
 
         return Score(
@@ -734,12 +757,16 @@ class Faithfulness(OpenAILLMScorer):
     def _run_eval_sync(self, output, expected=None, input=None, context=None, **kwargs):
         check_required("Faithfulness", input=input, context=context)
 
-        statements = (extract_statements(question=input, answer=expected, model=self.model, **self.extra_args))[
-            "statements"
-        ]
+        statements = (
+            extract_statements(
+                client=self.client, question=input, answer=expected, model=self.model, **self.extra_args
+            )
+        )["statements"]
 
         faithfulness = (
-            extract_faithfulness(context=context, statements=statements, model=self.model, **self.extra_args)
+            extract_faithfulness(
+                client=self.client, context=context, statements=statements, model=self.model, **self.extra_args
+            )
         )["faithfulness"]
 
         return Score(
@@ -837,9 +864,10 @@ class AnswerRelevancy(OpenAILLMScorer):
         strictness=3,
         temperature=0.5,
         embedding_model=DEFAULT_RAGAS_EMBEDDING_MODEL,
+        client: Optional[LLMClient] = None,
         **kwargs,
     ):
-        super().__init__(temperature=temperature, **kwargs)
+        super().__init__(temperature=temperature, client=client, **kwargs)
 
         self.model = model
         self.strictness = strictness
@@ -868,14 +896,19 @@ class AnswerRelevancy(OpenAILLMScorer):
         questions = await asyncio.gather(
             *[
                 aload_function_call_request(
-                    **extract_question_gen_request(answer=output, context=context, model=self.model, **self.extra_args)
+                    client=self.client,
+                    **extract_question_gen_request(
+                        answer=output, context=context, model=self.model, **self.extra_args
+                    ),
                 )
                 for _ in range(self.strictness)
             ]
         )
         similarity = await asyncio.gather(
             *[
-                EmbeddingSimilarity().eval_async(output=q["question"], expected=input, model=self.embedding_model)
+                EmbeddingSimilarity(client=self.client).eval_async(
+                    output=q["question"], expected=input, model=self.embedding_model
+                )
                 for q in questions
             ]
         )
@@ -887,12 +920,14 @@ class AnswerRelevancy(OpenAILLMScorer):
 
         questions = [
             load_function_call_request(
-                **extract_question_gen_request(answer=output, context=context, model=self.model, **self.extra_args)
+                client=self.client,
+                **extract_question_gen_request(answer=output, context=context, model=self.model, **self.extra_args),
             )
             for _ in range(self.strictness)
         ]
         similarity = [
-            EmbeddingSimilarity().eval(output=q["question"], expected=input, model=self.model) for q in questions
+            EmbeddingSimilarity(client=self.client).eval(output=q["question"], expected=input, model=self.model)
+            for q in questions
         ]
 
         return self._postprocess(questions, similarity)
@@ -903,22 +938,30 @@ class AnswerSimilarity(OpenAILLMScorer):
     Measures the similarity between the generated answer and the expected answer.
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_EMBEDDING_MODEL, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(
+        self,
+        pairwise_scorer=None,
+        model=DEFAULT_RAGAS_EMBEDDING_MODEL,
+        client: Optional[LLMClient] = None,
+        **kwargs,
+    ):
+        super().__init__(client=client, **kwargs)
 
         self.model = model
 
     async def _run_eval_async(self, output, expected=None, input=None, **kwargs):
         check_required("AnswerSimilarity", expected=expected, output=output)
 
-        return await EmbeddingSimilarity().eval_async(
+        return await EmbeddingSimilarity(client=self.client).eval_async(
             output=output, expected=expected, model=self.model, **self.extra_args
         )
 
     def _run_eval_sync(self, output, expected=None, input=None, **kwargs):
         check_required("AnswerSimilarity", expected=expected, output=output)
 
-        return EmbeddingSimilarity().eval(output=output, expected=expected, model=self.model, **self.extra_args)
+        return EmbeddingSimilarity(client=self.client).eval(
+            output=output, expected=expected, model=self.model, **self.extra_args
+        )
 
 
 CORRECTNESS_PROMPT = """Given a ground truth and an answer, analyze each statement in the answer and classify them in one of the following categories:
@@ -1015,12 +1058,13 @@ class AnswerCorrectness(OpenAILLMScorer):
         factuality_weight=0.75,
         answer_similarity_weight=0.25,
         answer_similarity=None,
+        client: Optional[LLMClient] = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(client=client, **kwargs)
 
         self.model = model
-        self.answer_similarity = answer_similarity or AnswerSimilarity()
+        self.answer_similarity = answer_similarity or AnswerSimilarity(client=client)
 
         if factuality_weight == 0 and answer_similarity_weight == 0:
             raise ValueError("At least one weight must be nonzero")
@@ -1065,9 +1109,10 @@ class AnswerCorrectness(OpenAILLMScorer):
 
         factuality_future, similarity_future = (
             aload_function_call_request(
+                client=self.client,
                 **extract_correctness_request(
                     question=input, answer=output, ground_truth=expected, model=self.model, **self.extra_args
-                )
+                ),
             ),
             self._run_answer_similarity_async(output, expected),
         )
@@ -1079,9 +1124,10 @@ class AnswerCorrectness(OpenAILLMScorer):
 
         factuality, similarity = (
             load_function_call_request(
+                client=self.client,
                 **extract_correctness_request(
                     question=input, answer=output, ground_truth=expected, model=self.model, **self.extra_args
-                )
+                ),
             ),
             self._run_answer_similarity_sync(output, expected),
         )
@@ -1093,9 +1139,9 @@ def load_function_call(response):
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
 
-async def aload_function_call_request(**kwargs):
-    return load_function_call(await arun_cached_request(**kwargs))
+async def aload_function_call_request(client: Optional[LLMClient] = None, **kwargs):
+    return load_function_call(await arun_cached_request(client=client, **kwargs))
 
 
-def load_function_call_request(**kwargs):
-    return load_function_call(run_cached_request(**kwargs))
+def load_function_call_request(client: Optional[LLMClient] = None, **kwargs):
+    return load_function_call(run_cached_request(client=client, **kwargs))

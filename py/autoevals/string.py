@@ -1,4 +1,5 @@
 import threading
+from typing import Optional
 
 from braintrust_core.score import Score
 from Levenshtein import distance
@@ -6,7 +7,7 @@ from Levenshtein import distance
 from autoevals.partial import ScorerWithPartial
 from autoevals.value import normalize_value
 
-from .oai import arun_cached_request, run_cached_request
+from .oai import LLMClient, arun_cached_request, run_cached_request
 
 
 class Levenshtein(ScorerWithPartial):
@@ -41,7 +42,15 @@ class EmbeddingSimilarity(ScorerWithPartial):
     _CACHE = {}
     _CACHE_LOCK = threading.Lock()
 
-    def __init__(self, prefix="", model=MODEL, expected_min=0.7, api_key=None, base_url=None):
+    def __init__(
+        self,
+        prefix="",
+        model=MODEL,
+        expected_min=0.7,
+        api_key=None,
+        base_url=None,
+        client: Optional[LLMClient] = None,
+    ):
         """
         Create a new EmbeddingSimilarity scorer.
 
@@ -59,13 +68,17 @@ class EmbeddingSimilarity(ScorerWithPartial):
         if base_url:
             self.extra_args["base_url"] = base_url
 
+        self.client = client
+
     async def _a_embed(self, value):
         value = normalize_value(value, maybe_object=False)
         with self._CACHE_LOCK:
             if value in self._CACHE:
                 return self._CACHE[value]
 
-        result = await arun_cached_request("embed", input=f"{self.prefix}{value}", **self.extra_args)
+        result = await arun_cached_request(
+            client=self.client, request_type="embed", input=f"{self.prefix}{value}", **self.extra_args
+        )
 
         with self._CACHE_LOCK:
             self._CACHE[value] = result
@@ -78,7 +91,9 @@ class EmbeddingSimilarity(ScorerWithPartial):
             if value in self._CACHE:
                 return self._CACHE[value]
 
-        result = run_cached_request("embed", input=f"{self.prefix}{value}", **self.extra_args)
+        result = run_cached_request(
+            client=self.client, request_type="embed", input=f"{self.prefix}{value}", **self.extra_args
+        )
 
         with self._CACHE_LOCK:
             self._CACHE[value] = result

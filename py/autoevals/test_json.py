@@ -94,6 +94,29 @@ def test_valid_json():
                 "uniqueItems": True,
             },
         ),
+        (
+            {"a": "1", "b": "1"},
+            1,
+            None,
+        ),
+        (
+            [{"a": "1"}, {"a": "1", "b": 22}],
+            1,
+            None,
+        ),
+        (
+            100,
+            0,
+            None,
+        ),
+        (
+            # This is technically ambiguous, because it _could_ be the valid parsed JSON value
+            # or an unparsed, invalid JSON value. However, since structured outputs _only_ return
+            # JSON values, we can safely assume that any strings are unparsed values.
+            "100",
+            0,
+            None,
+        ),
     ]
 
     evaluator = ValidJSON()

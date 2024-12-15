@@ -100,6 +100,25 @@ test("Valid JSON Test", async () => {
         uniqueItems: true,
       },
     },
+    {
+      output: { a: "1", b: "1" },
+      expected: 1,
+    },
+    {
+      output: [{ a: "1" }, { a: "1", b: 22 }],
+      expected: 1,
+    },
+    {
+      output: 100,
+      expected: 0,
+    },
+    {
+      // This is technically ambiguous, because it _could_ be the valid parsed JSON value
+      // or an unparsed, invalid JSON value. However, since structured outputs _only_ return
+      // JSON values, we can safely assume that any strings are unparsed values.
+      output: "100",
+      expected: 0,
+    },
   ];
 
   for (const { output, expected, schema } of cases) {

@@ -72,7 +72,7 @@ class ValidJSON(ScorerWithPartial):
 
     def valid_json(self, output, schema=None):
         try:
-            parsed = json.loads(output)
+            parsed = json.loads(output) if isinstance(output, str) else output
 
             if schema is not None:
                 validate(parsed, schema)

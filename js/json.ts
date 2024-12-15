@@ -41,14 +41,16 @@ export const JSONDiff: ScorerWithPartial<
  * A binary scorer that evaluates the validity of JSON output, optionally validating against a
  * JSON Schema definition (see https://json-schema.org/learn/getting-started-step-by-step#create).
  */
-export const ValidJSON: ScorerWithPartial<string, { schema?: any }> =
-  makePartial(async ({ output, schema }) => {
+export const ValidJSON: ScorerWithPartial<any, { schema?: any }> = makePartial(
+  async ({ output, schema }) => {
     return {
       name: "ValidJSON",
       score: validJSON(output, schema),
       metadata: { schema },
     };
-  }, "ValidJSON");
+  },
+  "ValidJSON",
+);
 
 async function jsonDiff(
   o1: any,
@@ -151,9 +153,9 @@ const replacer = (key: string, value: any) =>
         }, {})
     : value;
 
-function validJSON<T>(output: string, schema?: Schema | JSONSchemaType<T>) {
+function validJSON<T>(output: any, schema?: Schema | JSONSchemaType<T>) {
   try {
-    const parsed = JSON.parse(output);
+    const parsed = typeof output === "string" ? JSON.parse(output) : output;
 
     if (schema) {
       return validateSchema(parsed, schema);

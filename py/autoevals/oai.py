@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import sys
 import textwrap
@@ -144,6 +145,51 @@ def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=N
     if hasattr(openai, "OpenAI"):
         # This is the new v1 API
         is_v1 = True
+
+        default_headers = {}
+        default_query = {}
+        
+        # Get headers from environment variables
+        if os.environ.get("OPENAI_DEFAULT_HEADERS"):
+            try:
+                default_headers = json.loads(os.environ.get("OPENAI_DEFAULT_HEADERS"))
+            except json.JSONDecodeError as e:
+                print(f"Error parsing OPENAI_DEFAULT_HEADERS: {e}")
+                default_headers = {}
+
+        # Get query params from environment variables
+        if os.environ.get("OPENAI_DEFAULT_QUERY"):
+            try:
+                default_query = json.loads(os.environ.get("OPENAI_DEFAULT_QUERY"))
+            except json.JSONDecodeError as e:
+                print(f"Error parsing OPENAI_DEFAULT_QUERY: {e}")
+                default_query = {}
+
+        # Add request source tracking header
+        default_headers["X-Request-Source"] = "autoevals"
+
+        print(f"default_headers: {default_headers}")
+        print(f"default_query: {default_query}")
+
+        if is_async:
+            openai_obj = openai.AsyncOpenAI(
+                api_key=api_key,
+                base_url=base_url,
+                default_headers=default_headers,
+                default_query=default_query
+            )
+        else:
+            openai_obj = openai.OpenAI(
+                api_key=api_key, 
+                base_url=base_url,
+                default_headers=default_headers,
+                default_query=default_query
+            )
+    else:
+        if api_key:
+            openai.api_key = api_key
+        openai.api_base = base_url
+        # For v0 API, headers and query params need to be set per-request
 
     if client is None:
         # prepare the default openai sdk, if not provided

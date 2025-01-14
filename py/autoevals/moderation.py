@@ -35,7 +35,7 @@ class Moderation(OpenAIScorer):
         super().__init__(api_key=api_key, base_url=base_url, client=client)
         self.threshold = threshold
 
-    def _run_eval_sync(self, output, __expected=None):
+    def _run_eval_sync(self, output, expected=None, **kwargs):
         moderation_response = run_cached_request(
             client=self.client, request_type=REQUEST_TYPE, input=output, **self.extra_args
         )["results"][0]

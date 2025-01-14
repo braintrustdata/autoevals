@@ -194,11 +194,11 @@ def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=N
             if is_async:
                 complete_fn = openai_obj.ChatCompletion.acreate
                 embedding_fn = openai_obj.Embedding.acreate
-                moderation_fn = openai_obj.Moderations.acreate
+                moderation_fn = openai_obj.Moderation.acreate
             else:
                 complete_fn = openai_obj.ChatCompletion.create
                 embedding_fn = openai_obj.Embedding.create
-                moderation_fn = openai_obj.Moderations.create
+                moderation_fn = openai_obj.Moderation.create
             client = Client(
                 openai=openai,
                 complete=complete_fn,

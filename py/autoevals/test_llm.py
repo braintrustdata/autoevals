@@ -5,10 +5,52 @@ from unittest.mock import Mock
 import chevron
 import pytest
 import respx
+from pydantic import BaseModel
 
 from autoevals import init
 from autoevals.llm import *
 from autoevals.llm import build_classification_tools
+
+
+class TestModel(BaseModel):
+    foo: str
+    num: int
+
+
+def test_render_messages():
+    classifier = OpenAILLMClassifier(
+        "test",
+        messages=[
+            {"role": "user", "content": "{{value}} and {{{value}}}"},
+            {"role": "user", "content": "Dict double braces: {{data}}"},
+            {"role": "user", "content": "Dict triple braces: {{{data}}}"},
+            {"role": "user", "content": "Model double braces: {{model}}"},
+            {"role": "user", "content": "Model triple braces: {{{model}}}"},
+            {"role": "user", "content": ""},  # test empty content
+        ],
+        model="gpt-4",
+        choice_scores={"A": 1},
+        classification_tools=[],
+    )
+
+    test_dict = {"foo": "bar", "num": 42}
+    test_model = TestModel(foo="bar", num=42)
+
+    rendered = classifier._render_messages(value="<b>bold</b>", data=test_dict, model=test_model)
+
+    # Test HTML escaping - double braces escape, triple braces don't.
+    assert rendered[0]["content"] == "&lt;b&gt;bold&lt;/b&gt; and <b>bold</b>"
+
+    # Test dict rendering - both use str() but double braces escape HTML chars if present.
+    assert rendered[1]["content"] == "Dict double braces: {'foo': 'bar', 'num': 42}"
+    assert rendered[2]["content"] == "Dict triple braces: {'foo': 'bar', 'num': 42}"
+
+    # Test model rendering - both use str() but double braces escape HTML chars if present.
+    assert rendered[3]["content"] == "Model double braces: foo='bar' num=42"
+    assert rendered[4]["content"] == "Model triple braces: foo='bar' num=42"
+
+    # Test empty content.
+    assert rendered[5]["content"] == ""
 
 
 def test_template_html():

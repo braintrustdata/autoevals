@@ -9,6 +9,7 @@ import {
   ChatCompletionTool,
 } from "openai/resources";
 import { makePartial, ScorerWithPartial } from "./partial";
+import { renderMessages } from "./render-messages";
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
@@ -118,15 +119,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     ...remainingRenderArgs,
   };
 
-  const messages: ChatCompletionMessageParam[] = messagesArg.map((m) => ({
-    ...m,
-    content: m.content
-      ? mustache.render(m.content as string, renderArgs, undefined, {
-          escape: (v: unknown) =>
-            typeof v === "string" ? v : JSON.stringify(v),
-        })
-      : "",
-  }));
+  const messages = renderMessages(messagesArg, renderArgs);
 
   const resp = await cachedChatCompletion(
     {

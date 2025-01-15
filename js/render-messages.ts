@@ -8,15 +8,10 @@ export function renderMessages(
   return messages.map((m) => ({
     ...m,
     content: m.content
-      ? mustache.render(
-          (m.content as string).replace(/\{{3}/g, "{{").replace(/\}{3}/g, "}}"),
-          renderArgs,
-          undefined,
-          {
-            escape: (v: unknown) =>
-              typeof v === "string" ? v : JSON.stringify(v),
-          },
-        )
+      ? mustache.render(m.content as string, renderArgs, undefined, {
+          escape: (v: unknown) =>
+            typeof v === "string" ? v : JSON.stringify(v),
+        })
       : "",
   }));
 }

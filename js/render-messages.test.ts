@@ -10,19 +10,22 @@ describe("renderMessages", () => {
     expect(rendered[0].content).toBe("<b>bold</b> and <b>bold</b>");
   });
 
-  it("should stringify objects when using either {{...}} or {{{...}}}", () => {
+  it("should stringify objects when using {{...}}", () => {
     const messages: ChatCompletionMessageParam[] = [
-      {
-        role: "user",
-        content: "Double braces: {{data}}, Triple braces: {{{data}}}",
-      },
+      { role: "user", content: "Data: {{data}}" },
     ];
     const data = { foo: "bar", num: 42 };
     const rendered = renderMessages(messages, { data });
-    const stringified = JSON.stringify(data);
-    expect(rendered[0].content).toBe(
-      `Double braces: ${stringified}, Triple braces: ${stringified}`,
-    );
+    expect(rendered[0].content).toBe('Data: {"foo":"bar","num":42}');
+  });
+
+  it("should output [object Object] when using {{{...}}} with objects", () => {
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "user", content: "Data: {{{data}}}" },
+    ];
+    const data = { foo: "bar", num: 42 };
+    const rendered = renderMessages(messages, { data });
+    expect(rendered[0].content).toBe("Data: [object Object]");
   });
 
   it("should handle empty content", () => {

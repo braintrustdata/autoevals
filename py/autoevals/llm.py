@@ -13,6 +13,9 @@ from autoevals.partial import ScorerWithPartial
 
 from .oai import LLMClient, arun_cached_request, run_cached_request
 
+# Disable HTML escaping in chevron.
+chevron.renderer._html_escape = lambda x: x  # type: ignore[attr-defined]
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 NO_COT_SUFFIX = """\

@@ -6,9 +6,9 @@ prompt: |-
 
   [BEGIN DATA]
   ************
-  [Task]: {{{input}}}
+  [Task]: {{input}}
   ************
-  [Submission]: {{{output}}}
+  [Submission]: {{output}}
   ************
   [END DATA]
 

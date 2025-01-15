@@ -2,11 +2,11 @@ prompt: |-
   You are comparing a submitted answer to an expert answer on a given SQL coding question. Here is the data:
   [BEGIN DATA]
   ************
-  [Question]: {{input}}
+  [Question]: {{{input}}}
   ************
-  [Expert]: {{expected}}
+  [Expert]: {{{expected}}}
   ************
-  [Submission]: {{output}}
+  [Submission]: {{{output}}}
   ************
   [END DATA]
 

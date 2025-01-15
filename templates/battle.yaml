@@ -4,12 +4,12 @@ prompt: |-
   [Instruction 1]
   {{{instructions}}}
   [Response 1]
-  {{output}}
+  {{{output}}}
 
   [Instruction 2]
   {{{instructions}}}
   [Response 2]
-  {{expected}}
+  {{{expected}}}
 
 
   Is the first response better than the second? You must provide one answer based on your subjective view.

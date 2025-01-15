@@ -2,11 +2,11 @@ prompt: |-
   You are comparing a submitted summary of a given text to an expert summary. Here is the data:
   [BEGIN DATA]
   ************
-  [Text]: {{input}}
+  [Text]: {{{input}}}
   ************
-  A: {{expected}}
+  A: {{{expected}}}
   ************
-  B: {{output}}
+  B: {{{output}}}
   ************
   [END DATA]
 

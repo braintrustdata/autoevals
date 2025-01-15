@@ -2,11 +2,11 @@ prompt: |-
   You are assessing a submitted answer on a given task based on a criterion. Here is the data:
   [BEGIN DATA]
   ***
-  [Task]: {{input}}
+  [Task]: {{{input}}}
   ***
-  [Submission]: {{output}}
+  [Submission]: {{{output}}}
   ***
-  [Criterion]: {{criteria}}
+  [Criterion]: {{{criteria}}}
   ***
   [END DATA]
   Does the submission meet the criterion?

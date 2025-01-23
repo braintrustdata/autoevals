@@ -110,36 +110,43 @@ export const Evaluators: {
         method: ContextEntityRecall,
         description:
           "Estimates context recall by estimating TP and FN using annotated answer and retrieved context.",
+        requiresExtraParams: true,
       },
       {
         method: ContextRelevancy,
         description:
           "Extracts relevant sentences from the provided context that are absolutely required to answer the given question.",
+        requiresExtraParams: true,
       },
       {
         method: ContextRecall,
         description:
           "Analyzes each sentence in the answer and classifies if the sentence can be attributed to the given context or not.",
+        requiresExtraParams: true,
       },
       {
         method: ContextPrecision,
         description:
           "Verifies if the context was useful in arriving at the given answer.",
+        requiresExtraParams: true,
       },
       {
         method: AnswerRelevancy,
         description:
           "Scores the relevancy of the generated answer to the given question.",
+        requiresExtraParams: true,
       },
       {
         method: AnswerSimilarity,
         description:
           "Scores the semantic similarity between the generated answer and ground truth.",
+        requiresExtraParams: true,
       },
       {
         method: AnswerCorrectness,
         description:
           "Measures answer correctness compared to ground truth using a weighted average of factuality and semantic similarity.",
+        requiresExtraParams: true,
       },
     ],
   },

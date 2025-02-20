@@ -60,9 +60,34 @@ print(f"Factuality score: {result.score}")
 print(f"Factuality metadata: {result.metadata['rationale']}")
 ```
 
+#### Use with other AI providers through the Braintrust AI Proxy
+
+Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [Braintrust AI Proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
+
+If you have a Braintrust account, you can set the `BRAINTUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. Additionally, you can route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in the Braintrust dashboard.
+
+```python
+# NOTE: ensure BRAINTRUST_API_KEY is set in your environment and OPENAI_API_KEY is not set
+from autoevals.llm import *
+
+# Create an LLM-based evaluator using the Claude 3.5 Sonnet model from Anthropic
+evaluator = Factuality(model="claude-3-5-sonnet-latest")
+
+# Evaluate an example LLM completion
+input = "Which country has the highest population?"
+output = "People's Republic of China"
+expected = "China"
+
+result = evaluator(output, expected, input=input)
+
+# The evaluator returns a score from [0,1] and includes the raw outputs from the evaluator
+print(f"Factuality score: {result.score}")
+print(f"Factuality metadata: {result.metadata['rationale']}")
+```
+
 #### Custom Client
 
-If you need to use a custom OpenAI client, you can initialize the library with a custom client.
+If you need to use a different OpenAI compatible API or require custom behavior, you can initialize the library with a custom client.
 
 ```python
 import openai
@@ -102,6 +127,31 @@ import { Factuality } from "autoevals";
   const expected = "China";
 
   const result = await Factuality({ output, expected, input });
+  console.log(`Factuality score: ${result.score}`);
+  console.log(`Factuality metadata: ${result.metadata.rationale}`);
+})();
+```
+
+#### Use with other AI providers through the Braintrust AI Proxy
+
+Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [Braintrust AI Proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
+
+If you have a Braintrust account, you can set the `BRAINTUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. Additionally, you can route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in the Braintrust dashboard.
+
+```javascript
+import { Factuality } from "autoevals";
+
+(async () => {
+  const input = "Which country has the highest population?";
+  const output = "People's Republic of China";
+  const expected = "China";
+
+  const result = await Factuality({
+    model: "claude-3-5-sonnet-latest",
+    output,
+    expected,
+    input,
+  });
   console.log(`Factuality score: ${result.score}`);
   console.log(`Factuality metadata: ${result.metadata.rationale}`);
 })();

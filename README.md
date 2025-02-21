@@ -60,7 +60,7 @@ print(f"Factuality score: {result.score}")
 print(f"Factuality metadata: {result.metadata['rationale']}")
 ```
 
-#### Use with other AI providers through the AI Proxy
+#### Use with other AI providers through the AI proxy
 
 Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI Proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
 

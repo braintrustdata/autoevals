@@ -134,7 +134,7 @@ import { Factuality } from "autoevals";
 
 #### Use with other AI providers through the AI Proxy
 
-Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI Proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
+Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
 
 If you have a Braintrust account, you can set the `BRAINTUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. Additionally, you can route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in Braintrust.
 

@@ -143,7 +143,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
       openAiDefaultHeaders,
       openAiDangerouslyAllowBrowser,
       azureOpenAi,
-    }
+    },
   );
 
   if (resp.choices.length > 0) {

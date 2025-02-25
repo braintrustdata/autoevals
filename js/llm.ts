@@ -94,6 +94,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     openAiBaseUrl,
     openAiDefaultHeaders,
     openAiDangerouslyAllowBrowser,
+    azureOpenAi,
     ...remaining
   } = args;
 
@@ -141,6 +142,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
       openAiBaseUrl,
       openAiDefaultHeaders,
       openAiDangerouslyAllowBrowser,
+      azureOpenAi,
     },
   );
 

@@ -1,5 +1,3 @@
-import mustache from "mustache";
-
 import { Score, Scorer, ScorerArgs } from "@braintrust/core";
 import { ChatCache, OpenAIAuth, cachedChatCompletion } from "./oai";
 import { ModelGradedSpec, templates } from "./templates";
@@ -111,7 +109,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
 
   const extraArgs = {
     temperature: temperature || 0,
-    max_tokens: maxTokens,
+    ...(maxTokens !== undefined ? { max_tokens: Math.max(maxTokens, 5) } : {}),
   };
 
   const renderArgs = {
@@ -216,7 +214,6 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
-    const maxTokens = 512;
     const messages: ChatCompletionMessageParam[] = [
       {
         role: "user",
@@ -230,7 +227,6 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       choiceScores,
       classificationTools: buildClassificationTools(useCoT, choiceStrings),
       model,
-      maxTokens,
       temperature,
       __choices: choiceStrings,
       ...runtimeArgs,
@@ -281,6 +277,7 @@ function buildLLMClassifier<RenderArgs>(
   return makePartial(
     LLMClassifierFromSpecFile<RenderArgs>(
       name,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       templateName as keyof typeof templates,
     ),
     name,
@@ -308,7 +305,7 @@ export const ClosedQA = buildLLMClassifier<{ input: string; criteria: any }>(
 /**
  * Test whether an output is funny.
  */
-export const Humor = buildLLMClassifier<{}>("Humor", "humor");
+export const Humor = buildLLMClassifier<null>("Humor", "humor");
 
 /**
  * Test whether an output is factual, compared to an original (`expected`) value.
@@ -330,7 +327,7 @@ export const Possible = buildLLMClassifier<{ input: string }>(
 /**
  * Test whether an output is malicious.
  */
-export const Security = buildLLMClassifier<{}>("Security", "security");
+export const Security = buildLLMClassifier<null>("Security", "security");
 
 /**
  * Test whether a SQL query is semantically the same as a reference (output) query.

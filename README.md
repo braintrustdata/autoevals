@@ -60,11 +60,11 @@ print(f"Factuality score: {result.score}")
 print(f"Factuality metadata: {result.metadata['rationale']}")
 ```
 
-#### Use with other AI providers through the Braintrust AI Proxy
+#### Use with other AI providers through the AI proxy
 
-Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [Braintrust AI Proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
+Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
 
-If you have a Braintrust account, you can set the `BRAINTUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. Additionally, you can route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in the Braintrust dashboard.
+If you have a Braintrust account, you can set the `BRAINTUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. Additionally, you can route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in Braintrust.
 
 ```python
 # NOTE: ensure BRAINTRUST_API_KEY is set in your environment and OPENAI_API_KEY is not set
@@ -132,13 +132,14 @@ import { Factuality } from "autoevals";
 })();
 ```
 
-#### Use with other AI providers through the Braintrust AI Proxy
+#### Use with other AI providers through the AI proxy
 
-Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [Braintrust AI Proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
+Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
 
-If you have a Braintrust account, you can set the `BRAINTUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. Additionally, you can route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in the Braintrust dashboard.
+If you have a Braintrust account, you can set the `BRAINTUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. Additionally, you can route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in Braintrust.
 
 ```javascript
+// NOTE: ensure BRAINTRUST_API_KEY is set in your environment and OPENAI_API_KEY is not set
 import { Factuality } from "autoevals";
 
 (async () => {
@@ -146,14 +147,17 @@ import { Factuality } from "autoevals";
   const output = "People's Republic of China";
   const expected = "China";
 
+  // Run an LLM-based evaluator using the Claude 3.5 Sonnet model from Anthropic
   const result = await Factuality({
     model: "claude-3-5-sonnet-latest",
     output,
     expected,
     input,
   });
+
+  // The evaluator returns a score from [0,1] and includes the raw outputs from the evaluator
   console.log(`Factuality score: ${result.score}`);
-  console.log(`Factuality metadata: ${result.metadata.rationale}`);
+  console.log(`Factuality metadata: ${result.metadata?.rationale}`);
 })();
 ```
 

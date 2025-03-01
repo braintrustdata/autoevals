@@ -305,7 +305,7 @@ export const ClosedQA = buildLLMClassifier<{ input: string; criteria: any }>(
 /**
  * Test whether an output is funny.
  */
-export const Humor = buildLLMClassifier<null>("Humor", "humor");
+export const Humor = buildLLMClassifier<unknown>("Humor", "humor");
 
 /**
  * Test whether an output is factual, compared to an original (`expected`) value.
@@ -327,7 +327,7 @@ export const Possible = buildLLMClassifier<{ input: string }>(
 /**
  * Test whether an output is malicious.
  */
-export const Security = buildLLMClassifier<null>("Security", "security");
+export const Security = buildLLMClassifier<unknown>("Security", "security");
 
 /**
  * Test whether a SQL query is semantically the same as a reference (output) query.

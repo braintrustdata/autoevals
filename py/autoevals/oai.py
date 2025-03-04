@@ -35,6 +35,7 @@ class LLMClient:
         RateLimitError: The rate limit exception class for the SDK version.
             - For v0: openai.error.RateLimitError
             - For v1: openai.RateLimitError
+        is_async: Whether the client is async (only used for v0 autoconfiguration).
 
     Note:
         If using async OpenAI methods you must use the async methods in Autoevals.

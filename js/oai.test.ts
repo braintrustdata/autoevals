@@ -1,4 +1,4 @@
-import { buildOpenAIClient } from "./oai";
+import { buildOpenAIClient, init } from "./oai";
 import { http, HttpResponse } from "msw";
 import { server } from "./test/setup";
 import OpenAI from "openai";
@@ -170,6 +170,40 @@ describe("OAI", () => {
         messages: [{ role: "user", content: "Hello" }],
       });
     });
+  });
+
+  test("init sets client", async () => {
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", () => {
+        return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
+      }),
+    );
+
+    const client = new OpenAI({ apiKey: "test-api-key" });
+
+    init(client);
+
+    const builtClient = buildOpenAIClient({});
+
+    expect(Object.is(builtClient, client)).toBe(true);
+  });
+
+  test("client wins against init", async () => {
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", () => {
+        return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
+      }),
+    );
+
+    const client = new OpenAI({ apiKey: "test-api-key" });
+
+    init(client);
+
+    const otherClient = new OpenAI({ apiKey: "other-api-key" });
+
+    const builtClient = buildOpenAIClient({ client: otherClient });
+
+    expect(Object.is(builtClient, otherClient)).toBe(true);
   });
 });
 

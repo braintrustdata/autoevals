@@ -53,7 +53,7 @@ def test_prepare_openai_defaults(monkeypatch: pytest.MonkeyPatch):
 
     assert isinstance(prepared_client, LLMClient)
     assert prepared_client.is_wrapped
-    openai_obj = getattr(prepared_client.openai, "_NamedWrapper__wrapped")
+    openai_obj = prepared_client.openai.unwrap()
     assert isinstance(openai_obj, openai.OpenAI)
     assert isinstance(getattr(prepared_client.complete, "__self__", None), CompletionsV1Wrapper)
     assert openai_obj.api_key == "test-key"

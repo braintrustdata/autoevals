@@ -3,6 +3,7 @@ import os
 import setuptools
 
 dir_name = os.path.abspath(os.path.dirname(__file__))
+sdk_path = os.path.abspath(os.path.join(dir_name, "..", "sdk", "py"))
 
 version_contents = {}
 with open(os.path.join(dir_name, "py", "autoevals", "version.py"), encoding="utf-8") as f:
@@ -16,7 +17,8 @@ install_requires = ["chevron", "levenshtein", "pyyaml", "braintrust_core", "json
 extras_require = {
     "dev": [
         "black",
-        "braintrust",
+        # TODO: remove this once we have new SDK release
+        f"braintrust @ file://{sdk_path}",
         "build",
         "flake8",
         "flake8-isort",

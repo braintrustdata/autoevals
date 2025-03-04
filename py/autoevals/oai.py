@@ -84,8 +84,7 @@ class LLMClient:
 
         self._is_wrapped = isinstance(self.openai, NamedWrapper)
 
-        # TODO: avoid hack by updating SDK
-        openai_original = getattr(self.openai, "_NamedWrapper__wrapped", None) if self._is_wrapped else self.openai
+        openai_original = self.openai.unwrap() if self._is_wrapped else self.openai
         openai_module = importlib.import_module(openai_original.__module__)
 
         is_v1 = hasattr(openai_module, "OpenAI")

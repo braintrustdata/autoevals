@@ -16,6 +16,7 @@ install_requires = ["chevron", "levenshtein", "pyyaml", "braintrust_core", "json
 extras_require = {
     "dev": [
         "black",
+        "braintrust",
         "build",
         "flake8",
         "flake8-isort",
@@ -23,6 +24,7 @@ extras_require = {
         "isort==5.12.0",
         "pre-commit",
         "pytest",
+        "pytest-watch",
         "respx",
         "twine",
     ],

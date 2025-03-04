@@ -5,9 +5,14 @@ import textwrap
 import time
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Callable, Optional, Type, TypeVar
 
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
+
+T = TypeVar("T")
+
+_NAMED_WRAPPER: Optional[Type[Any]] = None
+_WRAP_OPENAI: Optional[Callable[[Any], Any]] = None
 
 
 @dataclass
@@ -68,6 +73,31 @@ class LLMClient:
 
 
 _client_var = ContextVar[Optional[LLMClient]]("client")
+
+
+def get_openai_wrappers():
+    global _NAMED_WRAPPER, _WRAP_OPENAI
+
+    if _NAMED_WRAPPER is not None and _WRAP_OPENAI is not None:
+        return _NAMED_WRAPPER, _WRAP_OPENAI
+
+    try:
+        from braintrust.oai import NamedWrapper as BraintrustNamedWrapper
+        from braintrust.oai import wrap_openai
+
+        _NAMED_WRAPPER = BraintrustNamedWrapper
+    except ImportError:
+
+        class NamedWrapper:
+            pass
+
+        def wrap_openai(openai: Any) -> Any:
+            return openai
+
+        _NAMED_WRAPPER = NamedWrapper
+
+    _WRAP_OPENAI = wrap_openai
+    return _NAMED_WRAPPER, _WRAP_OPENAI
 
 
 def init(*, client: Optional[LLMClient] = None):
@@ -162,19 +192,13 @@ def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=N
                 openai.api_key = api_key
             openai.api_base = base_url
 
-    # optimistically wrap openai instance for tracing
-    wrapped = False
-    try:
-        from braintrust.oai import NamedWrapper, wrap_openai
+    NamedWrapper, wrap_openai = get_openai_wrappers()
 
+    if client is None:
+        # optimistically wrap openai instance for tracing
         if not isinstance(openai_obj, NamedWrapper):
             openai_obj = wrap_openai(openai_obj)
 
-        wrapped = True
-    except ImportError:
-        pass
-
-    if client is None:
         # prepare the default client if not provided
         complete_fn = None
         rate_limit_error = None
@@ -183,7 +207,7 @@ def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=N
 
         if is_v1:
             client = Client(
-                openai=openai,
+                openai=openai_obj,
                 complete=openai_obj.chat.completions.create,
                 embed=openai_obj.embeddings.create,
                 moderation=openai_obj.moderations.create,
@@ -207,7 +231,7 @@ def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=N
                 RateLimitError=rate_limit_error,
             )
 
-    return client, wrapped
+    return client, isinstance(openai_obj, NamedWrapper)
 
 
 def post_process_response(resp):

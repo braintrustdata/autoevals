@@ -7,6 +7,7 @@ import {
 import { AzureOpenAI, OpenAI } from "openai";
 
 import { Env } from "./env";
+import { isProxy } from "util/types";
 
 export interface CachedLLMParams {
   /**
@@ -84,7 +85,7 @@ export function extractOpenAIArgs<T extends Record<string, unknown>>(
 
 const PROXY_URL = "https://api.braintrust.dev/v1/proxy";
 
-export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
+const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
   const {
     openAiApiKey,
     openAiOrganizationId,
@@ -102,7 +103,7 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
     return globalThis.__client;
   }
 
-  const client = azureOpenAi
+  return azureOpenAi
     ? new AzureOpenAI({
         apiKey: azureOpenAi.apiKey,
         endpoint: azureOpenAi.endpoint,
@@ -117,8 +118,13 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
         defaultHeaders: openAiDefaultHeaders,
         dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
       });
+};
 
-  if (globalThis.__inherited_braintrust_wrap_openai) {
+export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
+  const client = resolveOpenAIClient(options);
+
+  // avoid re-wrapping if the client is already wrapped (proxied)
+  if (globalThis.__inherited_braintrust_wrap_openai && !isProxy(client)) {
     return globalThis.__inherited_braintrust_wrap_openai(client);
   }
 

@@ -1,8 +1,9 @@
 import { buildOpenAIClient } from "./oai";
 import { http, HttpResponse } from "msw";
 import { server } from "./test/setup";
+import OpenAI from "openai";
 
-const mockOpenAIResponse = {
+const MOCK_OPENAI_COMPLETION_RESPONSE = {
   choices: [
     {
       message: {
@@ -30,7 +31,7 @@ describe("OAI", () => {
       http.post(
         "https://*.openai.azure.com/openai/deployments/*/chat/completions*",
         () => {
-          return HttpResponse.json(mockOpenAIResponse);
+          return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
         },
       ),
     );
@@ -54,32 +55,167 @@ describe("OAI", () => {
     expect(response.choices).toHaveLength(1);
   });
 
-  test("should handle Azure OpenAI error responses", async () => {
+  test("should use regular OpenAI", async () => {
     server.use(
-      http.post(
-        "https://*.openai.azure.com/openai/deployments/*/chat/completions*",
-        () => {
-          return new HttpResponse(null, {
-            status: 401,
-            statusText: "Unauthorized",
-          });
-        },
-      ),
+      http.post("https://api.openai.com/v1/chat/completions", () => {
+        return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
+      }),
     );
 
     const client = buildOpenAIClient({
-      azureOpenAi: {
-        apiKey: "invalid-api-key",
-        endpoint: "https://test-resource.openai.azure.com",
-        apiVersion: "2024-02-15-preview",
-      },
+      openAiApiKey: "test-api-key",
+      openAiBaseUrl: "https://api.openai.com/v1",
     });
 
-    await expect(
-      client.chat.completions.create({
-        model: "test-model",
-        messages: [{ role: "system", content: "Hello" }],
+    const response = await client.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: "Hello" }],
+    });
+
+    expect(response.choices[0].message.content).toBe(
+      "Hello, I am a mock response!",
+    );
+  });
+
+  test("calls proxy if everything unset", async () => {
+    server.use(
+      http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
+        return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
       }),
-    ).rejects.toThrow();
+    );
+
+    const client = buildOpenAIClient({});
+    const response = await client.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: "Hello" }],
+    });
+
+    expect(response.choices[0].message.content).toBe(
+      "Hello, I am a mock response!",
+    );
+  });
+
+  test("default wraps", async () => {
+    server.use(
+      http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
+        return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
+      }),
+    );
+
+    await withMockWrapper(async ({ createSpy }) => {
+      const client = buildOpenAIClient({});
+
+      await client.chat.completions.create({
+        model: "gpt-4",
+        messages: [{ role: "user", content: "Hello" }],
+      });
+
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      expect(createSpy).toHaveBeenCalledWith({
+        model: "gpt-4",
+        messages: [{ role: "user", content: "Hello" }],
+      });
+    });
+  });
+
+  test("wraps once", async () => {
+    server.use(
+      http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
+        return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
+      }),
+    );
+
+    await withMockWrapper(async ({ wrapperMock, createSpy }) => {
+      const client = wrapperMock(
+        new OpenAI({
+          apiKey: "test-api-key",
+        }),
+      );
+      const builtClient = buildOpenAIClient({ client });
+
+      expect(builtClient).toBe(client);
+
+      await builtClient.chat.completions.create({
+        model: "gpt-4",
+        messages: [{ role: "user", content: "Hello" }],
+      });
+
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      expect(createSpy).toHaveBeenCalledWith({
+        model: "gpt-4",
+        messages: [{ role: "user", content: "Hello" }],
+      });
+    });
+  });
+
+  test("wraps client, if possible", async () => {
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", () => {
+        return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
+      }),
+    );
+
+    await withMockWrapper(async ({ wrapperMock, createSpy }) => {
+      const client = new OpenAI({ apiKey: "test-api-key" });
+      const builtClient = buildOpenAIClient({ client });
+
+      await builtClient.chat.completions.create({
+        model: "gpt-4",
+        messages: [{ role: "user", content: "Hello" }],
+      });
+
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      expect(createSpy).toHaveBeenCalledWith({
+        model: "gpt-4",
+        messages: [{ role: "user", content: "Hello" }],
+      });
+    });
   });
 });
+
+const withMockWrapper = async (
+  fn: (args: {
+    wrapperMock: (client: any) => any;
+    createSpy: jest.Mock;
+  }) => Promise<void>,
+) => {
+  const createSpy = jest.fn();
+  const wrapperMock = (client: any) => {
+    return new Proxy(client, {
+      get(target, prop) {
+        if (prop === "chat") {
+          return new Proxy(
+            {},
+            {
+              get(target, prop) {
+                if (prop === "completions") {
+                  return new Proxy(
+                    {},
+                    {
+                      get(target, prop) {
+                        if (prop === "create") {
+                          return createSpy;
+                        }
+                        return Reflect.get(target, prop);
+                      },
+                    },
+                  );
+                }
+                return Reflect.get(target, prop);
+              },
+            },
+          );
+        }
+        return Reflect.get(target, prop);
+      },
+    });
+  };
+
+  const originalWrapper = globalThis.__inherited_braintrust_wrap_openai;
+  try {
+    globalThis.__inherited_braintrust_wrap_openai = wrapperMock;
+    await fn({ wrapperMock, createSpy });
+  } finally {
+    globalThis.__inherited_braintrust_wrap_openai = originalWrapper;
+  }
+};

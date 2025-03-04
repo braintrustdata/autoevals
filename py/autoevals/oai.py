@@ -6,11 +6,9 @@ import textwrap
 import time
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Type, TypeVar
+from typing import Any, Callable, Optional, Type
 
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
-
-T = TypeVar("T")
 
 _NAMED_WRAPPER: Optional[Type[Any]] = None
 _WRAP_OPENAI: Optional[Callable[[Any], Any]] = None
@@ -40,16 +38,21 @@ class LLMClient:
 
     Note:
         If using async OpenAI methods you must use the async methods in Autoevals.
+        The client will automatically configure itself if methods are not provided.
 
     Example:
         ```python
         # Using with OpenAI v1
         import openai
-        client = LLMClient(
-            openai=openai,
-            complete=openai.chat.completions.create,
-            embed=openai.embeddings.create,
-            moderation=openai.moderations.create,
+        client = openai.OpenAI()  # Configure with your settings
+        llm = LLMClient(openai=client)  # Methods will be auto-configured
+
+        # Or with explicit method configuration
+        llm = LLMClient(
+            openai=client,
+            complete=client.chat.completions.create,
+            embed=client.embeddings.create,
+            moderation=client.moderations.create,
             RateLimitError=openai.RateLimitError
         )
 
@@ -58,19 +61,16 @@ class LLMClient:
         class CustomLLMClient(LLMClient):
             def complete(self, **kwargs):
                 # make adjustments as needed
-                return openai.chat.completions.create(**kwargs)
+                return self.openai.chat.completions.create(**kwargs)
         ```
-
-    Note:
-        This class is typically instantiated via the `prepare_openai()` function, which handles
-        the SDK version detection and proper function assignment automatically.
     """
 
     openai: Any
-    complete: Optional[Callable] = None
-    embed: Optional[Callable] = None
-    moderation: Optional[Callable] = None
-    RateLimitError: Optional[Exception] = None
+    complete: Callable[..., Any] = None  # type: ignore # Set in __post_init__
+    embed: Callable[..., Any] = None  # type: ignore # Set in __post_init__
+    moderation: Callable[..., Any] = None  # type: ignore # Set in __post_init__
+    RateLimitError: Type[Exception] = None  # type: ignore # Set in __post_init__
+    is_async: bool = False
     _is_wrapped: bool = False
 
     def __post_init__(self):
@@ -87,31 +87,18 @@ class LLMClient:
         openai_original = self.openai.unwrap() if self._is_wrapped else self.openai
         openai_module = importlib.import_module(openai_original.__module__)
 
-        is_v1 = hasattr(openai_module, "OpenAI")
-
-        if self.complete is None:
-            if is_v1:
-                self.complete = self.openai.chat.completions.create
-            else:
-                self.complete = self.openai.ChatCompletion.create
-
-        if self.embed is None:
-            if is_v1:
-                self.embed = self.openai.embeddings.create
-            else:
-                self.embed = self.openai.Embedding.create
-
-        if self.moderation is None:
-            if is_v1:
-                self.moderation = self.openai.moderations.create
-            else:
-                self.moderation = self.openai.Moderation.create
-
-        if self.RateLimitError is None:
-            if is_v1:
-                self.RateLimitError = openai_module.RateLimitError
-            else:
-                self.RateLimitError = openai_module.error.RateLimitError
+        if hasattr(openai_module, "OpenAI"):
+            # v1
+            self.complete = self.openai.chat.completions.create
+            self.embed = self.openai.embeddings.create
+            self.moderation = self.openai.moderations.create
+            self.RateLimitError = openai_module.RateLimitError
+        else:
+            # v0
+            self.complete = self.openai.ChatCompletion.acreate if self.is_async else self.openai.ChatCompletion.create
+            self.embed = self.openai.Embedding.acreate if self.is_async else self.openai.Embedding.create
+            self.moderation = self.openai.Moderation.acreate if self.is_async else self.openai.Moderation.create
+            self.RateLimitError = openai_module.error.RateLimitError
 
     @property
     def is_wrapped(self) -> bool:
@@ -228,7 +215,7 @@ def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=N
         openai.api_base = base_url
         openai_obj = openai
 
-    return LLMClient(openai=openai_obj)
+    return LLMClient(openai=openai_obj, is_async=is_async)
 
 
 def post_process_response(resp):

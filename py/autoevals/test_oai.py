@@ -3,12 +3,13 @@ import sys
 import openai
 import pytest
 from braintrust.oai import (
-    AsyncCompletionsV1Wrapper,
-    ChatCompletionWrapper,
+    ChatCompletionV0Wrapper,
     CompletionsV1Wrapper,
+    NamedWrapper,
     OpenAIV1Wrapper,
     wrap_openai,
 )
+from openai.resources.chat.completions import AsyncCompletions
 
 from autoevals import init
 from autoevals.oai import _NAMED_WRAPPER, _WRAP_OPENAI, LLMClient, get_openai_wrappers, prepare_openai
@@ -66,8 +67,10 @@ def test_prepare_openai_async():
     assert isinstance(prepared_client, LLMClient)
     assert prepared_client.is_wrapped
     assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
-    assert callable(prepared_client.complete)
-    assert isinstance(getattr(prepared_client.complete, "__self__", None), AsyncCompletionsV1Wrapper)
+
+    openai_obj = getattr(prepared_client.complete, "__self__", None)
+    assert isinstance(openai_obj, NamedWrapper)
+    assert isinstance(openai_obj.unwrap(), AsyncCompletions)
 
 
 def test_prepare_openai_wraps_once():
@@ -120,3 +123,87 @@ def test_prepare_openai_raises_on_missing_openai(monkeypatch: pytest.MonkeyPatch
 
     with pytest.raises(ImportError):
         prepare_openai()
+
+
+@pytest.fixture
+def mock_openai_v0(monkeypatch: pytest.MonkeyPatch):
+    """Mock the OpenAI v0 SDK for testing."""
+
+    class MockOpenAIV0:
+        __module__ = "openai"
+        api_key = None
+        api_base = None
+
+        class ChatCompletion:
+            __module__ = "openai"
+
+            @staticmethod
+            def create(*args, **kwargs):
+                pass
+
+            @staticmethod
+            def acreate(*args, **kwargs):
+                pass
+
+        class Embedding:
+            __module__ = "openai"
+
+            @staticmethod
+            def create(*args, **kwargs):
+                pass
+
+            @staticmethod
+            def acreate(*args, **kwargs):
+                pass
+
+        class Moderation:
+            __module__ = "openai"
+
+            @staticmethod
+            def create(*args, **kwargs):
+                pass
+
+            @staticmethod
+            def acreate(*args, **kwargs):
+                pass
+
+        class error:
+            __module__ = "openai"
+
+            class RateLimitError(Exception):
+                __module__ = "openai"
+                pass
+
+    mock_openai = MockOpenAIV0()
+    monkeypatch.setitem(sys.modules, "openai", mock_openai)
+    return mock_openai
+
+
+def test_prepare_openai_v0_sdk(mock_openai_v0):
+    prepared_client = prepare_openai()
+
+    assert prepared_client.is_wrapped
+    assert prepared_client.openai.api_key == "test-key"
+    assert prepared_client.openai.api_base == "http://test-url"
+
+    assert isinstance(getattr(prepared_client.complete, "__self__", None), ChatCompletionV0Wrapper)
+
+
+def test_prepare_openai_v0_async(mock_openai_v0):
+    prepared_client = prepare_openai(is_async=True)
+
+    assert prepared_client.is_wrapped
+    assert prepared_client.openai.api_key == "test-key"
+    assert prepared_client.openai.api_base == "http://test-url"
+
+    assert prepared_client.complete.__name__ == "acreate"
+
+
+def test_prepare_openai_v0_with_client(mock_openai_v0):
+    client = LLMClient(openai=mock_openai_v0, is_async=True)
+
+    prepared_client = prepare_openai(client=client)
+
+    assert prepared_client.is_wrapped
+    assert prepared_client.openai.api_key is mock_openai_v0.api_key  # must be set by the user
+    assert prepared_client.complete.__name__ == "acreate"

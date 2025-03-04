@@ -15,12 +15,19 @@ from autoevals import init
 from autoevals.oai import _NAMED_WRAPPER, _WRAP_OPENAI, LLMClient, get_openai_wrappers, prepare_openai
 
 
+def unwrap_named_wrapper(obj):
+    return getattr(obj, "_NamedWrapper__wrapped")
+
+
 @pytest.fixture(autouse=True)
 def reset_env_and_client(monkeypatch: pytest.MonkeyPatch):
     """Reset environment variables and client before each test."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_BASE_URL", "http://test-url")
+    monkeypatch.setattr("autoevals.oai._NAMED_WRAPPER", None)
+    monkeypatch.setattr("autoevals.oai._WRAP_OPENAI", None)
+    monkeypatch.setattr("autoevals.oai._OPENAI_MODULE", None)
 
     init(client=None)
 
@@ -54,7 +61,7 @@ def test_prepare_openai_defaults(monkeypatch: pytest.MonkeyPatch):
 
     assert isinstance(prepared_client, LLMClient)
     assert prepared_client.is_wrapped
-    openai_obj = prepared_client.openai.unwrap()
+    openai_obj = unwrap_named_wrapper(prepared_client.openai)
     assert isinstance(openai_obj, openai.OpenAI)
     assert isinstance(getattr(prepared_client.complete, "__self__", None), CompletionsV1Wrapper)
     assert openai_obj.api_key == "test-key"
@@ -70,7 +77,7 @@ def test_prepare_openai_async():
 
     openai_obj = getattr(prepared_client.complete, "__self__", None)
     assert isinstance(openai_obj, NamedWrapper)
-    assert isinstance(openai_obj.unwrap(), AsyncCompletions)
+    assert isinstance(unwrap_named_wrapper(openai_obj), AsyncCompletions)
 
 
 def test_prepare_openai_wraps_once():
@@ -88,8 +95,6 @@ def test_prepare_openai_wraps_once():
 
 
 def test_prepare_openai_handles_missing_braintrust(monkeypatch):
-    monkeypatch.setattr("autoevals.oai._NAMED_WRAPPER", None)
-    monkeypatch.setattr("autoevals.oai._WRAP_OPENAI", None)
     monkeypatch.setitem(sys.modules, "braintrust.oai", None)
 
     prepared_client = prepare_openai()

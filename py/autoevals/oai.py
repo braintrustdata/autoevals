@@ -12,6 +12,19 @@ PROXY_URL = "https://api.braintrust.dev/v1/proxy"
 
 _NAMED_WRAPPER: Optional[Type[Any]] = None
 _WRAP_OPENAI: Optional[Callable[[Any], Any]] = None
+_OPENAI_MODULE: Optional[Any] = None
+
+
+def get_openai_module() -> Any:
+    global _OPENAI_MODULE
+
+    if _OPENAI_MODULE is not None:
+        return _OPENAI_MODULE
+
+    import openai
+
+    _OPENAI_MODULE = openai
+    return openai
 
 
 @dataclass
@@ -85,8 +98,7 @@ class LLMClient:
 
         self._is_wrapped = isinstance(self.openai, NamedWrapper)
 
-        openai_original = self.openai.unwrap() if self._is_wrapped else self.openai
-        openai_module = importlib.import_module(openai_original.__module__)
+        openai_module = get_openai_module()
 
         if hasattr(openai_module, "OpenAI"):
             # v1

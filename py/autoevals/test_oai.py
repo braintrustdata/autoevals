@@ -26,7 +26,7 @@ def reset_env_and_client(monkeypatch: pytest.MonkeyPatch):
     yield
 
 
-def test_prepare_openai_uses_global_client():
+def test_prepare_openai_uses_unwrapped_global_client():
     openai_obj = openai.OpenAI(api_key="api-key", base_url="http://test")
     client = LLMClient(
         openai=openai_obj,
@@ -38,10 +38,10 @@ def test_prepare_openai_uses_global_client():
 
     init(client=client)
 
-    prepared_client, wrapped = prepare_openai()
+    prepared_client = prepare_openai()
 
     assert prepared_client == client
-    assert wrapped is False
+    assert not prepared_client.is_wrapped
     assert prepared_client.openai == openai_obj
     assert prepared_client.complete is client.complete
     assert prepared_client.openai.api_key == "api-key"
@@ -49,10 +49,10 @@ def test_prepare_openai_uses_global_client():
 
 
 def test_prepare_openai_defaults(monkeypatch: pytest.MonkeyPatch):
-    prepared_client, wrapped = prepare_openai()
+    prepared_client = prepare_openai()
 
     assert isinstance(prepared_client, LLMClient)
-    assert wrapped is True
+    assert prepared_client.is_wrapped
     openai_obj = getattr(prepared_client.openai, "_NamedWrapper__wrapped")
     assert isinstance(openai_obj, openai.OpenAI)
     assert isinstance(getattr(prepared_client.complete, "__self__", None), CompletionsV1Wrapper)
@@ -61,10 +61,10 @@ def test_prepare_openai_defaults(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_prepare_openai_async():
-    prepared_client, wrapped = prepare_openai(is_async=True)
+    prepared_client = prepare_openai(is_async=True)
 
     assert isinstance(prepared_client, LLMClient)
-    assert wrapped is True
+    assert prepared_client.is_wrapped
     assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
     assert callable(prepared_client.complete)
     assert isinstance(getattr(prepared_client.complete, "__self__", None), AsyncCompletionsV1Wrapper)
@@ -73,20 +73,14 @@ def test_prepare_openai_async():
 def test_prepare_openai_wraps_once():
     openai_obj = wrap_openai(openai.OpenAI(api_key="api-key", base_url="http://test"))
 
-    client = LLMClient(
-        openai=openai_obj,
-        complete=openai_obj.chat.completions.create,
-        embed=openai_obj.embeddings.create,
-        moderation=openai_obj.moderations.create,
-        RateLimitError=openai.RateLimitError,
-    )
+    client = LLMClient(openai_obj)
 
     init(client=client)
 
-    prepared_client, wrapped = prepare_openai()
+    prepared_client = prepare_openai()
 
     assert prepared_client is client
-    assert wrapped is True
+    assert prepared_client.is_wrapped
     assert prepared_client.openai is openai_obj
 
 
@@ -95,10 +89,10 @@ def test_prepare_openai_handles_missing_braintrust(monkeypatch):
     monkeypatch.setattr("autoevals.oai._WRAP_OPENAI", None)
     monkeypatch.setitem(sys.modules, "braintrust.oai", None)
 
-    prepared_client, wrapped = prepare_openai()
+    prepared_client = prepare_openai()
 
     assert isinstance(prepared_client, LLMClient)
-    assert wrapped is False
+    assert not prepared_client.is_wrapped
     assert isinstance(prepared_client.openai, openai.OpenAI)
 
 

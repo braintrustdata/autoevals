@@ -137,7 +137,7 @@ declare global {
   var __client: OpenAI | undefined;
 }
 
-export const init = (client: OpenAI) => {
+export const init = (client: OpenAI | undefined) => {
   globalThis.__client = client;
 };
 

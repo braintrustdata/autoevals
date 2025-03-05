@@ -56,7 +56,7 @@ class OpenAIV0Module(Protocol):
             ...
 
 
-_openai_module: Optional[OpenAIV1Module | OpenAIV0Module] = None
+_openai_module: Optional[Union[OpenAIV1Module, OpenAIV0Module]] = None
 
 
 def get_openai_module() -> Union[OpenAIV1Module, OpenAIV0Module]:
@@ -123,7 +123,7 @@ class LLMClient:
         ```
     """
 
-    openai: OpenAIV0Module | OpenAIV1Module.OpenAI
+    openai: Union[OpenAIV0Module, OpenAIV1Module.OpenAI]
     complete: Callable[..., Any] = None  # type: ignore # Set in __post_init__
     embed: Callable[..., Any] = None  # type: ignore # Set in __post_init__
     moderation: Callable[..., Any] = None  # type: ignore # Set in __post_init__
@@ -288,7 +288,7 @@ def prepare_openai(
         base_url = os.environ.get("OPENAI_BASE_URL", PROXY_URL)
 
     if hasattr(openai_module, "OpenAI"):
-        assert isinstance(openai_module, OpenAIV1Module)
+        openai_module = cast(OpenAIV1Module, openai_module)
 
         # v1 API
         if is_async:

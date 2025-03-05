@@ -12,7 +12,7 @@ py: ${VENV_PYTHON_PACKAGES}
 VENV_INITIALIZED := venv/.initialized
 
 ${VENV_INITIALIZED}:
-	rm -rf venv && python3 -m venv venv
+	rm -rf venv && python -m venv venv
 	@touch ${VENV_INITIALIZED}
 
 VENV_PYTHON_PACKAGES := venv/.python_packages

@@ -4,8 +4,8 @@ import {
   LLMClassifierFromTemplate,
   OpenAIClassifier,
   buildClassificationTools,
-} from "../js/llm";
-import { ChatCache } from "../js/oai";
+} from "./llm";
+import { ChatCache } from "./oai";
 
 let cache: ChatCache | undefined;
 

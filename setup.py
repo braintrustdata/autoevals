@@ -15,7 +15,7 @@ install_requires = ["chevron", "levenshtein", "pyyaml", "braintrust_core", "json
 
 extras_require = {
     "dev": [
-        "black",
+        "black==22.6.0",
         "braintrust",
         "build",
         "flake8",

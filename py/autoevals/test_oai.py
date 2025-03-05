@@ -1,5 +1,5 @@
 import sys
-from typing import Any, cast
+from typing import Any, Union, cast
 
 import openai
 import pytest
@@ -16,8 +16,8 @@ from openai.resources.chat.completions import AsyncCompletions
 from autoevals import init  # type: ignore[import]
 from autoevals.oai import (  # type: ignore[import]
     LLMClient,
-    OpenAI,
     OpenAIV0Module,
+    OpenAIV1Module,
     _named_wrapper,  # type: ignore[import]  # Accessing private members for testing
     _wrap_openai,  # type: ignore[import]  # Accessing private members for testing
     get_openai_wrappers,
@@ -25,7 +25,7 @@ from autoevals.oai import (  # type: ignore[import]
 )
 
 
-def unwrap_named_wrapper(obj: NamedWrapper | OpenAI | OpenAIV0Module) -> Any:
+def unwrap_named_wrapper(obj: Union[NamedWrapper, OpenAIV1Module.OpenAI, OpenAIV0Module]) -> Any:
     return getattr(obj, "_NamedWrapper__wrapped")
 
 
@@ -45,7 +45,7 @@ def reset_env_and_client(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_prepare_openai_uses_unwrapped_global_client():
-    openai_obj = openai.OpenAI(api_key="api-key", base_url="http://test")
+    openai_obj = cast(OpenAIV1Module.OpenAI, openai.OpenAI(api_key="api-key", base_url="http://test"))
     client = LLMClient(
         openai=openai_obj,
         complete=openai_obj.chat.completions.create,
@@ -66,7 +66,7 @@ def test_prepare_openai_uses_unwrapped_global_client():
 
 
 def test_init_creates_llmclient_if_needed():
-    openai_obj = openai.OpenAI()
+    openai_obj = cast(OpenAIV1Module.OpenAI, openai.OpenAI())
     init(openai_obj)
 
     prepared_client = prepare_openai()
@@ -112,7 +112,7 @@ def test_prepare_openai_async():
 
 
 def test_prepare_openai_wraps_once():
-    openai_obj = cast(OpenAI, wrap_openai(openai.OpenAI(api_key="api-key", base_url="http://test")))
+    openai_obj = cast(OpenAIV1Module.OpenAI, wrap_openai(openai.OpenAI(api_key="api-key", base_url="http://test")))
 
     client = LLMClient(openai_obj)
 

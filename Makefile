@@ -20,6 +20,7 @@ VENV_PYTHON_PACKAGES := venv/.python_packages
 ${VENV_PYTHON_PACKAGES}: ${VENV_INITIALIZED}
 	bash -c 'source venv/bin/activate && python -m pip install --upgrade pip setuptools build twine openai'
 	bash -c 'source venv/bin/activate && python -m pip install -e ".[dev]"'
+	bash -c 'source venv/bin/activate && python -m pip install -e ".[scipy]"'  # for local tests
 	@touch $@
 
 ${VENV_PRE_COMMIT}: ${VENV_PYTHON_PACKAGES}

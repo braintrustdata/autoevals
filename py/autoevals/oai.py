@@ -10,9 +10,7 @@ from typing import Any, Callable, Dict, Optional, Protocol, Tuple, Type, TypeVar
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
 
 
-@runtime_checkable
 class OpenAIV1Module(Protocol):
-    @runtime_checkable
     class OpenAI(Protocol):
         class chat(Protocol):
             class completions(Protocol):
@@ -28,7 +26,6 @@ class OpenAIV1Module(Protocol):
 
         api_key: str
 
-    @runtime_checkable
     class AsyncOpenAI(OpenAI):
         ...
 

@@ -5,44 +5,73 @@ import textwrap
 import time
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Protocol, Type, TypeVar, cast, runtime_checkable
+from typing import Any, Callable, Dict, Optional, Protocol, Tuple, Type, TypeVar, Union, cast, runtime_checkable
 
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
 
-_named_wrapper: Optional[Type[Any]] = None
-_wrap_openai: Optional[Callable[[Any], Any]] = None
-_openai_module: Optional[Any] = None
+
+@runtime_checkable
+class OpenAIV1Module(Protocol):
+    @runtime_checkable
+    class OpenAI(Protocol):
+        class chat(Protocol):
+            class completions(Protocol):
+                create: Callable[..., Any]
+
+        class embeddings(Protocol):
+            class create(Protocol):
+                create: Callable[..., Any]
+
+        class moderations(Protocol):
+            class create(Protocol):
+                create: Callable[..., Any]
+
+        api_key: str
+
+    @runtime_checkable
+    class AsyncOpenAI(OpenAI):
+        ...
+
+    class RateLimitError(Exception):
+        ...
 
 
-def get_openai_module() -> Any:
+@runtime_checkable
+class OpenAIV0Module(Protocol):
+    class ChatCompletion(Protocol):
+        acreate: Callable[..., Any]
+        create: Callable[..., Any]
+
+    class Embedding(Protocol):
+        acreate: Callable[..., Any]
+        create: Callable[..., Any]
+
+    class Moderation(Protocol):
+        acreate: Callable[..., Any]
+        create: Callable[..., Any]
+
+    api_key: Optional[str]
+    api_base: Optional[str]
+    base_url: Optional[str]
+
+    class error(Protocol):
+        class RateLimitError(Exception):
+            ...
+
+
+_openai_module: Optional[OpenAIV1Module | OpenAIV0Module] = None
+
+
+def get_openai_module() -> Union[OpenAIV1Module, OpenAIV0Module]:
     global _openai_module
 
     if _openai_module is not None:
         return _openai_module
 
-    import openai
+    import openai  # type: ignore
 
-    _openai_module = openai
-    return openai
-
-
-@runtime_checkable
-class OpenAI(Protocol):
-    chat: Any
-    embeddings: Any
-    moderations: Any
-    api_key: str
-
-
-@runtime_checkable
-class OpenAIV0Module(Protocol):
-    ChatCompletion: Any
-    Embedding: Any
-    Moderation: Any
-
-    api_key: Optional[str]
-    api_base: Optional[str]
-    base_url: Optional[str]
+    _openai_module = cast(Union[OpenAIV1Module, OpenAIV0Module], openai)
+    return _openai_module
 
 
 @dataclass
@@ -97,7 +126,7 @@ class LLMClient:
         ```
     """
 
-    openai: OpenAIV0Module | OpenAI
+    openai: OpenAIV0Module | OpenAIV1Module.OpenAI
     complete: Callable[..., Any] = None  # type: ignore # Set in __post_init__
     embed: Callable[..., Any] = None  # type: ignore # Set in __post_init__
     moderation: Callable[..., Any] = None  # type: ignore # Set in __post_init__
@@ -119,7 +148,8 @@ class LLMClient:
         openai_module = get_openai_module()
 
         if hasattr(openai_module, "OpenAI"):
-            self.openai = cast(OpenAI, self.openai)
+            openai_module = cast(OpenAIV1Module, openai_module)
+            self.openai = cast(OpenAIV1Module.OpenAI, self.openai)
 
             # v1
             self.complete = self.openai.chat.completions.create
@@ -127,6 +157,7 @@ class LLMClient:
             self.moderation = self.openai.moderations.create
             self.RateLimitError = openai_module.RateLimitError
         else:
+            openai_module = cast(OpenAIV0Module, openai_module)
             self.openai = cast(OpenAIV0Module, self.openai)
 
             # v0
@@ -144,18 +175,21 @@ _client_var = ContextVar[Optional[LLMClient]]("client")
 
 T = TypeVar("T")
 
+_named_wrapper: Optional[Type[Any]] = None
+_wrap_openai: Optional[Callable[[Any], Any]] = None
 
-def get_openai_wrappers():
+
+def get_openai_wrappers() -> Tuple[Type[Any], Callable[[Any], Any]]:
     global _named_wrapper, _wrap_openai
 
     if _named_wrapper is not None and _wrap_openai is not None:
         return _named_wrapper, _wrap_openai
 
     try:
-        from braintrust.oai import NamedWrapper as BraintrustNamedWrapper
-        from braintrust.oai import wrap_openai
+        from braintrust.oai import NamedWrapper as BraintrustNamedWrapper  # type: ignore
+        from braintrust.oai import wrap_openai  # type: ignore
 
-        _named_wrapper = BraintrustNamedWrapper
+        _named_wrapper = cast(Type[Any], BraintrustNamedWrapper)
     except ImportError:
 
         class NamedWrapper:
@@ -166,11 +200,11 @@ def get_openai_wrappers():
 
         _named_wrapper = NamedWrapper
 
-    _wrap_openai = wrap_openai
+    _wrap_openai = cast(Callable[[Any], Any], wrap_openai)
     return _named_wrapper, _wrap_openai
 
 
-def init(client: Optional[LLMClient | OpenAIV0Module | OpenAI] = None, is_async: bool = False):
+def init(client: Optional[Union[LLMClient, OpenAIV0Module, OpenAIV1Module.OpenAI]] = None, is_async: bool = False):
     """Initialize Autoevals with an optional custom LLM client.
 
     This function sets up the global client context for Autoevals to use. If no client is provided,
@@ -234,7 +268,7 @@ def prepare_openai(
         return client
 
     try:
-        import openai
+        openai_module = get_openai_module()
     except Exception as e:
         print(
             textwrap.dedent(
@@ -256,20 +290,22 @@ def prepare_openai(
     if base_url is None:
         base_url = os.environ.get("OPENAI_BASE_URL", PROXY_URL)
 
-    if hasattr(openai, "OpenAI"):
+    if hasattr(openai_module, "OpenAI"):
+        assert isinstance(openai_module, OpenAIV1Module)
+
         # v1 API
         if is_async:
-            openai_obj = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
+            openai_obj = openai_module.AsyncOpenAI(api_key=api_key, base_url=base_url)  # type: ignore
         else:
-            openai_obj = openai.OpenAI(api_key=api_key, base_url=base_url)
+            openai_obj = openai_module.OpenAI(api_key=api_key, base_url=base_url)  # type: ignore
     else:
-        openai = cast(OpenAIV0Module, openai)
+        openai_module = cast(OpenAIV0Module, openai_module)
 
         # v0 API
         if api_key:
-            openai.api_key = api_key
-        openai.api_base = base_url
-        openai_obj = openai
+            openai_module.api_key = api_key
+        openai_module.api_base = base_url
+        openai_obj = openai_module
 
     return LLMClient(openai=openai_obj, is_async=is_async)
 

@@ -1,30 +1,48 @@
 import asyncio
-import importlib
 import os
 import sys
 import textwrap
 import time
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Type
+from typing import Any, Callable, Dict, Optional, Protocol, Type, TypeVar, cast, runtime_checkable
 
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
 
-_NAMED_WRAPPER: Optional[Type[Any]] = None
-_WRAP_OPENAI: Optional[Callable[[Any], Any]] = None
-_OPENAI_MODULE: Optional[Any] = None
+_named_wrapper: Optional[Type[Any]] = None
+_wrap_openai: Optional[Callable[[Any], Any]] = None
+_openai_module: Optional[Any] = None
 
 
 def get_openai_module() -> Any:
-    global _OPENAI_MODULE
+    global _openai_module
 
-    if _OPENAI_MODULE is not None:
-        return _OPENAI_MODULE
+    if _openai_module is not None:
+        return _openai_module
 
     import openai
 
-    _OPENAI_MODULE = openai
+    _openai_module = openai
     return openai
+
+
+@runtime_checkable
+class OpenAI(Protocol):
+    chat: Any
+    embeddings: Any
+    moderations: Any
+    api_key: str
+
+
+@runtime_checkable
+class OpenAIV0Module(Protocol):
+    ChatCompletion: Any
+    Embedding: Any
+    Moderation: Any
+
+    api_key: Optional[str]
+    api_base: Optional[str]
+    base_url: Optional[str]
 
 
 @dataclass
@@ -79,7 +97,7 @@ class LLMClient:
         ```
     """
 
-    openai: Any
+    openai: OpenAIV0Module | OpenAI
     complete: Callable[..., Any] = None  # type: ignore # Set in __post_init__
     embed: Callable[..., Any] = None  # type: ignore # Set in __post_init__
     moderation: Callable[..., Any] = None  # type: ignore # Set in __post_init__
@@ -90,7 +108,7 @@ class LLMClient:
     def __post_init__(self):
         NamedWrapper, wrap_openai = get_openai_wrappers()
 
-        has_customization = self.complete is not None or self.embed is not None or self.moderation is not None
+        has_customization = self.complete is not None or self.embed is not None or self.moderation is not None  # type: ignore  # Pyright doesn't understand our design choice
 
         # avoid wrapping if we have custom methods (the user may intend not to wrap)
         if not has_customization and not isinstance(self.openai, NamedWrapper):
@@ -101,12 +119,16 @@ class LLMClient:
         openai_module = get_openai_module()
 
         if hasattr(openai_module, "OpenAI"):
+            self.openai = cast(OpenAI, self.openai)
+
             # v1
             self.complete = self.openai.chat.completions.create
             self.embed = self.openai.embeddings.create
             self.moderation = self.openai.moderations.create
             self.RateLimitError = openai_module.RateLimitError
         else:
+            self.openai = cast(OpenAIV0Module, self.openai)
+
             # v0
             self.complete = self.openai.ChatCompletion.acreate if self.is_async else self.openai.ChatCompletion.create
             self.embed = self.openai.Embedding.acreate if self.is_async else self.openai.Embedding.create
@@ -120,46 +142,65 @@ class LLMClient:
 
 _client_var = ContextVar[Optional[LLMClient]]("client")
 
+T = TypeVar("T")
+
 
 def get_openai_wrappers():
-    global _NAMED_WRAPPER, _WRAP_OPENAI
+    global _named_wrapper, _wrap_openai
 
-    if _NAMED_WRAPPER is not None and _WRAP_OPENAI is not None:
-        return _NAMED_WRAPPER, _WRAP_OPENAI
+    if _named_wrapper is not None and _wrap_openai is not None:
+        return _named_wrapper, _wrap_openai
 
     try:
         from braintrust.oai import NamedWrapper as BraintrustNamedWrapper
         from braintrust.oai import wrap_openai
 
-        _NAMED_WRAPPER = BraintrustNamedWrapper
+        _named_wrapper = BraintrustNamedWrapper
     except ImportError:
 
         class NamedWrapper:
             pass
 
-        def wrap_openai(openai: Any) -> Any:
+        def wrap_openai(openai: T) -> T:
             return openai
 
-        _NAMED_WRAPPER = NamedWrapper
+        _named_wrapper = NamedWrapper
 
-    _WRAP_OPENAI = wrap_openai
-    return _NAMED_WRAPPER, _WRAP_OPENAI
+    _wrap_openai = wrap_openai
+    return _named_wrapper, _wrap_openai
 
 
-def init(*, client: Optional[LLMClient] = None):
+def init(client: Optional[LLMClient | OpenAIV0Module | OpenAI] = None, is_async: bool = False):
     """Initialize Autoevals with an optional custom LLM client.
 
     This function sets up the global client context for Autoevals to use. If no client is provided,
     the default OpenAI client will be used.
 
     Args:
-        client (Optional[LLMClient]): A custom LLM client instance that implements the LLMClient interface.
-            If None, the default OpenAI client will be used.\
+        client: The client to use for LLM operations. Can be one of:
+            - None: Resets the global client
+            - LLMClient: Used directly as provided
+            - OpenAIV0Module: Wrapped in a new LLMClient instance (OpenAI SDK v0)
+            - OpenAIV1: Wrapped in a new LLMClient instance (OpenAI SDK v1)
+        is_async: Whether to create a client with async operations. Defaults to False.
+            Deprecated: Use the `client` argument directly with your desired async/sync configuration.
     """
-    _client_var.set(client)
+    if client is None:
+        configured_client = None
+    elif isinstance(client, LLMClient):
+        configured_client = client
+    else:
+        configured_client = LLMClient(client, is_async=is_async)
+
+    _client_var.set(configured_client)
 
 
-def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=None, base_url=None):
+def prepare_openai(
+    client: Optional[LLMClient] = None,
+    is_async: bool = False,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+):
     """Prepares and configures an OpenAI client for use with AutoEval.
 
     This function handles both v0 and v1 of the OpenAI SDK, configuring the client
@@ -222,6 +263,8 @@ def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=N
         else:
             openai_obj = openai.OpenAI(api_key=api_key, base_url=base_url)
     else:
+        openai = cast(OpenAIV0Module, openai)
+
         # v0 API
         if api_key:
             openai.api_key = api_key
@@ -231,7 +274,7 @@ def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=N
     return LLMClient(openai=openai_obj, is_async=is_async)
 
 
-def post_process_response(resp):
+def post_process_response(resp: Any) -> Dict[str, Any]:
     # This normalizes against craziness in OpenAI v0 vs. v1
     if hasattr(resp, "to_dict"):
         # v0
@@ -241,19 +284,25 @@ def post_process_response(resp):
         return resp.dict()
 
 
-def set_span_purpose(kwargs):
+def set_span_purpose(kwargs: Dict[str, Any]) -> None:
     kwargs.setdefault("span_info", {}).setdefault("span_attributes", {})["purpose"] = "scorer"
 
 
 def run_cached_request(
-    *, client: Optional[LLMClient] = None, request_type="complete", api_key=None, base_url=None, **kwargs
-):
+    *,
+    client: Optional[LLMClient] = None,
+    request_type: str = "complete",
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    **kwargs: Any,
+) -> Dict[str, Any]:
     wrapper = prepare_openai(client=client, is_async=False, api_key=api_key, base_url=base_url)
     if wrapper.is_wrapped:
         set_span_purpose(kwargs)
 
     retries = 0
     sleep_time = 0.1
+    resp = None
     while retries < 100:
         try:
             resp = post_process_response(getattr(wrapper, request_type)(**kwargs))
@@ -263,18 +312,26 @@ def run_cached_request(
             time.sleep(sleep_time)
             retries += 1
 
+    if resp is None:
+        raise RuntimeError("Failed to get response after maximum retries")
     return resp
 
 
 async def arun_cached_request(
-    *, client: Optional[LLMClient] = None, request_type="complete", api_key=None, base_url=None, **kwargs
-):
+    *,
+    client: Optional[LLMClient] = None,
+    request_type: str = "complete",
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    **kwargs: Any,
+) -> Dict[str, Any]:
     wrapper = prepare_openai(client=client, is_async=True, api_key=api_key, base_url=base_url)
     if wrapper.is_wrapped:
         set_span_purpose(kwargs)
 
     retries = 0
     sleep_time = 0.1
+    resp = None
     while retries < 100:
         try:
             resp = post_process_response(await getattr(wrapper, request_type)(**kwargs))
@@ -284,5 +341,8 @@ async def arun_cached_request(
             sleep_time *= 1.5
             await asyncio.sleep(sleep_time)
             retries += 1
+
+    if resp is None:
+        raise RuntimeError("Failed to get response after maximum retries")
 
     return resp

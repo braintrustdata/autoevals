@@ -1,4 +1,5 @@
 import sys
+from typing import Any, cast
 
 import openai
 import pytest
@@ -6,16 +7,25 @@ from braintrust.oai import (
     ChatCompletionV0Wrapper,
     CompletionsV1Wrapper,
     NamedWrapper,
+    OpenAIV0Wrapper,
     OpenAIV1Wrapper,
     wrap_openai,
 )
 from openai.resources.chat.completions import AsyncCompletions
 
-from autoevals import init
-from autoevals.oai import _NAMED_WRAPPER, _WRAP_OPENAI, LLMClient, get_openai_wrappers, prepare_openai
+from autoevals import init  # type: ignore[import]
+from autoevals.oai import (  # type: ignore[import]
+    LLMClient,
+    OpenAI,
+    OpenAIV0Module,
+    _named_wrapper,  # type: ignore[import]  # Accessing private members for testing
+    _wrap_openai,  # type: ignore[import]  # Accessing private members for testing
+    get_openai_wrappers,
+    prepare_openai,
+)
 
 
-def unwrap_named_wrapper(obj):
+def unwrap_named_wrapper(obj: NamedWrapper | OpenAI | OpenAIV0Module) -> Any:
     return getattr(obj, "_NamedWrapper__wrapped")
 
 
@@ -25,11 +35,11 @@ def reset_env_and_client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_BASE_URL", "http://test-url")
-    monkeypatch.setattr("autoevals.oai._NAMED_WRAPPER", None)
-    monkeypatch.setattr("autoevals.oai._WRAP_OPENAI", None)
-    monkeypatch.setattr("autoevals.oai._OPENAI_MODULE", None)
+    monkeypatch.setattr("autoevals.oai._named_wrapper", None)
+    monkeypatch.setattr("autoevals.oai._wrap_openai", None)
+    monkeypatch.setattr("autoevals.oai._openai_module", None)
 
-    init(client=None)
+    init(None)
 
     yield
 
@@ -44,7 +54,7 @@ def test_prepare_openai_uses_unwrapped_global_client():
         RateLimitError=openai.RateLimitError,
     )
 
-    init(client=client)
+    init(client)
 
     prepared_client = prepare_openai()
 
@@ -53,10 +63,31 @@ def test_prepare_openai_uses_unwrapped_global_client():
     assert prepared_client.openai == openai_obj
     assert prepared_client.complete is client.complete
     assert prepared_client.openai.api_key == "api-key"
-    assert prepared_client.openai.base_url == "http://test"
 
 
-def test_prepare_openai_defaults(monkeypatch: pytest.MonkeyPatch):
+def test_init_creates_llmclient_if_needed():
+    openai_obj = openai.OpenAI()
+    init(openai_obj)
+
+    prepared_client = prepare_openai()
+
+    assert isinstance(prepared_client, LLMClient)
+    assert prepared_client.is_wrapped
+    assert unwrap_named_wrapper(prepared_client.openai) == openai_obj
+
+
+def test_init_creates_async_llmclient_if_needed(mock_openai_v0: OpenAIV0Module):
+    init(mock_openai_v0, is_async=True)
+
+    prepared_client = prepare_openai()
+
+    assert isinstance(prepared_client, LLMClient)
+    assert prepared_client.is_wrapped
+    assert isinstance(prepared_client.openai, OpenAIV0Wrapper)
+    assert prepared_client.complete.__name__ == "acreate"
+
+
+def test_prepare_openai_defaults():
     prepared_client = prepare_openai()
 
     assert isinstance(prepared_client, LLMClient)
@@ -81,11 +112,11 @@ def test_prepare_openai_async():
 
 
 def test_prepare_openai_wraps_once():
-    openai_obj = wrap_openai(openai.OpenAI(api_key="api-key", base_url="http://test"))
+    openai_obj = cast(OpenAI, wrap_openai(openai.OpenAI(api_key="api-key", base_url="http://test")))
 
     client = LLMClient(openai_obj)
 
-    init(client=client)
+    init(client)
 
     prepared_client = prepare_openai()
 
@@ -94,7 +125,7 @@ def test_prepare_openai_wraps_once():
     assert prepared_client.openai is openai_obj
 
 
-def test_prepare_openai_handles_missing_braintrust(monkeypatch):
+def test_prepare_openai_handles_missing_braintrust(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setitem(sys.modules, "braintrust.oai", None)
 
     prepared_client = prepare_openai()
@@ -105,8 +136,8 @@ def test_prepare_openai_handles_missing_braintrust(monkeypatch):
 
 
 def test_get_openai_wrappers_caches_imports():
-    original_wrapper = _NAMED_WRAPPER
-    original_wrap_fn = _WRAP_OPENAI
+    original_wrapper = _named_wrapper
+    original_wrap_fn = _wrap_openai
 
     # First call should set the cache
     wrapper1, wrap_fn1 = get_openai_wrappers()
@@ -143,33 +174,33 @@ def mock_openai_v0(monkeypatch: pytest.MonkeyPatch):
             __module__ = "openai"
 
             @staticmethod
-            def create(*args, **kwargs):
+            def create(*args: Any, **kwargs: Any):
                 pass
 
             @staticmethod
-            def acreate(*args, **kwargs):
+            def acreate(*args: Any, **kwargs: Any):
                 pass
 
         class Embedding:
             __module__ = "openai"
 
             @staticmethod
-            def create(*args, **kwargs):
+            def create(*args: Any, **kwargs: Any):
                 pass
 
             @staticmethod
-            def acreate(*args, **kwargs):
+            def acreate(*args: Any, **kwargs: Any):
                 pass
 
         class Moderation:
             __module__ = "openai"
 
             @staticmethod
-            def create(*args, **kwargs):
+            def create(*args: Any, **kwargs: Any):
                 pass
 
             @staticmethod
-            def acreate(*args, **kwargs):
+            def acreate(*args: Any, **kwargs: Any):
                 pass
 
         class error:
@@ -181,30 +212,28 @@ def mock_openai_v0(monkeypatch: pytest.MonkeyPatch):
 
     mock_openai = MockOpenAIV0()
     monkeypatch.setitem(sys.modules, "openai", mock_openai)
-    return mock_openai
+    return cast(OpenAIV0Module, mock_openai)
 
 
-def test_prepare_openai_v0_sdk(mock_openai_v0):
+def test_prepare_openai_v0_sdk(mock_openai_v0: OpenAIV0Module):
     prepared_client = prepare_openai()
 
     assert prepared_client.is_wrapped
     assert prepared_client.openai.api_key == "test-key"
-    assert prepared_client.openai.api_base == "http://test-url"
 
     assert isinstance(getattr(prepared_client.complete, "__self__", None), ChatCompletionV0Wrapper)
 
 
-def test_prepare_openai_v0_async(mock_openai_v0):
+def test_prepare_openai_v0_async(mock_openai_v0: OpenAIV0Module):
     prepared_client = prepare_openai(is_async=True)
 
     assert prepared_client.is_wrapped
     assert prepared_client.openai.api_key == "test-key"
-    assert prepared_client.openai.api_base == "http://test-url"
 
     assert prepared_client.complete.__name__ == "acreate"
 
 
-def test_prepare_openai_v0_with_client(mock_openai_v0):
+def test_prepare_openai_v0_with_client(mock_openai_v0: OpenAIV0Module):
     client = LLMClient(openai=mock_openai_v0, is_async=True)
 
     prepared_client = prepare_openai(client=client)

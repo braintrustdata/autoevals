@@ -3,6 +3,7 @@ import os
 import sys
 import textwrap
 import time
+import warnings
 from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Protocol, Tuple, Type, TypeVar, Union, cast, runtime_checkable
@@ -10,21 +11,56 @@ from typing import Any, Callable, Dict, Optional, Protocol, Tuple, Type, TypeVar
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
 
 
+@runtime_checkable
+class ChatCompletions(Protocol):
+    create: Callable[..., Any]
+
+
+@runtime_checkable
+class Chat(Protocol):
+    @property
+    def completions(self) -> ChatCompletions:
+        ...
+
+
+@runtime_checkable
+class Embeddings(Protocol):
+    create: Callable[..., Any]
+
+
+@runtime_checkable
+class Moderations(Protocol):
+    create: Callable[..., Any]
+
+
+@runtime_checkable
 class OpenAIV1Module(Protocol):
     class OpenAI(Protocol):
-        class chat(Protocol):
-            class completions(Protocol):
-                create: Callable[..., Any]
+        # Core API resources
+        @property
+        def chat(self) -> Chat:
+            ...
 
-        class embeddings(Protocol):
-            class create(Protocol):
-                create: Callable[..., Any]
+        @property
+        def embeddings(self) -> Embeddings:
+            ...
 
-        class moderations(Protocol):
-            class create(Protocol):
-                create: Callable[..., Any]
+        @property
+        def moderations(self) -> Moderations:
+            ...
 
-        api_key: str
+        # Configuration
+        @property
+        def api_key(self) -> str:
+            ...
+
+        @property
+        def organization(self) -> Optional[str]:
+            ...
+
+        @property
+        def base_url(self) -> Union[str, Any, None]:
+            ...
 
     class AsyncOpenAI(OpenAI):
         ...
@@ -33,6 +69,7 @@ class OpenAIV1Module(Protocol):
         ...
 
 
+# TODO: we're removing v0 support in the next release
 @runtime_checkable
 class OpenAIV0Module(Protocol):
     class ChatCompletion(Protocol):
@@ -201,7 +238,16 @@ def get_openai_wrappers() -> Tuple[Type[Any], Callable[[Any], Any]]:
     return _named_wrapper, _wrap_openai
 
 
-def init(client: Optional[Union[LLMClient, OpenAIV0Module, OpenAIV1Module.OpenAI]] = None, is_async: bool = False):
+Client = Union[LLMClient, OpenAIV0Module, OpenAIV1Module.OpenAI]
+
+
+def resolve_client(client: Client, is_async: bool = False) -> LLMClient:
+    if isinstance(client, LLMClient):
+        return client
+    return LLMClient(openai=client, is_async=is_async)
+
+
+def init(client: Optional[Client] = None, is_async: bool = False):
     """Initialize Autoevals with an optional custom LLM client.
 
     This function sets up the global client context for Autoevals to use. If no client is provided,
@@ -216,18 +262,14 @@ def init(client: Optional[Union[LLMClient, OpenAIV0Module, OpenAIV1Module.OpenAI
         is_async: Whether to create a client with async operations. Defaults to False.
             Deprecated: Use the `client` argument directly with your desired async/sync configuration.
     """
-    if client is None:
-        configured_client = None
-    elif isinstance(client, LLMClient):
-        configured_client = client
-    else:
-        configured_client = LLMClient(client, is_async=is_async)
+    _client_var.set(resolve_client(client, is_async=is_async) if client else None)
 
-    _client_var.set(configured_client)
+
+warned_deprecated_api_key_base_url = False
 
 
 def prepare_openai(
-    client: Optional[LLMClient] = None,
+    client: Optional[Client] = None,
     is_async: bool = False,
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
@@ -262,7 +304,7 @@ def prepare_openai(
     """
     client = client or _client_var.get(None)
     if client is not None:
-        return client
+        return resolve_client(client, is_async=is_async)
 
     try:
         openai_module = get_openai_module()
@@ -280,6 +322,15 @@ def prepare_openai(
             file=sys.stderr,
         )
         raise
+
+    global warned_deprecated_api_key_base_url
+    if not warned_deprecated_api_key_base_url and (api_key is not None or base_url is not None):
+        warnings.warn(
+            "The api_key and base_url parameters are deprecated. Please use init() or call with client instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        warned_deprecated_api_key_base_url = True
 
     # prepare the default openai sdk, if not provided
     if api_key is None:

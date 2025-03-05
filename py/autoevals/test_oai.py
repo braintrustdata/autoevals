@@ -45,7 +45,7 @@ def reset_env_and_client(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_prepare_openai_uses_unwrapped_global_client():
-    openai_obj = cast(OpenAIV1Module.OpenAI, openai.OpenAI(api_key="api-key", base_url="http://test"))
+    openai_obj = openai.OpenAI(api_key="api-key", base_url="http://test")
     client = LLMClient(
         openai=openai_obj,
         complete=openai_obj.chat.completions.create,
@@ -66,7 +66,7 @@ def test_prepare_openai_uses_unwrapped_global_client():
 
 
 def test_init_creates_llmclient_if_needed():
-    openai_obj = cast(OpenAIV1Module.OpenAI, openai.OpenAI())
+    openai_obj = openai.OpenAI()
     init(openai_obj)
 
     prepared_client = prepare_openai()
@@ -97,6 +97,14 @@ def test_prepare_openai_defaults():
     assert isinstance(getattr(prepared_client.complete, "__self__", None), CompletionsV1Wrapper)
     assert openai_obj.api_key == "test-key"
     assert openai_obj.base_url == "http://test-url"
+
+
+def test_prepare_openai_with_plain_openai():
+    client = openai.OpenAI(api_key="api-key", base_url="http://test")
+    prepared_client = prepare_openai(client=client)
+
+    assert prepared_client.is_wrapped
+    assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
 
 
 def test_prepare_openai_async():

@@ -11,7 +11,7 @@ from braintrust_core.score import Score
 
 from autoevals.partial import ScorerWithPartial
 
-from .oai import LLMClient, arun_cached_request, run_cached_request
+from .oai import Client, arun_cached_request, run_cached_request
 
 # Disable HTML escaping in chevron.
 chevron.renderer._html_escape = lambda x: x  # type: ignore[attr-defined]
@@ -83,14 +83,14 @@ class OpenAIScorer(ScorerWithPartial):
     Args:
         api_key: Deprecated. Use client instead.
         base_url: Deprecated. Use client instead.
-        client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+        client: Optional Client. If not provided, uses global client from init().
     """
 
     def __init__(
         self,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
     ) -> None:
         """Initialize an OpenAI scorer.
 
@@ -99,7 +99,7 @@ class OpenAIScorer(ScorerWithPartial):
         Args:
             api_key: Deprecated. Use client instead.
             base_url: Deprecated. Use client instead.
-            client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+            client: Optional Client. If not provided, uses global client from init().
 
         Note:
             The api_key and base_url parameters are deprecated and will be removed in a future version.
@@ -126,7 +126,7 @@ class OpenAILLMScorer(OpenAIScorer):
         temperature: Controls randomness (0 = focused, 1 = creative)
         api_key: Deprecated. Use client.
         base_url: Deprecated. Use client.
-        client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+        client: Optional Client. If not provided, uses global client from init().
     """
 
     def __init__(
@@ -134,7 +134,7 @@ class OpenAILLMScorer(OpenAIScorer):
         temperature: Optional[float] = None,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
     ) -> None:
         """Initialize an OpenAI LLM scorer.
 
@@ -144,7 +144,7 @@ class OpenAILLMScorer(OpenAIScorer):
             temperature: The sampling temperature to use for the model.
             api_key: Deprecated. See base class for details.
             base_url: Deprecated. See base class for details.
-            client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+            client: Optional Client. If not provided, uses global client from init().
 
         See Also:
             OpenAIScorer: Base class that handles authentication and API configuration.
@@ -172,7 +172,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         engine: Deprecated. Use client.
         api_key: Deprecated. Use client.
         base_url: Deprecated. Use client.
-        client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+        client: Optional Client. If not provided, uses global client from init().
     """
 
     def __init__(
@@ -188,7 +188,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         engine=None,
         api_key=None,
         base_url=None,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
     ):
         """Initialize an OpenAI LLM classifier.
 
@@ -206,7 +206,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
             engine: Deprecated. Use client.
             api_key: Deprecated. Use client.
             base_url: Deprecated. Use client.
-            client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+            client: Optional Client. If not provided, uses global client from init().
 
         See Also:
             OpenAILLMScorer: Parent class that handles LLM functionality.
@@ -347,7 +347,7 @@ class LLMClassifier(OpenAILLMClassifier):
         engine: Deprecated by OpenAI
         api_key: Deprecated. Use client.
         base_url: Deprecated. Use client.
-        client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+        client: Optional Client. If not provided, uses global client from init().
         **extra_render_args: Additional template variables
     """
 
@@ -365,7 +365,7 @@ class LLMClassifier(OpenAILLMClassifier):
         engine=None,
         api_key=None,
         base_url=None,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
         **extra_render_args,
     ):
         """Initialize an LLM classifier.
@@ -381,7 +381,7 @@ class LLMClassifier(OpenAILLMClassifier):
             engine: Deprecated. Use client.
             api_key: Deprecated. Use client.
             base_url: Deprecated. Use client.
-            client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+            client: Optional Client. If not provided, uses global client from init().
             **extra_render_args: Additional arguments to pass to the template renderer.
         """
         choice_strings = list(choice_scores.keys())
@@ -410,11 +410,11 @@ class LLMClassifier(OpenAILLMClassifier):
         )
 
     @classmethod
-    def from_spec(cls, name: str, spec: ModelGradedSpec, client: Optional[LLMClient] = None, **kwargs):
+    def from_spec(cls, name: str, spec: ModelGradedSpec, client: Optional[Client] = None, **kwargs):
         return cls(name, spec.prompt, spec.choice_scores, client=client, **kwargs)
 
     @classmethod
-    def from_spec_file(cls, name: str, path: str, client: Optional[LLMClient] = None, **kwargs):
+    def from_spec_file(cls, name: str, path: str, client: Optional[Client] = None, **kwargs):
         if cls._SPEC_FILE_CONTENTS[name] == "":
             with open(path) as f:
                 cls._SPEC_FILE_CONTENTS[name] = f.read()
@@ -462,7 +462,7 @@ class SpecFileClassifier(LLMClassifier):
         temperature: Override temperature
         api_key: Deprecated. Use client.
         base_url: Deprecated. Use client.
-        client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+        client: Optional Client. If not provided, uses global client from init().
     """
 
     def __new__(
@@ -474,7 +474,7 @@ class SpecFileClassifier(LLMClassifier):
         temperature=None,
         api_key=None,
         base_url=None,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
     ):
         """Create a new classifier instance from a YAML template.
 
@@ -486,7 +486,7 @@ class SpecFileClassifier(LLMClassifier):
             temperature: Optional temperature override for the template.
             api_key: Deprecated. See OpenAIScorer for details.
             base_url: Deprecated. See OpenAIScorer for details.
-            client: Optional LLMClient, OpenAI v0 module, or OpenAI v1 client. If not provided, uses global client from init().
+            client: Optional Client. If not provided, uses global client from init().
 
         Returns:
             LLMClassifier: A new classifier instance configured from the template.

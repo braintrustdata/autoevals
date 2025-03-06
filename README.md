@@ -438,3 +438,13 @@ There is nothing particularly novel about the evaluation methods in this library
 ## Documentation
 
 The full docs are available [here](https://www.braintrust.dev/docs/reference/autoevals).
+
+## Contributing
+
+We welcome contributions!
+
+To install the development dependencies, run `make develop`, and run `source env.sh` to activate the environment. Make a `.env` file from the `.env.example` file and set the environment variables. Run `direnv allow` to load the environment variables.
+
+To run the tests, run `pytest` from the root directory.
+
+Send a PR and we'll review it! We'll take care of versioning and releasing.

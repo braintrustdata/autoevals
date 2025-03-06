@@ -29,6 +29,7 @@
 
 export type { Score, ScorerArgs, Scorer } from "@braintrust/core";
 export * from "./llm";
+export { init } from "./oai";
 export * from "./string";
 export * from "./list";
 export * from "./moderation";

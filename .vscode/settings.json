@@ -1,0 +1,7 @@
+{
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "black-formatter.path": ["${workspaceFolder}/venv/bin/black"]
+}

@@ -4,14 +4,29 @@ from braintrust_core.score import Score
 
 from autoevals.llm import OpenAIScorer
 
-from .oai import LLMClient, arun_cached_request, run_cached_request
+from .oai import Client, arun_cached_request, run_cached_request
 
 REQUEST_TYPE = "moderation"
 
 
 class Moderation(OpenAIScorer):
-    """
-    A scorer that uses OpenAI's moderation API to determine if AI response contains ANY flagged content.
+    """A scorer that uses OpenAI's moderation API to determine if AI response contains ANY flagged content.
+
+    Args:
+        threshold: Optional threshold to use to determine whether content has exceeded threshold.
+            By default, uses OpenAI's default (using `flagged` from the response payload).
+        api_key: Deprecated. Use client instead.
+        base_url: Deprecated. Use client instead.
+        client: Optional Client. If not provided, uses global client from init().
+
+    Note:
+        The api_key and base_url parameters are deprecated and will be removed in a future version.
+        Instead, you can either:
+        1. Pass a client instance directly to this constructor using the client parameter
+        2. Set a global client using autoevals.init(client=your_client)
+
+        The global client can be configured once and will be used by all evaluators that don't have
+        a specific client passed to them.
     """
 
     threshold = None
@@ -22,15 +37,25 @@ class Moderation(OpenAIScorer):
         threshold=None,
         api_key=None,
         base_url=None,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
     ):
-        """
-        Create a new Moderation scorer.
+        """Initialize a Moderation scorer.
 
-        :param threshold: Optional. Threshold to use to determine whether content has exceeded threshold. By
-        default, it uses OpenAI's default. (Using `flagged` from the response payload.)
-        :param api_key: OpenAI key
-        :param base_url: Base URL to be used to reach OpenAI moderation endpoint.
+        Args:
+            threshold: Optional threshold to use to determine whether content has exceeded threshold.
+                By default, uses OpenAI's default (using `flagged` from the response payload).
+            api_key: Deprecated. Use client instead.
+            base_url: Deprecated. Use client instead.
+            client: Optional Client. If not provided, uses global client from init().
+
+        Note:
+            The api_key and base_url parameters are deprecated and will be removed in a future version.
+            Instead, you can either:
+            1. Pass a client instance directly to this constructor using the client parameter
+            2. Set a global client using autoevals.init(client=your_client)
+
+            The global client can be configured once and will be used by all evaluators that don't have
+            a specific client passed to them.
         """
         super().__init__(api_key=api_key, base_url=base_url, client=client)
         self.threshold = threshold
@@ -70,6 +95,4 @@ class Moderation(OpenAIScorer):
         return 1
 
 
-__all__ = ["Moderation"]
-__all__ = ["Moderation"]
 __all__ = ["Moderation"]

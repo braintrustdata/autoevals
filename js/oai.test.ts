@@ -181,7 +181,7 @@ describe("OAI", () => {
 
     const client = new OpenAI({ apiKey: "test-api-key" });
 
-    init(client);
+    init({ client });
 
     const builtClient = buildOpenAIClient({});
 
@@ -197,7 +197,7 @@ describe("OAI", () => {
 
     const client = new OpenAI({ apiKey: "test-api-key" });
 
-    init(client);
+    init({ client });
 
     const otherClient = new OpenAI({ apiKey: "other-api-key" });
 

@@ -16,16 +16,16 @@ import {
 } from "./llm.fixtures";
 
 beforeAll(() => {
-  init(
-    new OpenAI({
+  init({
+    client: new OpenAI({
       apiKey: "test-api-key",
       baseURL: "https://api.openai.com/v1",
     }),
-  );
+  });
 });
 
 afterAll(() => {
-  init(undefined);
+  init();
 });
 
 describe("LLM Tests", () => {
@@ -169,7 +169,7 @@ Issue Description: {{page_content}}
     );
 
     // reset the client to test direct client usage
-    init(undefined);
+    init();
 
     const client = new OpenAI({
       apiKey: "test-api-key",

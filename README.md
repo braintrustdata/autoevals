@@ -4,7 +4,7 @@ Autoevals is a tool to quickly and easily evaluate AI model outputs.
 
 It bundles together a variety of automatic evaluation methods including:
 
-- LLM-as-a-Judge
+- LLM-as-a-judge
 - Heuristic (e.g. Levenshtein distance)
 - Statistical (e.g. BLEU)
 
@@ -18,10 +18,24 @@ their outputs.
 You can also create your own model-graded evaluations with Autoevals. It's easy to add custom prompts, parse outputs,
 and manage exceptions.
 
+<div className="hidden">
+
+### Requirements
+
+- Python 3.9 or higher
+- Compatible with both OpenAI Python SDK v0.x and v1.x
+
+</div>
+
 ## Installation
 
-Autoevals is distributed as a [Python library on PyPI](https://pypi.org/project/autoevals/) and
-[Node.js library on NPM](https://www.npmjs.com/package/autoevals).
+<div className="tabs">
+
+### TypeScript
+
+```bash
+npm install autoevals
+```
 
 ### Python
 
@@ -29,42 +43,79 @@ Autoevals is distributed as a [Python library on PyPI](https://pypi.org/project/
 pip install autoevals
 ```
 
-### Node.js
+</div>
 
-```bash
-npm install autoevals
-```
+## Getting started
 
-## Example
-
-Use Autoevals to model-grade an example LLM completion using the [factuality prompt](templates/factuality.yaml).
+Here's how you can use Autoevals to model-grade an example LLM completion using the [factuality prompt](templates/factuality.yaml).
 By default, Autoevals uses your `OPENAI_API_KEY` environment variable to authenticate with OpenAI's API.
+
+<div className="tabs">
 
 ### Python
 
 ```python
 from autoevals.llm import *
+import asyncio
 
 # Create a new LLM-based evaluator
 evaluator = Factuality()
 
-# Evaluate an example LLM completion
+# Synchronous evaluation
 input = "Which country has the highest population?"
 output = "People's Republic of China"
 expected = "China"
 
+# Using the synchronous API
 result = evaluator(output, expected, input=input)
+print(f"Factuality score (sync): {result.score}")
+print(f"Factuality metadata (sync): {result.metadata['rationale']}")
 
-# The evaluator returns a score from [0,1] and includes the raw outputs from the evaluator
-print(f"Factuality score: {result.score}")
-print(f"Factuality metadata: {result.metadata['rationale']}")
+# Using the asynchronous API
+async def main():
+    result = await evaluator.eval_async(output, expected, input=input)
+    print(f"Factuality score (async): {result.score}")
+    print(f"Factuality metadata (async): {result.metadata['rationale']}")
+
+# Run the async example
+asyncio.run(main())
 ```
 
-#### Use with other AI providers through the AI proxy
+### TypeScript
 
-Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
+```typescript
+import { Factuality } from "autoevals";
 
-If you have a Braintrust account, you can set the `BRAINTUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. Additionally, you can route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in Braintrust.
+(async () => {
+  const input = "Which country has the highest population?";
+  const output = "People's Republic of China";
+  const expected = "China";
+
+  const result = await Factuality({ output, expected, input });
+  console.log(`Factuality score: ${result.score}`);
+  console.log(`Factuality metadata: ${result.metadata?.rationale}`);
+})();
+```
+
+</div>
+
+## Using other AI providers
+
+When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI proxy](https://www.braintrust.dev/docs/guides/proxy).
+
+This provides you with numerous benefits:
+
+- Simplified access to many AI providers
+- Reduced costs with automatic request caching
+- Increased observability when you enable logging to Braintrust
+
+The proxy is free to use, even if you don't have a Braintrust account.
+
+If you have a Braintrust account, you can optionally set the `BRAINTRUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. You can also route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in Braintrust.
+
+<div className="tabs">
+
+### Python
 
 ```python
 # NOTE: ensure BRAINTRUST_API_KEY is set in your environment and OPENAI_API_KEY is not set
@@ -85,60 +136,9 @@ print(f"Factuality score: {result.score}")
 print(f"Factuality metadata: {result.metadata['rationale']}")
 ```
 
-#### Custom Client
+### TypeScript
 
-If you need to use a different OpenAI compatible API or require custom behavior, you can initialize the library with a custom client.
-
-```python
-import openai
-from autoevals import init
-from autoevals.oai import LLMClient
-
-openai_client = openai.OpenAI(base_url="https://api.openai.com/v1/")
-
-class CustomClient(LLMClient):
-    openai=openai_client  # you can also pass in openai module and we will instantiate it for you
-    embed = openai.embeddings.create
-    moderation = openai.moderations.create
-    RateLimitError = openai.RateLimitError
-
-    def complete(self, **kwargs):
-        # make adjustments as needed
-        return self.openai.chat.completions.create(**kwargs)
-
-# Autoevals will now use your custom client
-client = init(client=CustomClient)
-```
-
-If you only need to use a custom client for a specific evaluator, you can pass in the client to the evaluator.
-
-```python
-evaluator = Factuality(client=CustomClient)
-```
-
-### Node.js
-
-```javascript
-import { Factuality } from "autoevals";
-
-(async () => {
-  const input = "Which country has the highest population?";
-  const output = "People's Republic of China";
-  const expected = "China";
-
-  const result = await Factuality({ output, expected, input });
-  console.log(`Factuality score: ${result.score}`);
-  console.log(`Factuality metadata: ${result.metadata.rationale}`);
-})();
-```
-
-#### Use with other AI providers through the AI proxy
-
-Autoevals will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI proxy](https://www.braintrust.dev/docs/guides/proxy). This provides numerous benefits like simplified access to many AI providers, reduced costs with automatic request caching, and increased observability when you enable logging to Braintrust. The proxy is free to use, even if you don't have a Braintrust account.
-
-If you have a Braintrust account, you can set the `BRAINTUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. Additionally, you can route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in Braintrust.
-
-```javascript
+```typescript
 // NOTE: ensure BRAINTRUST_API_KEY is set in your environment and OPENAI_API_KEY is not set
 import { Factuality } from "autoevals";
 
@@ -161,57 +161,110 @@ import { Factuality } from "autoevals";
 })();
 ```
 
-## Using Braintrust with Autoevals
+</div>
 
-Once you grade an output using Autoevals, it's convenient to use [Braintrust](https://www.braintrust.dev/docs/libs/python) to log and compare your evaluation results.
+## Custom client configuration
 
-### Python
+There are two ways you can configure a custom client when you need to use a different OpenAI compatible API:
+
+1. **Global configuration**: Initialize a client that will be used by all evaluators
+2. **Instance configuration**: Configure a client for a specific evaluator
+
+### Global configuration
+
+Set up a client that all your evaluators will use:
+
+<div className="tabs">
+
+#### Python
 
 ```python
-from autoevals.llm import *
-import braintrust
+import openai
+import asyncio
+from autoevals import init
+from autoevals.llm import Factuality
 
-# Create a new LLM-based evaluator
-evaluator = Factuality()
+client = init(openai.AsyncOpenAI(base_url="https://api.openai.com/v1/"))
 
-# Set up an example LLM completion
-input = "Which country has the highest population?"
-output = "People's Republic of China"
-expected = "China"
-
-# Set up a BrainTrust experiment to log our eval to
-experiment = braintrust.init(
-    project="Autoevals", api_key="YOUR_BRAINTRUST_API_KEY"
-)
-
-# Start a span and run our evaluator
-with experiment.start_span() as span:
-    result = evaluator(output, expected, input=input)
-
-    # The evaluator returns a score from [0,1] and includes the raw outputs from the evaluator
-    print(f"Factuality score: {result.score}")
-    print(f"Factuality metadata: {result.metadata['rationale']}")
-
-    span.log(
-        inputs={"query": input},
-        output=output,
-        expected=expected,
-        scores={
-            "factuality": result.score,
-        },
-        metadata={
-            "factuality": result.metadata,
-        },
+async def main():
+    evaluator = Factuality()
+    result = await evaluator.eval_async(
+        input="What is the speed of light in a vacuum?",
+        output="The speed of light in a vacuum is 299,792,458 meters per second.",
+        expected="The speed of light in a vacuum is approximately 300,000 kilometers per second."
     )
+    print(f"Factuality score: {result.score}")
 
-print(experiment.summarize())
+asyncio.run(main())
 ```
 
-### Node.js
+#### TypeScript
 
-Create a file named `example.eval.js` (it must end with `.eval.js` or `.eval.js`):
+```typescript
+import OpenAI from "openai";
+import { init, Factuality } from "autoevals";
 
-```javascript
+const client = new OpenAI({
+  baseURL: "https://api.openai.com/v1/",
+});
+
+init({ client });
+
+(async () => {
+  const result = await Factuality({
+    input: "What is the speed of light in a vacuum?",
+    output: "The speed of light in a vacuum is 299,792,458 meters per second.",
+    expected:
+      "The speed of light in a vacuum is approximately 300,000 kilometers per second (or precisely 299,792,458 meters per second).",
+  });
+
+  console.log("Factuality Score:", result);
+})();
+```
+
+</div>
+
+### Instance configuration
+
+Configure a client for a specific evaluator instance:
+
+<div className="tabs">
+
+#### Python
+
+```python
+import openai
+from autoevals.llm import Factuality
+
+custom_client = openai.OpenAI(base_url="https://custom-api.example.com/v1/")
+evaluator = Factuality(client=custom_client)
+```
+
+#### TypeScript
+
+```typescript
+import OpenAI from "openai";
+import { Factuality } from "autoevals";
+
+const customClient = new OpenAI({
+  baseURL: "https://custom-api.example.com/v1/",
+});
+const evaluator = new Factuality({ client: customClient });
+```
+
+</div>
+
+## Using Braintrust with Autoevals (Optional)
+
+Once you grade an output using Autoevals, you can optionally use [Braintrust](https://www.braintrust.dev/docs/libs/python) to log and compare your evaluation results. This integration is completely optional and not required for using Autoevals.
+
+<div className="tabs">
+
+### TypeScript
+
+Create a file named `example.eval.js` (it must take the form `*.eval.[ts|tsx|js|jsx]`):
+
+```typescript
 import { Eval } from "braintrust";
 import { Factuality } from "autoevals";
 
@@ -233,12 +286,35 @@ Then, run
 npx braintrust run example.eval.js
 ```
 
-## Supported Evaluation Methods
+### Python
 
-### LLM-as-a-Judge
+Create a file named `eval_example.py` (it must take the form `eval_*.py`):
+
+```python
+import braintrust
+from autoevals.llm import Factuality
+
+Eval(
+    "Autoevals",
+    data=lambda: [
+        dict(
+            input="Which country has the highest population?",
+            expected="China",
+        ),
+    ],
+    task=lambda *args: "People's Republic of China",
+    scores=[Factuality],
+)
+```
+
+</div>
+
+## Supported evaluation methods
+
+### LLM-as-a-judge evaluations
 
 - Battle
-- ClosedQA
+- Closed QA
 - Humor
 - Factuality
 - Moderation
@@ -248,45 +324,38 @@ npx braintrust run example.eval.js
 - Translation
 - Fine-tuned binary classifiers
 
-### RAG
+### RAG evaluations
 
 - Context precision
 - Context relevancy
 - Context recall
-- Context entities recall
-- Faithfullness
-- Answer relevance
-- Answer semantic similarity
+- Context entity recall
+- Faithfulness
+- Answer relevancy
+- Answer similarity
 - Answer correctness
-- Aspect critique
 
-### Composite
+### Composite evaluations
 
 - Semantic list contains
 - JSON validity
 
-### Embeddings
+### Embedding evaluations
 
 - Embedding similarity
-- BERTScore
 
-### Heuristic
+### Heuristic evaluations
 
 - Levenshtein distance
 - Exact match
 - Numeric difference
 - JSON diff
-- Jaccard distance
 
-### Statistical
-
-- BLEU
-- ROUGE
-- METEOR
-
-## Custom Evaluation Prompts
+## Custom evaluation prompts
 
 Autoevals supports custom evaluation prompts for model-graded evaluation. To use them, simply pass in a prompt and scoring mechanism:
+
+<div className="tabs">
 
 ### Python
 
@@ -323,9 +392,7 @@ page_content = """
 As suggested by Nicolo, we should standardize the error responses coming from GoTrue, postgres, and realtime (and any other/future APIs) so that it's better DX when writing a client,
 We can make this change on the servers themselves, but since postgrest and gotrue are fully/partially external may be harder to change, it might be an option to transform the errors within the client libraries/supabase-js, could be messy?
 Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#openapi-specification"""
-output = (
-    "Standardize error responses from GoTrue, Postgres, and Realtime APIs for better DX"
-)
+output = "Standardize error responses from GoTrue, Postgres, and Realtime APIs for better DX"
 expected = "Standardize Error Responses across APIs"
 
 response = evaluator(output, expected, input=page_content)
@@ -334,9 +401,9 @@ print(f"Score: {response.score}")
 print(f"Metadata: {response.metadata}")
 ```
 
-### Node.js
+### TypeScript
 
-```javascript
+```typescript
 import { LLMClassifierFromTemplate } from "autoevals";
 
 (async () => {
@@ -352,15 +419,12 @@ Issue Description: {{input}}
 
   const choiceScores = { 1: 1, 2: 0 };
 
-  const evaluator =
-    LLMClassifierFromTemplate <
-    { input: string } >
-    {
-      name: "TitleQuality",
-      promptTemplate,
-      choiceScores,
-      useCoT: true,
-    };
+  const evaluator = LLMClassifierFromTemplate<{ input: string }>({
+    name: "TitleQuality",
+    promptTemplate,
+    choiceScores,
+    useCoT: true,
+  });
 
   const input = `As suggested by Nicolo, we should standardize the error responses coming from GoTrue, postgres, and realtime (and any other/future APIs) so that it's better DX when writing a client,
 We can make this change on the servers themselves, but since postgrest and gotrue are fully/partially external may be harder to change, it might be an option to transform the errors within the client libraries/supabase-js, could be messy?
@@ -375,20 +439,22 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
 })();
 ```
 
-## Creating custom scorers
+</div>
+
+## Creating Custom Scorers
 
 You can also create your own scoring functions that do not use LLMs. For example, to test whether the word `'banana'`
 is in the output, you can use the following:
+
+<div className="tabs">
 
 ### Python
 
 ```python
 from autoevals import Score
 
-
 def banana_scorer(output, expected, input):
     return Score(name="banana_scorer", score=1 if "banana" in output else 0)
-
 
 input = "What is 1 banana + 2 bananas?"
 output = "3"
@@ -399,9 +465,9 @@ result = banana_scorer(output, expected, input)
 print(f"Banana score: {result.score}")
 ```
 
-### Node.js
+### TypeScript
 
-```javascript
+```typescript
 import { Score } from "autoevals";
 
 const bananaScorer = ({
@@ -426,6 +492,8 @@ const bananaScorer = ({
 })();
 ```
 
+</div>
+
 ## Why does this library exist?
 
 There is nothing particularly novel about the evaluation methods in this library. They are all well-known and well-documented. However, there are a few things that are particularly difficult when evaluating in practice:
@@ -434,6 +502,8 @@ There is nothing particularly novel about the evaluation methods in this library
 - Parsing the outputs on model-graded evaluations is also challenging. There are frameworks that do this, but it's hard to
   debug one output at a time, propagate errors, and tweak the prompts. Autoevals makes these tasks easy.
 - Collecting metrics behind a uniform interface makes it easy to swap out evaluation methods and compare them. Prior to Autoevals, we couldn't find an open source library where you can simply pass in `input`, `output`, and `expected` values through a bunch of different evaluation methods.
+
+<div className="hidden">
 
 ## Documentation
 
@@ -448,3 +518,5 @@ To install the development dependencies, run `make develop`, and run `source env
 To run the tests, run `pytest` from the root directory.
 
 Send a PR and we'll review it! We'll take care of versioning and releasing.
+
+</div>

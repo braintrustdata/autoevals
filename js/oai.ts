@@ -5,9 +5,9 @@ import {
   ChatCompletionToolChoiceOption,
 } from "openai/resources";
 import { AzureOpenAI, OpenAI } from "openai";
+import { types } from "node:util";
 
 import { Env } from "./env";
-import { isProxy } from "util/types";
 
 export interface CachedLLMParams {
   /**
@@ -124,7 +124,7 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
   const client = resolveOpenAIClient(options);
 
   // avoid re-wrapping if the client is already wrapped (proxied)
-  if (globalThis.__inherited_braintrust_wrap_openai && !isProxy(client)) {
+  if (globalThis.__inherited_braintrust_wrap_openai && !types.isProxy(client)) {
     return globalThis.__inherited_braintrust_wrap_openai(client);
   }
 

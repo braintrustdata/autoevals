@@ -89,13 +89,13 @@ async def evaluate_qa():
 
     # Question and context
     question = "What was the purpose of the Apollo missions?"
-    context = \"\"\"
+    context = '''
     The Apollo program was a NASA space program that ran from 1961 to 1972,
     with the goal of landing humans on the Moon and bringing them safely back
     to Earth. The program achieved its most famous success when Apollo 11
     astronauts Neil Armstrong and Buzz Aldrin became the first humans to walk
     on the Moon on July 20, 1969.
-    \"\"\"
+    '''
 
     # Two different answers to evaluate
     answer = "The Apollo program's main goal was to land humans on the Moon and return them safely to Earth."

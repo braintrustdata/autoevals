@@ -1,3 +1,49 @@
+"""LLM-based evaluation scorers for assessing model outputs.
+
+This module provides a collection of pre-built LLM scorers for common evaluation tasks.
+
+All evaluators accept the following common arguments:
+- model: Model to use (defaults to gpt-4)
+- temperature: Controls randomness (0-1, defaults to 0)
+- client: OpenAI client (defaults to global client from init())
+
+Example:
+```python
+from openai import OpenAI
+from autoevals import Battle, Factuality, ClosedQA, init
+
+# Initialize with your OpenAI client (or pass client= to individual scorers)
+init(OpenAI())
+
+# Compare solutions
+battle = Battle()
+result = battle.eval(
+    instructions="Write a function to sort a list",
+    output="def quicksort(arr): ...",
+    expected="def bubblesort(arr): ..."
+)
+print(result.score)  # 1 if better, 0 if worse
+print(result.metadata["rationale"])  # Explanation of comparison
+
+# Check factual accuracy
+factual = Factuality()
+result = factual.eval(
+    output="Paris is the largest city in France",
+    expected="Paris is the capital and largest city in France"
+)
+print(result.score)  # 1 if accurate, 0 if inaccurate
+
+# Evaluate answer correctness
+qa = ClosedQA()
+result = qa.eval(
+    input="What is the capital of France?",
+    output="Paris",
+    criteria="Must be exact city name"
+)
+print(result.score)  # 1 if correct, 0 if incorrect
+```
+"""
+
 import json
 import os
 import re
@@ -78,38 +124,12 @@ def build_classification_tools(useCoT, choice_strings):
 
 
 class OpenAIScorer(ScorerWithPartial):
-    """Base class for OpenAI API integration.
-
-    Args:
-        api_key: Deprecated. Use client instead.
-        base_url: Deprecated. Use client instead.
-        client: Optional Client. If not provided, uses global client from init().
-    """
-
     def __init__(
         self,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         client: Optional[Client] = None,
     ) -> None:
-        """Initialize an OpenAI scorer.
-
-        This is the base class for OpenAI-based scorers. It handles authentication and API configuration.
-
-        Args:
-            api_key: Deprecated. Use client instead.
-            base_url: Deprecated. Use client instead.
-            client: Optional Client. If not provided, uses global client from init().
-
-        Note:
-            The api_key and base_url parameters are deprecated and will be removed in a future version.
-            Instead, you can either:
-            1. Pass a client instance directly to this constructor using the client parameter
-            2. Set a global client using autoevals.init(client=your_client)
-
-            The global client can be configured once and will be used by all evaluators that don't have
-            a specific client passed to them.
-        """
         self.extra_args = {}
         if api_key:
             self.extra_args["api_key"] = api_key
@@ -120,15 +140,6 @@ class OpenAIScorer(ScorerWithPartial):
 
 
 class OpenAILLMScorer(OpenAIScorer):
-    """Base class for LLM-specific scoring functionality.
-
-    Args:
-        temperature: Controls randomness (0 = focused, 1 = creative)
-        api_key: Deprecated. Use client.
-        base_url: Deprecated. Use client.
-        client: Optional Client. If not provided, uses global client from init().
-    """
-
     def __init__(
         self,
         temperature: Optional[float] = None,
@@ -136,19 +147,6 @@ class OpenAILLMScorer(OpenAIScorer):
         base_url: Optional[str] = None,
         client: Optional[Client] = None,
     ) -> None:
-        """Initialize an OpenAI LLM scorer.
-
-        This class extends OpenAIScorer with LLM-specific functionality.
-
-        Args:
-            temperature: The sampling temperature to use for the model.
-            api_key: Deprecated. See base class for details.
-            base_url: Deprecated. See base class for details.
-            client: Optional Client. If not provided, uses global client from init().
-
-        See Also:
-            OpenAIScorer: Base class that handles authentication and API configuration.
-        """
         super().__init__(
             api_key=api_key,
             base_url=base_url,
@@ -158,23 +156,6 @@ class OpenAILLMScorer(OpenAIScorer):
 
 
 class OpenAILLMClassifier(OpenAILLMScorer):
-    """Base class for LLM-based classification.
-
-    Args:
-        name: Classifier name
-        messages: Conversation messages for the model
-        model: Model to use (e.g. 'gpt-4')
-        choice_scores: Maps choices to scores
-        classification_tools: Available tools for classification
-        render_args: Template rendering arguments
-        max_tokens: Max tokens to generate
-        temperature: Randomness (0-1)
-        engine: Deprecated. Use client.
-        api_key: Deprecated. Use client.
-        base_url: Deprecated. Use client.
-        client: Optional Client. If not provided, uses global client from init().
-    """
-
     def __init__(
         self,
         name: str,
@@ -190,28 +171,6 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         base_url=None,
         client: Optional[Client] = None,
     ):
-        """Initialize an OpenAI LLM classifier.
-
-        This class extends OpenAILLMScorer to provide classification functionality using LLMs.
-
-        Args:
-            name: The name of the classifier.
-            messages: List of messages to use for the classification.
-            model: The model to use for classification.
-            choice_scores: Dictionary mapping choices to their scores.
-            classification_tools: List of tools available for classification.
-            render_args: Optional dictionary of arguments for message rendering.
-            max_tokens: Optional maximum number of tokens to generate.
-            temperature: Optional sampling temperature.
-            engine: Deprecated. Use client.
-            api_key: Deprecated. Use client.
-            base_url: Deprecated. Use client.
-            client: Optional Client. If not provided, uses global client from init().
-
-        See Also:
-            OpenAILLMScorer: Parent class that handles LLM functionality.
-            OpenAIScorer: Base class that handles authentication and API configuration.
-        """
         super().__init__(
             client=client,
             api_key=api_key,
@@ -324,30 +283,36 @@ class LLMClassifier(OpenAILLMClassifier):
 
     Example:
         ```python
-        init(OpenAI(api_key="your_api_key"))
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.llm import LLMClassifier
 
+        # Create a classifier for toxicity evaluation
         classifier = LLMClassifier(
-            name="toxicity",
-            prompt_template="Rate if this text is toxic: {{output}}",
-            choice_scores={"toxic": 0, "not_toxic": 1},
-            model="gpt-4",
-            use_cot=True
+            name="toxicity",  # Name for tracking
+            prompt_template="Rate if this text is toxic: {{output}}",  # Template with variables
+            choice_scores={"toxic": 0, "not_toxic": 1},  # Mapping choices to scores
+            client=OpenAI()  # Optional: could use init() to set a global client instead
         )
-        result = classifier.eval(output="some text")
+
+        # Evaluate some text
+        result = classifier.eval(output="some text to evaluate")
+        print(result.score)  # Score between 0-1 based on choice_scores
+        print(result.metadata)  # Additional evaluation details
         ```
 
     Args:
         name: Classifier name for tracking
-        prompt_template: Template for generating prompts (supports {{output}}, {{expected}}, etc.)
-        choice_scores: Dictionary mapping choices to scores (e.g. {"good": 1, "bad": 0})
-        model: Model to use (default: gpt-4)
-        use_cot: Enable chain of thought reasoning for better accuracy (default: True)
-        max_tokens: Maximum tokens to generate (default: 512)
-        temperature: Controls randomness (0-1, default: 0)
-        engine: Deprecated by OpenAI
-        api_key: Deprecated. Use client.
-        base_url: Deprecated. Use client.
-        client: Optional Client. If not provided, uses global client from init().
+        prompt_template: Template for generating prompts (supports `{{output}}`, `{{expected}}`, etc.)
+        choice_scores: Mapping of choices to scores (e.g. `{"good": 1, "bad": 0}`)
+        model: Model to use. Defaults to DEFAULT_MODEL.
+        use_cot: Enable chain of thought reasoning. Defaults to True.
+        max_tokens: Maximum tokens to generate. Defaults to 512.
+        temperature: Controls randomness (0-1). Defaults to 0.
+        engine: Deprecated by OpenAI. Use model instead.
+        api_key: Deprecated. Use client instead.
+        base_url: Deprecated. Use client instead.
+        client: OpenAI client. If not provided, uses global client from init().
         **extra_render_args: Additional template variables
     """
 
@@ -368,22 +333,6 @@ class LLMClassifier(OpenAILLMClassifier):
         client: Optional[Client] = None,
         **extra_render_args,
     ):
-        """Initialize an LLM classifier.
-
-        Args:
-            name: Name of the classifier.
-            prompt_template: Template string for generating prompts.
-            choice_scores: Dictionary mapping choices to their scores.
-            model: Model to use for classification (default: gpt-4).
-            use_cot: Whether to use chain of thought reasoning (default: True).
-            max_tokens: Maximum number of tokens to generate (default: 512).
-            temperature: Sampling temperature (default: 0).
-            engine: Deprecated. Use client.
-            api_key: Deprecated. Use client.
-            base_url: Deprecated. Use client.
-            client: Optional Client. If not provided, uses global client from init().
-            **extra_render_args: Additional arguments to pass to the template renderer.
-        """
         choice_strings = list(choice_scores.keys())
 
         prompt = prompt_template + "\n" + (COT_SUFFIX if use_cot else NO_COT_SUFFIX)
@@ -423,48 +372,6 @@ class LLMClassifier(OpenAILLMClassifier):
 
 
 class SpecFileClassifier(LLMClassifier):
-    """Base class for creating specialized classifiers from YAML templates.
-
-    This class simplifies creating new evaluation types by:
-    - Loading config from standardized YAML templates
-    - Supporting common evaluation patterns
-    - Allowing parameter overrides
-
-    To create a new classifier:
-    1. Create a YAML file in 'templates' directory
-    2. Subclass SpecFileClassifier
-    3. The template name is derived from the class name (FooBar -> foo_bar.yaml)
-
-    Example:
-        ```python
-        class Toxicity(SpecFileClassifier):
-            pass
-
-        classifier = Toxicity(temperature=0.5)  # Override defaults
-        ```
-
-    YAML Template Format:
-        ```yaml
-        prompt: Template string for prompts
-        choice_scores:
-          choice1: score1
-          choice2: score2
-        model: gpt-4  # optional
-        use_cot: true  # optional
-        temperature: 0  # optional
-        ```
-
-    Args:
-        model: Override template model
-        engine: Deprecated. Use client.
-        use_cot: Override chain of thought
-        max_tokens: Override max tokens
-        temperature: Override temperature
-        api_key: Deprecated. Use client.
-        base_url: Deprecated. Use client.
-        client: Optional Client. If not provided, uses global client from init().
-    """
-
     def __new__(
         cls,
         model=None,
@@ -476,24 +383,6 @@ class SpecFileClassifier(LLMClassifier):
         base_url=None,
         client: Optional[Client] = None,
     ):
-        """Create a new classifier instance from a YAML template.
-
-        Args:
-            model: Optional model override for the template.
-            engine: Optional engine override for the template.
-            use_cot: Optional chain of thought override for the template.
-            max_tokens: Optional maximum tokens override for the template.
-            temperature: Optional temperature override for the template.
-            api_key: Deprecated. See OpenAIScorer for details.
-            base_url: Deprecated. See OpenAIScorer for details.
-            client: Optional Client. If not provided, uses global client from init().
-
-        Returns:
-            LLMClassifier: A new classifier instance configured from the template.
-
-        Raises:
-            AttributeError: If the template file for this class is not found.
-        """
         kwargs = {}
         if model is not None:
             kwargs["model"] = model
@@ -524,27 +413,68 @@ class SpecFileClassifier(LLMClassifier):
 
 
 class Battle(SpecFileClassifier):
-    """Compare if a solution performs better than a reference.
+    """Compare if a solution performs better than a reference solution.
+
+    This evaluator uses LLM-based comparison to determine if a generated solution is better
+    than a reference solution, considering factors like:
+    - Code quality and readability
+    - Algorithm efficiency and complexity
+    - Implementation completeness
+    - Best practices and patterns
+    - Error handling and edge cases
 
     Example:
         ```python
-        battle = Battle()
-        result = battle.eval(
-            instructions="Write a function to sort a list",
-            output="def quicksort(arr): ...",
-            expected="def bubblesort(arr): ..."
-        )
-        print(result.score)  # 1 if better, 0 if worse
-        print(result.metadata["rationale"])  # Explanation
+        import asyncio
+        from openai import AsyncOpenAI
+        from autoevals import Battle
+
+        async def evaluate_solutions():
+            # Initialize with async client
+            client = AsyncOpenAI()
+            battle = Battle(client=client)
+
+            result = await battle.eval_async(
+                instructions="Write a function to sort a list of integers in ascending order",
+                output='''
+                    def quicksort(arr):
+                        if len(arr) <= 1:
+                            return arr
+                        pivot = arr[len(arr) // 2]
+                        left = [x for x in arr if x < pivot]
+                        middle = [x for x in arr if x == pivot]
+                        right = [x for x in arr if x > pivot]
+                        return quicksort(left) + middle + quicksort(right)
+                ''',
+                expected='''
+                    def bubblesort(arr):
+                        n = len(arr)
+                        for i in range(n):
+                            for j in range(0, n - i - 1):
+                                if arr[j] > arr[j + 1]:
+                                    arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                        return arr
+                '''
+            )
+
+            print(result.score)  # 1 if output is better, 0 if worse
+            print(result.metadata["rationale"])  # Detailed comparison explanation
+            print(result.metadata["choice"])  # Selected choice (better/worse)
+
+        # Run the async evaluation
+        asyncio.run(evaluate_solutions())
         ```
 
     Args:
-        instructions: Task description
-        output: Solution to evaluate
-        expected: Reference solution
+        instructions: Problem description or task requirements that both solutions should address
+        output: Solution to evaluate (code, text, or other content)
+        expected: Reference solution to compare against
 
-    See Also:
-        SpecFileClassifier: Base class for creating specialized classifiers from YAML templates.
+    Returns:
+        Score object with:
+        - score: 1 if output solution is better, 0 if worse
+        - metadata.rationale: Detailed explanation of the comparison
+        - metadata.choice: Selected choice (better/worse)
     """
 
     pass
@@ -555,6 +485,11 @@ class ClosedQA(SpecFileClassifier):
 
     Example:
         ```python
+        from autoevals import ClosedQA, init
+        from openai import OpenAI
+
+        init(OpenAI())
+
         qa = ClosedQA()
         result = qa.eval(
             input="What is the capital of France?",
@@ -568,9 +503,6 @@ class ClosedQA(SpecFileClassifier):
         input: Question to evaluate
         output: Answer to assess
         criteria: Optional evaluation criteria
-
-    See Also:
-        SpecFileClassifier: Base class for creating specialized classifiers from YAML templates.
     """
 
     pass
@@ -581,6 +513,11 @@ class Humor(SpecFileClassifier):
 
     Example:
         ```python
+        from autoevals import Humor, init
+        from openai import OpenAI
+
+        init(OpenAI())
+
         humor = Humor()
         result = humor.eval(
             output="Why did the developer quit? They didn't get arrays!"
@@ -601,6 +538,11 @@ class Factuality(SpecFileClassifier):
 
     Example:
         ```python
+        from autoevals import Factuality, init
+        from openai import OpenAI
+
+        init(OpenAI())
+
         factual = Factuality()
         result = factual.eval(
             output="Paris is the largest city in France",
@@ -622,6 +564,11 @@ class Possible(SpecFileClassifier):
 
     Example:
         ```python
+        from autoevals import Possible, init
+        from openai import OpenAI
+
+        init(OpenAI())
+
         possible = Possible()
         result = possible.eval(
             input="Design a system to handle 1M users",
@@ -639,20 +586,57 @@ class Possible(SpecFileClassifier):
 
 
 class Security(SpecFileClassifier):
-    """Check for security risks in code or text.
+    """Evaluate if a solution has security vulnerabilities.
+
+    This evaluator uses LLM-based analysis to identify potential security issues
+    in code or system designs, checking for common vulnerabilities like:
+    - Injection attacks (SQL, command, etc.)
+    - Authentication/authorization flaws
+    - Data exposure risks
+    - Input validation issues
+    - Unsafe dependencies
+    - Insecure configurations
+    - Common OWASP vulnerabilities
 
     Example:
         ```python
-        security = Security()
-        result = security.eval(
-            output="SELECT * FROM users WHERE id = " + user_input
-        )
-        print(result.score)  # 0 if risky, 1 if safe
-        print(result.metadata["rationale"])  # Found issues
+        import asyncio
+        from openai import AsyncOpenAI
+        from autoevals import Security
+
+        async def evaluate_security():
+            # Initialize with async client
+            client = AsyncOpenAI()
+            security = Security(client=client)
+
+            result = await security.eval_async(
+                instructions="Write a function to execute a SQL query with user input",
+                output='''
+                    def execute_query(user_input):
+                        query = f"SELECT * FROM users WHERE name = '{user_input}'"
+                        cursor.execute(query)
+                        return cursor.fetchall()
+                '''
+            )
+
+            print(result.score)  # 0 if vulnerable, 1 if secure
+            print(result.metadata["rationale"])  # Detailed security analysis
+            print(result.metadata["choice"])  # Selected choice (secure/vulnerable)
+
+        # Run the async evaluation
+        asyncio.run(evaluate_security())
         ```
 
     Args:
-        output: Code/text to analyze
+        instructions: Context or requirements for the security evaluation
+        output: Code or system design to evaluate for security issues
+
+    Returns:
+        Score object with:
+        - score: 1 if secure, 0 if vulnerable
+        - metadata.rationale: Detailed security analysis
+        - metadata.choice: Selected choice (secure/vulnerable)
+        - metadata.vulnerabilities: List of identified security issues
     """
 
     pass
@@ -663,6 +647,11 @@ class Sql(SpecFileClassifier):
 
     Example:
         ```python
+        from autoevals import Sql, init
+        from openai import OpenAI
+
+        init(OpenAI())
+
         sql = Sql()
         result = sql.eval(
             output="SELECT * FROM users WHERE age >= 18",
@@ -684,6 +673,11 @@ class Summary(SpecFileClassifier):
 
     Example:
         ```python
+        from openai import OpenAI
+        from autoevals import Summary, init
+
+        init(OpenAI())
+
         summary = Summary()
         result = summary.eval(
             input="Long article text...",
@@ -707,13 +701,17 @@ class Translation(SpecFileClassifier):
 
     Example:
         ```python
-        translation = Translation()
+        from openai import OpenAI
+        from autoevals import Translation
+
+        translation = Translation(client=OpenAI())
         result = translation.eval(
             input="Hello world!",
             output="¡Hola mundo!",
             expected="¡Hola mundo!",
             language="Spanish"
         )
+
         print(result.score)  # Higher is better
         ```
 
@@ -722,6 +720,109 @@ class Translation(SpecFileClassifier):
         output: Translation to evaluate
         expected: Reference translation
         language: Target language
+    """
+
+    pass
+
+
+class Correctness(SpecFileClassifier):
+    """Evaluate if a solution correctly solves a given problem.
+
+    This evaluator uses LLM-based analysis to determine if a solution correctly
+    addresses the given problem requirements, considering aspects like:
+    - Functional correctness
+    - Edge case handling
+    - Input validation
+    - Output format compliance
+    - Implementation completeness
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import Correctness
+
+        correctness = Correctness(client=OpenAI())
+        result = correctness.eval(
+            instructions='''
+                Write a function that takes a list of integers and returns their sum.
+                The function should handle empty lists by returning 0.
+            ''',
+            output='''
+                def sum_list(numbers):
+                    if not numbers:
+                        return 0
+                    return sum(numbers)
+            '''
+        )
+
+        print(result.score)  # 1 if correct, 0 if incorrect
+        print(result.metadata["rationale"])  # Detailed explanation
+        print(result.metadata["choice"])  # Selected choice (correct/incorrect)
+        ```
+
+    Args:
+        instructions: Problem description or task requirements to evaluate against
+        output: Solution to evaluate (code, text, or other content)
+
+    Returns:
+        Score object with:
+        - score: 1 if solution is correct, 0 if incorrect
+        - metadata.rationale: Detailed explanation of the evaluation
+        - metadata.choice: Selected choice (correct/incorrect)
+    """
+
+    pass
+
+
+class Complexity(SpecFileClassifier):
+    """Evaluate the complexity and efficiency of a solution.
+
+    This evaluator uses LLM-based analysis to assess various aspects of solution complexity:
+    - Time complexity (Big O notation)
+    - Space complexity
+    - Code readability and maintainability
+    - Implementation efficiency
+    - Resource utilization
+    - Algorithmic optimizations
+    - Design patterns and best practices
+
+    Example:
+        ```python
+        from autoevals import Complexity
+
+        complexity = Complexity(client=OpenAI())
+        result = complexity.eval(
+            instructions="Implement a function to find duplicates in a list",
+            output='''
+                def find_duplicates(arr):
+                    seen = set()
+                    duplicates = set()
+                    for x in arr:
+                        if x in seen:
+                            duplicates.add(x)
+                        seen.add(x)
+                    return list(duplicates)
+            '''
+        )
+
+        print(result.score)  # 1 if efficient, 0 if inefficient
+        print(result.metadata["rationale"])  # Detailed complexity analysis
+        print(result.metadata["choice"])  # Selected choice (efficient/inefficient)
+        print(result.metadata["time_complexity"])  # Estimated Big O notation
+        print(result.metadata["space_complexity"])  # Space usage analysis
+        ```
+
+    Args:
+        instructions: Problem description or requirements to evaluate against
+        output: Solution to analyze for complexity (code, algorithm, system design)
+
+    Returns:
+        Score object with:
+        - score: 1 if efficient, 0 if inefficient
+        - metadata.rationale: Detailed complexity analysis
+        - metadata.choice: Selected choice (efficient/inefficient)
+        - metadata.time_complexity: Time complexity analysis
+        - metadata.space_complexity: Space complexity analysis
     """
 
     pass

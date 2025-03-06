@@ -246,10 +246,20 @@ evaluator = Factuality(client=custom_client)
 import OpenAI from "openai";
 import { Factuality } from "autoevals";
 
-const customClient = new OpenAI({
-  baseURL: "https://custom-api.example.com/v1/",
-});
-const evaluator = new Factuality({ client: customClient });
+(async () => {
+  const customClient = new OpenAI({
+    baseURL: "https://custom-api.example.com/v1/",
+  });
+
+  const result = await Factuality({
+    client: customClient,
+    output: "Paris is the capital of France",
+    expected:
+      "Paris is the capital of France and has a population of over 2 million",
+    input: "Tell me about Paris",
+  });
+  console.log(result);
+})();
 ```
 
 </div>

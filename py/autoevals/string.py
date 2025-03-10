@@ -2,7 +2,7 @@ import threading
 from typing import Optional
 
 from braintrust_core.score import Score
-from Levenshtein import distance
+from polyleven import levenshtein as distance
 
 from autoevals.partial import ScorerWithPartial
 from autoevals.value import normalize_value

@@ -4,14 +4,43 @@ from braintrust_core.score import Score
 
 from autoevals.llm import OpenAIScorer
 
-from .oai import LLMClient, arun_cached_request, run_cached_request
+from .oai import Client, arun_cached_request, run_cached_request
 
 REQUEST_TYPE = "moderation"
 
 
 class Moderation(OpenAIScorer):
-    """
-    A scorer that uses OpenAI's moderation API to determine if AI response contains ANY flagged content.
+    """A scorer that evaluates if AI responses contain inappropriate or unsafe content.
+
+    This scorer uses OpenAI's moderation API to check for potentially harmful content in text.
+    It returns a score of 0 if content is flagged as inappropriate, and 1 if it passes moderation.
+
+    Args:
+        threshold: Optional float to set a custom threshold for content flagging.
+            If None, uses OpenAI's default flagging logic.
+            If set, content is flagged if any category score exceeds this threshold.
+        client: Optional client for making API calls. Can be:
+            - None: Uses global client from init()
+            - OpenAI v1 client: Used directly
+            - OpenAI v0 module: Wrapped in a client adapter
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.moderation import Moderation
+
+        # Initialize with your OpenAI client
+        init(OpenAI())
+
+        # Create evaluator with default settings
+        moderator = Moderation()
+        result = moderator.eval(
+            output="This is the text to check for inappropriate content"
+        )
+        print(result.score)  # 1 if content is appropriate, 0 if flagged
+        print(result.metadata)  # Detailed category scores and threshold used
+        ```
     """
 
     threshold = None
@@ -22,15 +51,29 @@ class Moderation(OpenAIScorer):
         threshold=None,
         api_key=None,
         base_url=None,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
     ):
-        """
-        Create a new Moderation scorer.
+        """Initialize a Moderation scorer.
 
-        :param threshold: Optional. Threshold to use to determine whether content has exceeded threshold. By
-        default, it uses OpenAI's default. (Using `flagged` from the response payload.)
-        :param api_key: OpenAI key
-        :param base_url: Base URL to be used to reach OpenAI moderation endpoint.
+        Args:
+            threshold: Optional float to set a custom threshold for content flagging.
+                If None, uses OpenAI's default flagging logic.
+                If set, content is flagged if any category score exceeds this threshold.
+            client: Optional client for making API calls. Can be:
+                - None: Uses global client from init()
+                - OpenAI v1 client: Used directly
+                - OpenAI v0 module: Wrapped in a client adapter
+            api_key: Deprecated. Use client instead.
+            base_url: Deprecated. Use client instead.
+
+        Note:
+            The api_key and base_url parameters are deprecated and will be removed in a future version.
+            Instead, you can either:
+            1. Pass a client instance directly to this constructor using the client parameter
+            2. Set a global client using autoevals.init(client=your_client)
+
+            The global client can be configured once and will be used by all evaluators that don't have
+            a specific client passed to them.
         """
         super().__init__(api_key=api_key, base_url=base_url, client=client)
         self.threshold = threshold
@@ -70,6 +113,4 @@ class Moderation(OpenAIScorer):
         return 1
 
 
-__all__ = ["Moderation"]
-__all__ = ["Moderation"]
 __all__ = ["Moderation"]

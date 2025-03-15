@@ -1,3 +1,18 @@
+"""JSON evaluation scorers for comparing and validating JSON data.
+
+This module provides scorers for working with JSON data:
+
+- JSONDiff: Compare JSON objects for structural and content similarity
+  - Handles nested structures, strings, numbers
+  - Customizable with different scorers for string and number comparisons
+  - Can automatically parse JSON strings
+
+- ValidJSON: Validate if a string is valid JSON and matches an optional schema
+  - Validates JSON syntax
+  - Optional JSON Schema validation
+  - Works with both strings and parsed objects
+"""
+
 import json
 
 from braintrust_core.score import Score, Scorer
@@ -10,9 +25,57 @@ from .string import Levenshtein
 
 
 class JSONDiff(ScorerWithPartial):
-    """
-    A simple scorer that compares JSON objects, using a customizable comparison method for strings
-    (defaults to Levenshtein) and numbers (defaults to NumericDiff).
+    """Compare JSON objects for structural and content similarity.
+
+    This scorer recursively compares JSON objects, handling:
+    - Nested dictionaries and lists
+    - String similarity using Levenshtein distance
+    - Numeric value comparison
+    - Automatic parsing of JSON strings
+
+    Example:
+        ```python
+        import asyncio
+        from openai import AsyncOpenAI
+        from autoevals import JSONDiff
+        from autoevals.string import EmbeddingSimilarity
+
+        async def compare_json():
+            # Initialize with async client for string comparison
+            client = AsyncOpenAI()
+            string_scorer = EmbeddingSimilarity(client=client)
+
+            diff = JSONDiff(string_scorer=string_scorer)
+
+            result = await diff.eval_async(
+                output={
+                    "name": "John Smith",
+                    "age": 30,
+                    "skills": ["python", "javascript"]
+                },
+                expected={
+                    "name": "John A. Smith",
+                    "age": 31,
+                    "skills": ["python", "typescript"]
+                }
+            )
+
+            print(result.score)  # Similarity score between 0-1
+            print(result.metadata)  # Detailed comparison breakdown
+
+        # Run the async evaluation
+        asyncio.run(compare_json())
+        ```
+
+    Args:
+        string_scorer: Optional custom scorer for string comparisons (default: Levenshtein)
+        number_scorer: Optional custom scorer for number comparisons (default: NumericDiff)
+        preserve_strings: Don't attempt to parse strings as JSON (default: False)
+
+    Returns:
+        Score object with:
+        - score: Similarity score between 0-1
+        - metadata: Detailed comparison breakdown
     """
 
     def __init__(self, string_scorer: Scorer = None, number_scorer: Scorer = None, preserve_strings: bool = False):
@@ -59,9 +122,59 @@ class JSONDiff(ScorerWithPartial):
 
 
 class ValidJSON(ScorerWithPartial):
-    """
-    A binary scorer that evaluates the validity of JSON output, optionally validating against a
-    JSON Schema definition (see https://json-schema.org/learn/getting-started-step-by-step#create).
+    """Validate if a string is valid JSON and optionally matches a schema.
+
+    This scorer checks if:
+    - The input can be parsed as valid JSON
+    - The parsed JSON matches an optional JSON Schema
+    - Handles both string inputs and pre-parsed JSON objects
+
+    Example:
+        ```python
+        import asyncio
+        from autoevals import ValidJSON
+
+        async def validate_json():
+            # Define a schema to validate against
+            schema = {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "age": {"type": "number"},
+                    "skills": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    }
+                },
+                "required": ["name", "age"]
+            }
+
+            validator = ValidJSON(schema=schema)
+
+            result = await validator.eval_async(
+                output='''
+                {
+                    "name": "John Smith",
+                    "age": 30,
+                    "skills": ["python", "javascript"]
+                }
+                '''
+            )
+
+            print(result.score)  # 1 if valid, 0 if invalid
+            print(result.metadata)  # Validation details or error messages
+
+        # Run the async validation
+        asyncio.run(validate_json())
+        ```
+
+    Args:
+        schema: Optional JSON Schema to validate against
+
+    Returns:
+        Score object with:
+        - score: 1 if valid JSON (and matches schema if provided), 0 otherwise
+        - metadata: Validation details or error messages
     """
 
     def __init__(self, schema=None):

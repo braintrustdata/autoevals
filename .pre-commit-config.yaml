@@ -23,7 +23,9 @@ repos:
           (?x)^(
               .*\.(json|prisma|yaml)
           )$
-        args: [-L rouge]
+        args:
+          - "-L"
+          - "rouge,afterall"
 
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: v3.3.2

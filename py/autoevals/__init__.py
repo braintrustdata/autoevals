@@ -1,23 +1,23 @@
-"""Autoevals: A comprehensive toolkit for evaluating AI model outputs.
+"""Autoevals is a comprehensive toolkit for evaluating AI model outputs.
 
 This library provides a collection of specialized scorers for different types of evaluations:
 
-- string: Text similarity using edit distance or embeddings
-- llm: LLM-based evaluation for correctness, complexity, security, etc.
-- moderation: Content safety and policy compliance checks
-- ragas: Advanced NLP metrics for RAG system evaluation
-- json: JSON validation and structural comparison
-- number: Numeric similarity with relative scaling
-- value: Exact matching and basic comparisons
+- `string`: Text similarity using edit distance or embeddings
+- `llm`: LLM-based evaluation for correctness, complexity, security, etc.
+- `moderation`: Content safety and policy compliance checks
+- `ragas`: Advanced NLP metrics for RAG system evaluation
+- `json`: JSON validation and structural comparison
+- `number`: Numeric similarity with relative scaling
+- `value`: Exact matching and basic comparisons
 
-**Key Features**:
+**Key features**:
 
 - Both sync and async evaluation support
 - Configurable scoring parameters
 - Detailed feedback through metadata
 - Integration with OpenAI and other LLM providers through Braintrust AI Proxy
 
-**Client Setup**:
+**Client setup**:
 
 There are two ways to configure the OpenAI client:
 
@@ -43,7 +43,7 @@ client = AsyncOpenAI()
 evaluator = CloseQA(client=client)
 ```
 
-**Multi-Provider Support via Braintrust AI Proxy**:
+**Multi-provider support via the Braintrust AI Proxy**:
 
 Autoevals supports multiple LLM providers (Anthropic, Azure, etc.) through the Braintrust AI Proxy.
 Configure your client to use the proxy:
@@ -63,7 +63,7 @@ client = AsyncOpenAI(
 evaluator = Correctness(client=client)
 ```
 
-**Braintrust Integration**:
+**Braintrust integration**:
 
 Autoevals automatically integrates with Braintrust logging when you install the library. If needed, you can manually wrap the client:
 
@@ -77,7 +77,7 @@ client = wrap_openai(AsyncOpenAI())
 evaluator = CloseQA(client=client)
 ```
 
-**Example Autoevals Usage**:
+**Example Autoevals usage**:
 
 ```python
 from autoevals.ragas import CloseQA

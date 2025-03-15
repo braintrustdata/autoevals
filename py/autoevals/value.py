@@ -4,8 +4,8 @@ This module provides tools for exact value comparison with smart handling of dif
 
 - ExactMatch: A scorer for exact value comparison
   - Handles primitive types (strings, numbers, etc.)
-  - Smart JSON serialization for objects and arrays
-  - Normalizes JSON strings for consistent comparison
+  - Smart `JSON` serialization for objects and arrays
+  - Normalizes `JSON` strings for consistent comparison
 
 Example:
 ```python

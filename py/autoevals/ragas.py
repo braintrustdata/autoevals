@@ -15,7 +15,7 @@ These metrics are ported from the RAGAS project with some enhancements.
   - `AnswerSimilarity`: Compares semantic similarity to expected answer
   - `AnswerCorrectness`: Evaluates factual correctness against ground truth
 
-**Common Arguments**:
+**Common arguments**:
 
     - `model`: Model to use for evaluation, defaults to DEFAULT_RAGAS_MODEL (gpt-3.5-turbo-16k)
     - `client`: Optional Client for API calls. If not provided, uses global client from init()

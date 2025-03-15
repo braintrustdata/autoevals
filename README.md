@@ -47,7 +47,7 @@ pip install autoevals
 
 ## Getting started
 
-Here's how you can use Autoevals to model-grade an example LLM completion using the [factuality prompt](templates/factuality.yaml).
+Use Autoevals to model-grade an example LLM completion using the [Factuality prompt](templates/factuality.yaml).
 By default, Autoevals uses your `OPENAI_API_KEY` environment variable to authenticate with OpenAI's API.
 
 <div className="tabs">
@@ -103,7 +103,7 @@ import { Factuality } from "autoevals";
 
 When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI proxy](https://www.braintrust.dev/docs/guides/proxy).
 
-This provides you with numerous benefits:
+If you choose to use the proxy, you'll also get:
 
 - Simplified access to many AI providers
 - Reduced costs with automatic request caching
@@ -264,7 +264,7 @@ import { Factuality } from "autoevals";
 
 </div>
 
-## Using Braintrust with Autoevals (Optional)
+## Using Braintrust with Autoevals (optional)
 
 Once you grade an output using Autoevals, you can optionally use [Braintrust](https://www.braintrust.dev/docs/libs/python) to log and compare your evaluation results. This integration is completely optional and not required for using Autoevals.
 
@@ -451,7 +451,7 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
 
 </div>
 
-## Creating Custom Scorers
+## Creating custom scorers
 
 You can also create your own scoring functions that do not use LLMs. For example, to test whether the word `'banana'`
 is in the output, you can use the following:
@@ -517,7 +517,7 @@ There is nothing particularly novel about the evaluation methods in this library
 
 ## Documentation
 
-The full docs are available [here](https://www.braintrust.dev/docs/reference/autoevals).
+The full docs are available [for your reference](https://www.braintrust.dev/docs/reference/autoevals).
 
 ## Contributing
 

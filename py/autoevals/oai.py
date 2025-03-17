@@ -3,11 +3,109 @@ import os
 import sys
 import textwrap
 import time
+import warnings
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Callable, Dict, Optional, Protocol, Tuple, Type, TypeVar, Union, cast, runtime_checkable
 
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
+
+
+@runtime_checkable
+class ChatCompletions(Protocol):
+    create: Callable[..., Any]
+
+
+@runtime_checkable
+class Chat(Protocol):
+    @property
+    def completions(self) -> ChatCompletions:
+        ...
+
+
+@runtime_checkable
+class Embeddings(Protocol):
+    create: Callable[..., Any]
+
+
+@runtime_checkable
+class Moderations(Protocol):
+    create: Callable[..., Any]
+
+
+@runtime_checkable
+class OpenAIV1Module(Protocol):
+    class OpenAI(Protocol):
+        # Core API resources
+        @property
+        def chat(self) -> Chat:
+            ...
+
+        @property
+        def embeddings(self) -> Embeddings:
+            ...
+
+        @property
+        def moderations(self) -> Moderations:
+            ...
+
+        # Configuration
+        @property
+        def api_key(self) -> str:
+            ...
+
+        @property
+        def organization(self) -> Optional[str]:
+            ...
+
+        @property
+        def base_url(self) -> Union[str, Any, None]:
+            ...
+
+    class AsyncOpenAI(OpenAI):
+        ...
+
+    class RateLimitError(Exception):
+        ...
+
+
+# TODO: we're removing v0 support in the next release
+@runtime_checkable
+class OpenAIV0Module(Protocol):
+    class ChatCompletion(Protocol):
+        acreate: Callable[..., Any]
+        create: Callable[..., Any]
+
+    class Embedding(Protocol):
+        acreate: Callable[..., Any]
+        create: Callable[..., Any]
+
+    class Moderation(Protocol):
+        acreate: Callable[..., Any]
+        create: Callable[..., Any]
+
+    api_key: Optional[str]
+    api_base: Optional[str]
+    base_url: Optional[str]
+
+    class error(Protocol):
+        class RateLimitError(Exception):
+            ...
+
+
+_openai_module: Optional[Union[OpenAIV1Module, OpenAIV0Module]] = None
+
+
+def get_openai_module() -> Union[OpenAIV1Module, OpenAIV0Module]:
+    global _openai_module
+
+    if _openai_module is not None:
+        return _openai_module
+
+    import openai  # type: ignore
+
+    _openai_module = cast(Union[OpenAIV1Module, OpenAIV0Module], openai)
+    return _openai_module
 
 
 @dataclass
@@ -31,19 +129,25 @@ class LLMClient:
         RateLimitError: The rate limit exception class for the SDK version.
             - For v0: openai.error.RateLimitError
             - For v1: openai.RateLimitError
+        is_async: Whether the client is async (only used for v0 autoconfiguration).
 
     Note:
         If using async OpenAI methods you must use the async methods in Autoevals.
+        The client will automatically configure itself if methods are not provided.
 
     Example:
         ```python
         # Using with OpenAI v1
         import openai
-        client = LLMClient(
-            openai=openai,
-            complete=openai.chat.completions.create,
-            embed=openai.embeddings.create,
-            moderation=openai.moderations.create,
+        client = openai.OpenAI()  # Configure with your settings
+        llm = LLMClient(openai=client)  # Methods will be auto-configured
+
+        # Or with explicit method configuration
+        llm = LLMClient(
+            openai=client,
+            complete=client.chat.completions.create,
+            embed=client.embeddings.create,
+            moderation=client.moderations.create,
             RateLimitError=openai.RateLimitError
         )
 
@@ -52,39 +156,125 @@ class LLMClient:
         class CustomLLMClient(LLMClient):
             def complete(self, **kwargs):
                 # make adjustments as needed
-                return openai.chat.completions.create(**kwargs)
+                return self.openai.chat.completions.create(**kwargs)
         ```
-
-    Note:
-        This class is typically instantiated via the `prepare_openai()` function, which handles
-        the SDK version detection and proper function assignment automatically.
     """
 
-    openai: Any
-    complete: Any
-    embed: Any
-    moderation: Any
-    RateLimitError: Exception
+    openai: Union[OpenAIV0Module, OpenAIV1Module.OpenAI]
+    complete: Callable[..., Any] = None  # type: ignore # Set in __post_init__
+    embed: Callable[..., Any] = None  # type: ignore # Set in __post_init__
+    moderation: Callable[..., Any] = None  # type: ignore # Set in __post_init__
+    RateLimitError: Type[Exception] = None  # type: ignore # Set in __post_init__
+    is_async: bool = False
+    _is_wrapped: bool = False
+
+    def __post_init__(self):
+        NamedWrapper, wrap_openai = get_openai_wrappers()
+
+        has_customization = self.complete is not None or self.embed is not None or self.moderation is not None  # type: ignore  # Pyright doesn't understand our design choice
+
+        # avoid wrapping if we have custom methods (the user may intend not to wrap)
+        if not has_customization and not isinstance(self.openai, NamedWrapper):
+            self.openai = wrap_openai(self.openai)
+
+        self._is_wrapped = isinstance(self.openai, NamedWrapper)
+
+        openai_module = get_openai_module()
+
+        if hasattr(openai_module, "OpenAI"):
+            openai_module = cast(OpenAIV1Module, openai_module)
+            self.openai = cast(OpenAIV1Module.OpenAI, self.openai)
+
+            # v1
+            self.complete = self.openai.chat.completions.create
+            self.embed = self.openai.embeddings.create
+            self.moderation = self.openai.moderations.create
+            self.RateLimitError = openai_module.RateLimitError
+        else:
+            openai_module = cast(OpenAIV0Module, openai_module)
+            self.openai = cast(OpenAIV0Module, self.openai)
+
+            # v0
+            self.complete = self.openai.ChatCompletion.acreate if self.is_async else self.openai.ChatCompletion.create
+            self.embed = self.openai.Embedding.acreate if self.is_async else self.openai.Embedding.create
+            self.moderation = self.openai.Moderation.acreate if self.is_async else self.openai.Moderation.create
+            self.RateLimitError = openai_module.error.RateLimitError
+
+    @property
+    def is_wrapped(self) -> bool:
+        return self._is_wrapped
 
 
 _client_var = ContextVar[Optional[LLMClient]]("client")
 
+T = TypeVar("T")
 
-def init(*, client: Optional[LLMClient] = None):
+_named_wrapper: Optional[Type[Any]] = None
+_wrap_openai: Optional[Callable[[Any], Any]] = None
+
+
+def get_openai_wrappers() -> Tuple[Type[Any], Callable[[Any], Any]]:
+    global _named_wrapper, _wrap_openai
+
+    if _named_wrapper is not None and _wrap_openai is not None:
+        return _named_wrapper, _wrap_openai
+
+    try:
+        from braintrust.oai import NamedWrapper as BraintrustNamedWrapper  # type: ignore
+        from braintrust.oai import wrap_openai  # type: ignore
+
+        _named_wrapper = cast(Type[Any], BraintrustNamedWrapper)
+    except ImportError:
+
+        class NamedWrapper:
+            pass
+
+        def wrap_openai(openai: T) -> T:
+            return openai
+
+        _named_wrapper = NamedWrapper
+
+    _wrap_openai = cast(Callable[[Any], Any], wrap_openai)
+    return _named_wrapper, _wrap_openai
+
+
+Client = Union[LLMClient, OpenAIV0Module, OpenAIV1Module.OpenAI]
+
+
+def resolve_client(client: Client, is_async: bool = False) -> LLMClient:
+    if isinstance(client, LLMClient):
+        return client
+    return LLMClient(openai=client, is_async=is_async)
+
+
+def init(client: Optional[Client] = None, is_async: bool = False):
     """Initialize Autoevals with an optional custom LLM client.
 
     This function sets up the global client context for Autoevals to use. If no client is provided,
     the default OpenAI client will be used.
 
     Args:
-        client (Optional[LLMClient]): A custom LLM client instance that implements the LLMClient interface.
-            If None, the default OpenAI client will be used.\
+        client: The client to use for LLM operations. Can be one of:
+            - None: Resets the global client
+            - LLMClient: Used directly as provided
+            - OpenAIV0Module: Wrapped in a new LLMClient instance (OpenAI SDK v0)
+            - OpenAIV1: Wrapped in a new LLMClient instance (OpenAI SDK v1)
+        is_async: Whether to create a client with async operations. Defaults to False.
+            Deprecated: Use the `client` argument directly with your desired async/sync configuration.
     """
-    _client_var.set(client)
+    _client_var.set(resolve_client(client, is_async=is_async) if client else None)
 
 
-def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=None, base_url=None):
-    """Prepares and configures an OpenAI client for use with AutoEval, if client is not provided.
+warned_deprecated_api_key_base_url = False
+
+
+def prepare_openai(
+    client: Optional[Client] = None,
+    is_async: bool = False,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+):
+    """Prepares and configures an OpenAI client for use with AutoEval.
 
     This function handles both v0 and v1 of the OpenAI SDK, configuring the client
     with the appropriate authentication and base URL settings.
@@ -100,117 +290,75 @@ def prepare_openai(client: Optional[LLMClient] = None, is_async=False, api_key=N
 
         api_key (str, optional): OpenAI API key. If not provided, will look for
             OPENAI_API_KEY or BRAINTRUST_API_KEY in environment variables.
-
             Deprecated: Use the `client` argument and set the `openai`.
 
         base_url (str, optional): Base URL for API requests. If not provided, will
             use OPENAI_BASE_URL from environment or fall back to PROXY_URL.
-
             Deprecated: Use the `client` argument and set the `openai`.
 
     Returns:
-        Tuple[LLMClient, bool]: A tuple containing:
-            - The configured LLMClient instance, or the client you've provided
-            - A boolean indicating whether the client was wrapped with Braintrust tracing
+        LLMClient: The configured LLMClient instance, or the client you've provided
 
     Raises:
         ImportError: If the OpenAI package is not installed
     """
     client = client or _client_var.get(None)
+    if client is not None:
+        return resolve_client(client, is_async=is_async)
 
-    openai = getattr(client, "openai", None)
-    if not openai:
-        try:
-            import openai
-        except Exception as e:
-            print(
-                textwrap.dedent(
-                    f"""\
-                Unable to import openai: {e}
-
-                Please install it, e.g. with
-
-                pip install 'openai'
-                """
-                ),
-                file=sys.stderr,
-            )
-            raise
-
-    openai_obj = openai
-
-    is_v1 = False
-
-    if hasattr(openai, "OpenAI"):
-        # This is the new v1 API
-        is_v1 = True
-
-    if client is None:
-        # prepare the default openai sdk, if not provided
-        if api_key is None:
-            api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("BRAINTRUST_API_KEY")
-        if base_url is None:
-            base_url = os.environ.get("OPENAI_BASE_URL", PROXY_URL)
-
-        if is_v1:
-            if is_async:
-                openai_obj = openai.AsyncOpenAI(api_key=api_key, base_url=base_url)
-            else:
-                openai_obj = openai.OpenAI(api_key=api_key, base_url=base_url)
-        else:
-            if api_key:
-                openai.api_key = api_key
-            openai.api_base = base_url
-
-    # optimistically wrap openai instance for tracing
-    wrapped = False
     try:
-        from braintrust.oai import NamedWrapper, wrap_openai
+        openai_module = get_openai_module()
+    except Exception as e:
+        print(
+            textwrap.dedent(
+                f"""\
+            Unable to import openai: {e}
 
-        if not isinstance(openai_obj, NamedWrapper):
-            openai_obj = wrap_openai(openai_obj)
+            Please install it, e.g. with
 
-        wrapped = True
-    except ImportError:
-        pass
+            pip install 'openai'
+            """
+            ),
+            file=sys.stderr,
+        )
+        raise
 
-    if client is None:
-        # prepare the default client if not provided
-        complete_fn = None
-        rate_limit_error = None
+    global warned_deprecated_api_key_base_url
+    if not warned_deprecated_api_key_base_url and (api_key is not None or base_url is not None):
+        warnings.warn(
+            "The api_key and base_url parameters are deprecated. Please use init() or call with client instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        warned_deprecated_api_key_base_url = True
 
-        Client = LLMClient
+    # prepare the default openai sdk, if not provided
+    if api_key is None:
+        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("BRAINTRUST_API_KEY")
+    if base_url is None:
+        base_url = os.environ.get("OPENAI_BASE_URL", PROXY_URL)
 
-        if is_v1:
-            client = Client(
-                openai=openai,
-                complete=openai_obj.chat.completions.create,
-                embed=openai_obj.embeddings.create,
-                moderation=openai_obj.moderations.create,
-                RateLimitError=openai.RateLimitError,
-            )
+    if hasattr(openai_module, "OpenAI"):
+        openai_module = cast(OpenAIV1Module, openai_module)
+
+        # v1 API
+        if is_async:
+            openai_obj = openai_module.AsyncOpenAI(api_key=api_key, base_url=base_url)  # type: ignore
         else:
-            rate_limit_error = openai.error.RateLimitError
-            if is_async:
-                complete_fn = openai_obj.ChatCompletion.acreate
-                embedding_fn = openai_obj.Embedding.acreate
-                moderation_fn = openai_obj.Moderation.acreate
-            else:
-                complete_fn = openai_obj.ChatCompletion.create
-                embedding_fn = openai_obj.Embedding.create
-                moderation_fn = openai_obj.Moderation.create
-            client = Client(
-                openai=openai,
-                complete=complete_fn,
-                embed=embedding_fn,
-                moderation=moderation_fn,
-                RateLimitError=rate_limit_error,
-            )
+            openai_obj = openai_module.OpenAI(api_key=api_key, base_url=base_url)  # type: ignore
+    else:
+        openai_module = cast(OpenAIV0Module, openai_module)
 
-    return client, wrapped
+        # v0 API
+        if api_key:
+            openai_module.api_key = api_key
+        openai_module.api_base = base_url
+        openai_obj = openai_module
+
+    return LLMClient(openai=openai_obj, is_async=is_async)
 
 
-def post_process_response(resp):
+def post_process_response(resp: Any) -> Dict[str, Any]:
     # This normalizes against craziness in OpenAI v0 vs. v1
     if hasattr(resp, "to_dict"):
         # v0
@@ -220,19 +368,25 @@ def post_process_response(resp):
         return resp.dict()
 
 
-def set_span_purpose(kwargs):
+def set_span_purpose(kwargs: Dict[str, Any]) -> None:
     kwargs.setdefault("span_info", {}).setdefault("span_attributes", {})["purpose"] = "scorer"
 
 
 def run_cached_request(
-    *, client: Optional[LLMClient] = None, request_type="complete", api_key=None, base_url=None, **kwargs
-):
-    wrapper, wrapped = prepare_openai(client=client, is_async=False, api_key=api_key, base_url=base_url)
-    if wrapped:
+    *,
+    client: Optional[LLMClient] = None,
+    request_type: str = "complete",
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    wrapper = prepare_openai(client=client, is_async=False, api_key=api_key, base_url=base_url)
+    if wrapper.is_wrapped:
         set_span_purpose(kwargs)
 
     retries = 0
     sleep_time = 0.1
+    resp = None
     while retries < 100:
         try:
             resp = post_process_response(getattr(wrapper, request_type)(**kwargs))
@@ -242,18 +396,26 @@ def run_cached_request(
             time.sleep(sleep_time)
             retries += 1
 
+    if resp is None:
+        raise RuntimeError("Failed to get response after maximum retries")
     return resp
 
 
 async def arun_cached_request(
-    *, client: Optional[LLMClient] = None, request_type="complete", api_key=None, base_url=None, **kwargs
-):
-    wrapper, wrapped = prepare_openai(client=client, is_async=True, api_key=api_key, base_url=base_url)
-    if wrapped:
+    *,
+    client: Optional[LLMClient] = None,
+    request_type: str = "complete",
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    wrapper = prepare_openai(client=client, is_async=True, api_key=api_key, base_url=base_url)
+    if wrapper.is_wrapped:
         set_span_purpose(kwargs)
 
     retries = 0
     sleep_time = 0.1
+    resp = None
     while retries < 100:
         try:
             resp = post_process_response(await getattr(wrapper, request_type)(**kwargs))
@@ -263,5 +425,8 @@ async def arun_cached_request(
             sleep_time *= 1.5
             await asyncio.sleep(sleep_time)
             retries += 1
+
+    if resp is None:
+        raise RuntimeError("Failed to get response after maximum retries")
 
     return resp

@@ -1,14 +1,14 @@
 import asyncio
 from typing import cast
-from unittest.mock import Mock
 
 import pytest
 import respx
+from openai import OpenAI
 from pydantic import BaseModel
 
 from autoevals import init
-from autoevals.llm import *
-from autoevals.llm import build_classification_tools
+from autoevals.llm import Battle, Factuality, LLMClassifier, OpenAILLMClassifier, build_classification_tools
+from autoevals.oai import OpenAIV1Module
 
 
 class TestModel(BaseModel):
@@ -202,63 +202,58 @@ def test_factuality():
     assert result.score == 1
 
 
+@respx.mock
 def test_factuality_client():
-    client = Mock()
-    client.RateLimitError = Exception
-
-    completion = Mock()
-    completion.to_dict.return_value = {
-        "id": "chatcmpl-AdiS4bHWjqSclA5rx7OkuZ6EA9QIp",
-        "choices": [
-            {
-                "finish_reason": "stop",
-                "index": 0,
-                "logprobs": None,
-                "message": {
-                    "content": None,
-                    "refusal": None,
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "id": "call_JKoeGAX2zGPJAmF2muDgjpHp",
-                            "function": {
-                                "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
-                                "name": "select_choice",
-                            },
-                            "type": "function",
-                        }
-                    ],
+    respx.route().respond(
+        json={
+            "id": "chatcmpl-AdiS4bHWjqSclA5rx7OkuZ6EA9QIp",
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": None,
+                    "message": {
+                        "content": None,
+                        "refusal": None,
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_JKoeGAX2zGPJAmF2muDgjpHp",
+                                "function": {
+                                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
+                                    "name": "select_choice",
+                                },
+                                "type": "function",
+                            }
+                        ],
+                    },
+                }
+            ],
+            "created": 1734029028,
+            "model": "gpt-4o-2024-08-06",
+            "object": "chat.completion",
+            "system_fingerprint": "fp_cc5cf1c6e3",
+            "usage": {
+                "completion_tokens": 149,
+                "prompt_tokens": 404,
+                "total_tokens": 553,
+                "completion_tokens_details": {
+                    "accepted_prediction_tokens": 0,
+                    "audio_tokens": 0,
+                    "reasoning_tokens": 0,
+                    "rejected_prediction_tokens": 0,
                 },
-            }
-        ],
-        "created": 1734029028,
-        "model": "gpt-4o-2024-08-06",
-        "object": "chat.completion",
-        "system_fingerprint": "fp_cc5cf1c6e3",
-        "usage": {
-            "completion_tokens": 149,
-            "prompt_tokens": 404,
-            "total_tokens": 553,
-            "completion_tokens_details": {
-                "accepted_prediction_tokens": 0,
-                "audio_tokens": 0,
-                "reasoning_tokens": 0,
-                "rejected_prediction_tokens": 0,
+                "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
             },
-            "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
-        },
-    }
+        }
+    )
 
-    client.complete.return_value = completion
-
-    llm = Factuality(client=cast(LLMClient, client))
+    llm = Factuality(client=OpenAI(api_key="test"))
     result = llm.eval(
         output="6",
         expected="6",
         input="Add the following numbers: 1, 2, 3",
     )
-
-    assert client.complete.call_count == 1
 
     assert result.score == 1
 
@@ -270,55 +265,53 @@ def reset_client():
 
 
 # make sure we deny any leaked calls to OpenAI
-@respx.mock(base_url="https://api.openai.com/v1/")
+@respx.mock
 def test_init_client():
-    client = Mock()
-    client.RateLimitError = Exception
+    client = cast(OpenAIV1Module.OpenAI, OpenAI(api_key="test"))
 
-    completion = Mock()
-    completion.to_dict.return_value = {
-        "id": "chatcmpl-AdiS4bHWjqSclA5rx7OkuZ6EA9QIp",
-        "choices": [
-            {
-                "finish_reason": "stop",
-                "index": 0,
-                "logprobs": None,
-                "message": {
-                    "content": None,
-                    "refusal": None,
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "id": "call_JKoeGAX2zGPJAmF2muDgjpHp",
-                            "function": {
-                                "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
-                                "name": "select_choice",
-                            },
-                            "type": "function",
-                        }
-                    ],
+    respx.route().respond(
+        json={
+            "id": "chatcmpl-AdiS4bHWjqSclA5rx7OkuZ6EA9QIp",
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "index": 0,
+                    "logprobs": None,
+                    "message": {
+                        "content": None,
+                        "refusal": None,
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_JKoeGAX2zGPJAmF2muDgjpHp",
+                                "function": {
+                                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
+                                    "name": "select_choice",
+                                },
+                                "type": "function",
+                            }
+                        ],
+                    },
+                }
+            ],
+            "created": 1734029028,
+            "model": "gpt-4o-2024-08-06",
+            "object": "chat.completion",
+            "system_fingerprint": "fp_cc5cf1c6e3",
+            "usage": {
+                "completion_tokens": 149,
+                "prompt_tokens": 404,
+                "total_tokens": 553,
+                "completion_tokens_details": {
+                    "accepted_prediction_tokens": 0,
+                    "audio_tokens": 0,
+                    "reasoning_tokens": 0,
+                    "rejected_prediction_tokens": 0,
                 },
-            }
-        ],
-        "created": 1734029028,
-        "model": "gpt-4o-2024-08-06",
-        "object": "chat.completion",
-        "system_fingerprint": "fp_cc5cf1c6e3",
-        "usage": {
-            "completion_tokens": 149,
-            "prompt_tokens": 404,
-            "total_tokens": 553,
-            "completion_tokens_details": {
-                "accepted_prediction_tokens": 0,
-                "audio_tokens": 0,
-                "reasoning_tokens": 0,
-                "rejected_prediction_tokens": 0,
+                "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
             },
-            "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
-        },
-    }
-
-    client.complete.return_value = completion
+        }
+    )
 
     init(client=client)
 
@@ -328,8 +321,6 @@ def test_init_client():
         expected="6",
         input="Add the following numbers: 1, 2, 3",
     )
-
-    assert client.complete.call_count == 1
 
     assert result.score == 1
 

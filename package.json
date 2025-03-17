@@ -42,7 +42,7 @@
     "jest-text-transformer": "^1.0.4",
     "msw": "^2.7.3",
     "ts-jest": "^29.1.1",
-    "tsup": "^8.0.1",
+    "tsup": "^8.4.0",
     "tsx": "^3.14.0",
     "typedoc": "^0.25.4",
     "typedoc-plugin-markdown": "^3.17.1",

@@ -15,17 +15,14 @@ install_requires = ["chevron", "polyleven", "pyyaml", "braintrust_core", "jsonsc
 
 extras_require = {
     "dev": [
-        "black==22.6.0",
-        "braintrust",  # used for testing
+        "black",
         "build",
         "flake8",
         "flake8-isort",
         "IPython",
         "isort==5.12.0",
-        "openai",  # used for testing
         "pre-commit",
         "pytest",
-        "pytest-watch",
         "respx",
         "twine",
     ],

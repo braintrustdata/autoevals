@@ -1,22 +1,3 @@
-"""String evaluation scorers for comparing text similarity.
-
-This module provides scorers for text comparison:
-
-- Levenshtein: Compare strings using edit distance
-  - Fast, local string comparison
-  - Suitable for exact matches and small variations
-  - No external dependencies
-  - Simple to use with just output/expected parameters
-
-- EmbeddingSimilarity: Compare strings using embeddings
-  - Semantic similarity using embeddings
-  - Requires OpenAI API access
-  - Better for comparing meaning rather than exact matches
-  - Supports both sync and async evaluation
-  - Built-in caching for efficiency
-  - Configurable with options for model, prefix, thresholds
-"""
-
 import threading
 from typing import Optional
 
@@ -30,24 +11,8 @@ from .oai import LLMClient, arun_cached_request, run_cached_request
 
 
 class Levenshtein(ScorerWithPartial):
-    """String similarity scorer using edit distance.
-
-    Example:
-        ```python
-        scorer = Levenshtein()
-        result = scorer.eval(
-            output="hello wrld",
-            expected="hello world"
-        )
-        print(result.score)  # 0.9 (normalized similarity)
-        ```
-
-    Args:
-        output: String to evaluate
-        expected: Reference string to compare against
-
-    Returns:
-        Score object with normalized similarity (0-1), where 1 means identical strings
+    """
+    A simple scorer that uses the Levenshtein distance to compare two strings.
     """
 
     def _run_eval_sync(self, output, expected=None, **kwargs):
@@ -68,44 +33,8 @@ LevenshteinScorer = Levenshtein  # backcompat
 
 
 class EmbeddingSimilarity(ScorerWithPartial):
-    """String similarity scorer using embeddings.
-
-    Example:
-        ```python
-        import asyncio
-        from openai import AsyncOpenAI
-        from autoevals.string import EmbeddingSimilarity
-
-        async def compare_texts():
-            # Initialize with async client
-            client = AsyncOpenAI()
-            scorer = EmbeddingSimilarity(
-                prefix="Code explanation: ",
-                client=client
-            )
-
-            result = await scorer.eval_async(
-                output="The function sorts elements using quicksort",
-                expected="The function implements quicksort algorithm"
-            )
-
-            print(result.score)  # 0.85 (normalized similarity)
-            print(result.metadata)  # Additional comparison details
-
-        # Run the async evaluation
-        asyncio.run(compare_texts())
-        ```
-
-    Args:
-        prefix: Optional text to prepend to inputs for domain context
-        model: Embedding model to use (default: text-embedding-ada-002)
-        expected_min: Minimum similarity threshold (default: 0.7)
-        client: Optional AsyncOpenAI/OpenAI client. If not provided, uses global client from init()
-
-    Returns:
-        Score object with:
-        - score: Normalized similarity (0-1)
-        - metadata: Additional comparison details
+    """
+    A simple scorer that uses cosine similarity to compare two strings.
     """
 
     MODEL = "text-embedding-ada-002"
@@ -122,6 +51,14 @@ class EmbeddingSimilarity(ScorerWithPartial):
         base_url=None,
         client: Optional[LLMClient] = None,
     ):
+        """
+        Create a new EmbeddingSimilarity scorer.
+
+        :param prefix: A prefix to prepend to the prompt. This is useful for specifying the domain of the inputs.
+        :param model: The model to use for the embedding distance. Defaults to "text-embedding-ada-002".
+        :param expected_min: The minimum expected score. Defaults to 0.7. Values below this will be scored as 0, and
+        values between this and 1 will be scaled linearly.
+        """
         self.prefix = prefix
         self.expected_min = expected_min
 

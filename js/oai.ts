@@ -5,6 +5,7 @@ import {
   ChatCompletionToolChoiceOption,
 } from "openai/resources";
 import { AzureOpenAI, OpenAI } from "openai";
+import { types } from "node:util";
 
 import { Env } from "./env";
 
@@ -29,18 +30,37 @@ export interface ChatCache {
   set(params: CachedLLMParams, response: ChatCompletion): Promise<void>;
 }
 
-export interface OpenAIAuth {
-  openAiApiKey?: string;
-  openAiOrganizationId?: string;
-  openAiBaseUrl?: string;
-  openAiDefaultHeaders?: Record<string, string>;
-  openAiDangerouslyAllowBrowser?: boolean;
-  /**
-    If present, use [Azure OpenAI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
-    instead of OpenAI.
-   */
-  azureOpenAi?: AzureOpenAiAuth;
-}
+export type OpenAIAuth =
+  | {
+      /** @deprecated Use the `client` option instead */
+      openAiApiKey?: string;
+      /** @deprecated Use the `client` option instead */
+      openAiOrganizationId?: string;
+      /** @deprecated Use the `client` option instead */
+      openAiBaseUrl?: string;
+      /** @deprecated Use the `client` option instead */
+      openAiDefaultHeaders?: Record<string, string>;
+      /** @deprecated Use the `client` option instead */
+      openAiDangerouslyAllowBrowser?: boolean;
+      /** @deprecated Use the `client` option instead */
+      azureOpenAi?: AzureOpenAiAuth;
+      client?: never;
+    }
+  | {
+      client: OpenAI;
+      /** @deprecated Use the `client` option instead */
+      openAiApiKey?: never;
+      /** @deprecated Use the `client` option instead */
+      openAiOrganizationId?: never;
+      /** @deprecated Use the `client` option instead */
+      openAiBaseUrl?: never;
+      /** @deprecated Use the `client` option instead */
+      openAiDefaultHeaders?: never;
+      /** @deprecated Use the `client` option instead */
+      openAiDangerouslyAllowBrowser?: never;
+      /** @deprecated Use the `client` option instead */
+      azureOpenAi?: never;
+    };
 
 export interface AzureOpenAiAuth {
   apiKey: string;
@@ -51,19 +71,21 @@ export interface AzureOpenAiAuth {
 export function extractOpenAIArgs<T extends Record<string, unknown>>(
   args: OpenAIAuth & T,
 ): OpenAIAuth {
-  return {
-    openAiApiKey: args.openAiApiKey,
-    openAiOrganizationId: args.openAiOrganizationId,
-    openAiBaseUrl: args.openAiBaseUrl,
-    openAiDefaultHeaders: args.openAiDefaultHeaders,
-    openAiDangerouslyAllowBrowser: args.openAiDangerouslyAllowBrowser,
-    azureOpenAi: args.azureOpenAi,
-  };
+  return args.client
+    ? { client: args.client }
+    : {
+        openAiApiKey: args.openAiApiKey,
+        openAiOrganizationId: args.openAiOrganizationId,
+        openAiBaseUrl: args.openAiBaseUrl,
+        openAiDefaultHeaders: args.openAiDefaultHeaders,
+        openAiDangerouslyAllowBrowser: args.openAiDangerouslyAllowBrowser,
+        azureOpenAi: args.azureOpenAi,
+      };
 }
 
 const PROXY_URL = "https://api.braintrust.dev/v1/proxy";
 
-export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
+const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
   const {
     openAiApiKey,
     openAiOrganizationId,
@@ -73,7 +95,15 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
     azureOpenAi,
   } = options;
 
-  const client = azureOpenAi
+  if (options.client) {
+    return options.client;
+  }
+
+  if (globalThis.__client) {
+    return globalThis.__client;
+  }
+
+  return azureOpenAi
     ? new AzureOpenAI({
         apiKey: azureOpenAi.apiKey,
         endpoint: azureOpenAi.endpoint,
@@ -88,18 +118,28 @@ export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
         defaultHeaders: openAiDefaultHeaders,
         dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
       });
+};
 
-  if (globalThis.__inherited_braintrust_wrap_openai) {
+export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
+  const client = resolveOpenAIClient(options);
+
+  // avoid re-wrapping if the client is already wrapped (proxied)
+  if (globalThis.__inherited_braintrust_wrap_openai && !types.isProxy(client)) {
     return globalThis.__inherited_braintrust_wrap_openai(client);
-  } else {
-    return client;
   }
+
+  return client;
 }
 
 declare global {
   /* eslint-disable no-var */
   var __inherited_braintrust_wrap_openai: ((openai: any) => any) | undefined;
+  var __client: OpenAI | undefined;
 }
+
+export const init = ({ client }: { client?: OpenAI } = {}) => {
+  globalThis.__client = client;
+};
 
 export async function cachedChatCompletion(
   params: CachedLLMParams,

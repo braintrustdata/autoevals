@@ -1,3 +1,59 @@
+"""This module provides evaluators for assessing the quality of context retrieval and answer generation.
+These metrics are ported from the RAGAS project with some enhancements.
+
+**Context quality evaluators**:
+
+  - `ContextEntityRecall`: Measures how well context contains expected entities
+  - `ContextRelevancy`: Evaluates relevance of context to question
+  - `ContextRecall`: Checks if context supports expected answer
+  - `ContextPrecision`: Measures precision of context relative to question
+
+**Answer quality evaluators**:
+
+  - `Faithfulness`: Checks if answer claims are supported by context
+  - `AnswerRelevancy`: Measures answer relevance to question
+  - `AnswerSimilarity`: Compares semantic similarity to expected answer
+  - `AnswerCorrectness`: Evaluates factual correctness against ground truth
+
+**Common arguments**:
+
+    - `model`: Model to use for evaluation, defaults to DEFAULT_RAGAS_MODEL (gpt-3.5-turbo-16k)
+    - `client`: Optional Client for API calls. If not provided, uses global client from init()
+
+**Example**:
+    ```python
+    from openai import OpenAI
+    from autoevals import init
+    from autoevals.ragas import (
+        ContextRelevancy,
+        Faithfulness,
+    )
+
+    # Initialize with your OpenAI client
+    init(OpenAI())
+
+    # Evaluate context relevance
+    relevancy = ContextRelevancy()
+    result = relevancy.eval(
+        input="What is the capital of France?",
+        output="Paris is the capital of France",
+        context="Paris is the capital of France. The city is known for the Eiffel Tower."
+    )
+    print(f"Context relevance score: {result.score}")  # 1.0 for highly relevant
+
+    # Check answer faithfulness to context
+    faithfulness = Faithfulness()
+    result = faithfulness.eval(
+        input="What is France's capital city?",
+        output="Paris is the capital of France and has the Eiffel Tower",
+        context="Paris is the capital of France. The city is known for the Eiffel Tower."
+    )
+    print(f"Faithfulness score: {result.score}")  # 1.0 for fully supported claims
+    ```
+
+For more examples and detailed usage of each evaluator, see their individual class docstrings.
+"""
+
 # These metrics are ported, with some enhancements, from the [RAGAS](https://github.com/explodinggradients/ragas) project.
 
 import asyncio
@@ -9,7 +65,7 @@ import chevron
 from . import Score
 from .list import ListContains
 from .llm import OpenAILLMScorer
-from .oai import LLMClient, arun_cached_request, run_cached_request
+from .oai import Client, arun_cached_request, run_cached_request
 from .string import EmbeddingSimilarity
 
 
@@ -77,23 +133,43 @@ def extract_entities_request(text, **extra_args):
     )
 
 
-async def aextract_entities(*, text, client: Optional[LLMClient] = None, **extra_args):
+async def aextract_entities(*, text, client: Optional[Client] = None, **extra_args):
     response = await arun_cached_request(client=client, **extract_entities_request(text=text, **extra_args))
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
 
-def extract_entities(*, text, client: Optional[LLMClient] = None, **extra_args):
+def extract_entities(*, text, client: Optional[Client] = None, **extra_args):
     response = run_cached_request(client=client, **extract_entities_request(text=text, **extra_args))
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
 
 class ContextEntityRecall(OpenAILLMScorer):
-    """
-    Estimates context recall by estimating TP and FN using annotated answer and
-    retrieved context.
+    """Measures how well the context contains the entities mentioned in the expected answer.
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.ragas import ContextEntityRecall
+
+        # Initialize with your OpenAI client
+        init(OpenAI())
+
+        recall = ContextEntityRecall()
+        result = recall.eval(
+            expected="The capital of France is Paris and its population is 2.2 million",
+            context="Paris is a major city in France with a population of 2.2 million people. As the capital city, it is known for the Eiffel Tower."
+        )
+        print(result.score)  # Score between 0-1, higher means more entities from expected answer found in context
+        print(result.metadata["entities"])  # List of entities found and their overlap
+        ```
+
+    Args:
+        expected: The expected/ground truth answer containing entities to find
+        context: The context document(s) to search for entities in
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.extraction_model = model
@@ -210,12 +286,34 @@ def extract_sentences_request(question, context, **extra_args):
 
 
 class ContextRelevancy(OpenAILLMScorer):
-    """
-    Extracts sentences from the context that are relevant to the question with
-    self-consistency checks. The number of relevant sentences and is used as the score.
+    """Evaluates how relevant the context is to the input question.
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.ragas import ContextRelevancy
+
+        # Initialize with your OpenAI client
+        init(OpenAI())
+
+        relevancy = ContextRelevancy()
+        result = relevancy.eval(
+            input="What is the capital of France?",
+            output="Paris is the capital of France",
+            context="Paris is the capital of France. The city is known for the Eiffel Tower."
+        )
+        print(result.score)  # Score between 0-1, higher means more relevant context
+        print(result.metadata["relevant_sentences"])  # List of relevant sentences found
+        ```
+
+    Args:
+        input: The question being evaluated
+        output: The generated answer
+        context: The context document(s) to evaluate
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.model = model
@@ -346,12 +444,36 @@ def extract_context_recall_request(question, answer, context, **extra_args):
 
 
 class ContextRecall(OpenAILLMScorer):
-    """
-    Estimates context recall by estimating TP and FN using annotated answer and
-    retrieved context.
+    """Measures how well the context supports the expected answer.
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.ragas import ContextRecall
+
+        # Initialize with your OpenAI client
+        init(OpenAI())
+
+        recall = ContextRecall()
+        result = recall.eval(
+            input="What is the capital of France?",
+            output="Paris is the capital of France",  # The generated answer
+            expected="Paris is the capital of France",
+            context="Paris is the capital of France. The city is known for the Eiffel Tower."
+        )
+        print(result.score)  # Score between 0-1, higher means better context recall
+        print(result.metadata["recall"])  # Detailed recall analysis
+        ```
+
+    Args:
+        input: The question being evaluated
+        output: The generated answer
+        expected: The expected/ground truth answer
+        context: The context document(s) to evaluate
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.model = model
@@ -367,6 +489,7 @@ class ContextRecall(OpenAILLMScorer):
             score=ones / total,
             metadata={
                 "statements": statements,
+                "recall": statements,
             },
         )
 
@@ -481,12 +604,36 @@ def extract_context_precision_request(question, answer, context, **extra_args):
 
 
 class ContextPrecision(OpenAILLMScorer):
-    """
-    Average Precision is a metric that evaluates whether all of the
-    relevant items selected by the model are ranked higher or not.
+    """Measures how precise and focused the context is for answering the question.
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.ragas import ContextPrecision
+
+        # Initialize with your OpenAI client
+        init(OpenAI())
+
+        precision = ContextPrecision()
+        result = precision.eval(
+            input="What is the capital of France?",
+            output="Paris is the capital of France",  # The generated answer
+            expected="Paris is the capital of France",
+            context="Paris is the capital of France. The city is known for the Eiffel Tower."
+        )
+        print(result.score)  # Score between 0-1, higher means more precise context
+        print(result.metadata["precision"])  # Detailed precision analysis
+        ```
+
+    Args:
+        input: The question being evaluated
+        output: The generated answer
+        expected: The expected/ground truth answer
+        context: The context document(s) to evaluate
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.model = model
@@ -692,28 +839,28 @@ def extract_faithfulness_request(context, statements, **extra_args):
     )
 
 
-async def aextract_statements(question, answer, client: Optional[LLMClient] = None, **extra_args):
+async def aextract_statements(question, answer, client: Optional[Client] = None, **extra_args):
     response = await arun_cached_request(
         client=client, **extract_statements_request(question=question, answer=answer, **extra_args)
     )
     return load_function_call(response)
 
 
-def extract_statements(question, answer, client: Optional[LLMClient] = None, **extra_args):
+def extract_statements(question, answer, client: Optional[Client] = None, **extra_args):
     response = run_cached_request(
         client=client, **extract_statements_request(question=question, answer=answer, **extra_args)
     )
     return load_function_call(response)
 
 
-async def aextract_faithfulness(context, statements, client: Optional[LLMClient] = None, **extra_args):
+async def aextract_faithfulness(context, statements, client: Optional[Client] = None, **extra_args):
     response = await arun_cached_request(
         client=client, **extract_faithfulness_request(context=context, statements=statements, **extra_args)
     )
     return load_function_call(response)
 
 
-def extract_faithfulness(context, statements, client: Optional[LLMClient] = None, **extra_args):
+def extract_faithfulness(context, statements, client: Optional[Client] = None, **extra_args):
     response = run_cached_request(
         client=client, **extract_faithfulness_request(context=context, statements=statements, **extra_args)
     )
@@ -721,11 +868,34 @@ def extract_faithfulness(context, statements, client: Optional[LLMClient] = None
 
 
 class Faithfulness(OpenAILLMScorer):
-    """
-    Measures factual consistency of a generated answer against the given context.
+    """Evaluates if the generated answer is faithful to the given context.
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.ragas import Faithfulness
+
+        # Initialize with your OpenAI client
+        init(OpenAI())
+
+        faithfulness = Faithfulness()
+        result = faithfulness.eval(
+            input="What is the capital of France?",
+            output="Paris is the capital of France",  # The generated answer to evaluate
+            context="Paris is the capital of France. The city is known for the Eiffel Tower."
+        )
+        print(result.score)  # Score between 0-1, higher means more faithful to context
+        print(result.metadata["faithfulness"])  # Detailed faithfulness analysis
+        ```
+
+    Args:
+        input: The question being evaluated
+        output: The generated answer to evaluate
+        context: The context document(s) to evaluate against
     """
 
-    def __init__(self, model=DEFAULT_RAGAS_MODEL, client: Optional[LLMClient] = None, **kwargs):
+    def __init__(self, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.model = model
@@ -853,9 +1023,36 @@ def extract_question_gen_request(answer, context, **extra_args):
 
 
 class AnswerRelevancy(OpenAILLMScorer):
-    """
-    Scores the relevancy of the answer according to the given question.
-    Answers with incomplete, redundant or unnecessary information are penalized.
+    """Evaluates how relevant the generated answer is to the input question.
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.ragas import AnswerRelevancy
+
+        # Initialize with your OpenAI client
+        init(OpenAI())
+
+        relevancy = AnswerRelevancy()
+        result = relevancy.eval(
+            input="What is the capital of France?",
+            output="Paris is the capital of France",  # The generated answer to evaluate
+            context="Paris is the capital of France. The city is known for the Eiffel Tower.",
+            strictness=0.7,  # Optional: higher values enforce stricter relevancy
+            temperature=0.2  # Optional: lower values make evaluation more deterministic
+        )
+        print(result.score)  # Score between 0-1, higher means more relevant answer
+        print(result.metadata["relevancy"])  # Detailed relevancy analysis
+        ```
+
+    Args:
+        input: The question being evaluated
+        output: The generated answer to evaluate
+        context: The context document(s) to evaluate against
+        strictness: Optional float between 0-1, higher values enforce stricter relevancy
+        temperature: Optional float between 0-1, lower values make evaluation more deterministic
+        embedding_model: Optional model to use for embeddings, defaults to text-embedding-3-small
     """
 
     def __init__(
@@ -864,7 +1061,7 @@ class AnswerRelevancy(OpenAILLMScorer):
         strictness=3,
         temperature=0.5,
         embedding_model=DEFAULT_RAGAS_EMBEDDING_MODEL,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
         **kwargs,
     ):
         super().__init__(temperature=temperature, client=client, **kwargs)
@@ -934,15 +1131,38 @@ class AnswerRelevancy(OpenAILLMScorer):
 
 
 class AnswerSimilarity(OpenAILLMScorer):
-    """
-    Measures the similarity between the generated answer and the expected answer.
+    """Evaluates how semantically similar the generated answer is to the expected answer.
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.ragas import AnswerSimilarity
+
+        # Initialize with your OpenAI client
+        init(OpenAI())
+
+        similarity = AnswerSimilarity()
+        result = similarity.eval(
+            output="Paris is the capital of France",  # The generated answer to evaluate
+            expected="The capital city of France is Paris",
+            embedding_model="text-embedding-3-small"  # Optional: specify embedding model
+        )
+        print(result.score)  # Score between 0-1, higher means more similar answers
+        print(result.metadata["similarity"])  # Detailed similarity analysis
+        ```
+
+    Args:
+        output: The generated answer to evaluate
+        expected: The expected/ground truth answer
+        embedding_model: Optional model to use for embeddings, defaults to text-embedding-3-small
     """
 
     def __init__(
         self,
         pairwise_scorer=None,
         model=DEFAULT_RAGAS_EMBEDDING_MODEL,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
         **kwargs,
     ):
         super().__init__(client=client, **kwargs)
@@ -1047,8 +1267,36 @@ def compute_f1_score(factuality):
 
 
 class AnswerCorrectness(OpenAILLMScorer):
-    """
-    Scores the correctness of the answer based on the ground truth.
+    """Evaluates how correct the generated answer is compared to the expected answer.
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from autoevals import init
+        from autoevals.ragas import AnswerCorrectness
+
+        # Initialize with your OpenAI client
+        init(OpenAI())
+
+        correctness = AnswerCorrectness()
+        result = correctness.eval(
+            input="What is the capital of France?",
+            output="Paris is the capital of France",  # The generated answer to evaluate
+            expected="The capital city of France is Paris",
+            factuality_weight=0.7,  # Optional: weight for factual correctness
+            answer_similarity_weight=0.3  # Optional: weight for answer similarity
+        )
+        print(result.score)  # Score between 0-1, higher means more correct answer
+        print(result.metadata["correctness"])  # Detailed correctness analysis
+        ```
+
+    Args:
+        input: The question being evaluated
+        output: The generated answer to evaluate
+        expected: The expected/ground truth answer
+        factuality_weight: Optional float between 0-1 for factual correctness weight
+        answer_similarity_weight: Optional float between 0-1 for answer similarity weight
+        answer_similarity: Optional AnswerSimilarity instance for similarity evaluation
     """
 
     def __init__(
@@ -1058,7 +1306,7 @@ class AnswerCorrectness(OpenAILLMScorer):
         factuality_weight=0.75,
         answer_similarity_weight=0.25,
         answer_similarity=None,
-        client: Optional[LLMClient] = None,
+        client: Optional[Client] = None,
         **kwargs,
     ):
         super().__init__(client=client, **kwargs)
@@ -1139,9 +1387,9 @@ def load_function_call(response):
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
 
-async def aload_function_call_request(client: Optional[LLMClient] = None, **kwargs):
+async def aload_function_call_request(client: Optional[Client] = None, **kwargs):
     return load_function_call(await arun_cached_request(client=client, **kwargs))
 
 
-def load_function_call_request(client: Optional[LLMClient] = None, **kwargs):
+def load_function_call_request(client: Optional[Client] = None, **kwargs):
     return load_function_call(run_cached_request(client=client, **kwargs))

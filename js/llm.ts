@@ -95,7 +95,6 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     openAiDefaultHeaders,
     openAiDangerouslyAllowBrowser,
     azureOpenAi,
-    client,
     ...remaining
   } = args;
 
@@ -136,17 +135,15 @@ export async function OpenAIClassifier<RenderArgs, Output>(
       },
       ...extraArgs,
     },
-    client
-      ? { client }
-      : {
-          cache,
-          openAiApiKey,
-          openAiOrganizationId,
-          openAiBaseUrl,
-          openAiDefaultHeaders,
-          openAiDangerouslyAllowBrowser,
-          azureOpenAi,
-        },
+    {
+      cache,
+      openAiApiKey,
+      openAiOrganizationId,
+      openAiBaseUrl,
+      openAiDefaultHeaders,
+      openAiDangerouslyAllowBrowser,
+      azureOpenAi,
+    },
   );
 
   if (resp.choices.length > 0) {

@@ -107,6 +107,7 @@ export const ContextEntityRecall: ScorerWithPartial<
   const [expectedEntities, contextEntities] = responses.map(mustParseArgs);
 
   const score = await ListContains({
+    ...extractOpenAIArgs(args),
     pairwiseScorer: args.pairwiseScorer ?? EmbeddingSimilarity,
     allowExtraEntities: true,
     output: entitySchema.parse(contextEntities).entities,

@@ -121,7 +121,7 @@ const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
 
 const isWrapped = (client: OpenAI): boolean => {
   const Constructor = Object.getPrototypeOf(client).constructor;
-  const clean = new Constructor();
+  const clean = new Constructor({ apiKey: "dummy" });
   return (
     String(client.chat.completions.create) !==
     String(clean.chat.completions.create)

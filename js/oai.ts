@@ -5,7 +5,6 @@ import {
   ChatCompletionToolChoiceOption,
 } from "openai/resources";
 import { AzureOpenAI, OpenAI } from "openai";
-import { types } from "node:util";
 
 import { Env } from "./env";
 
@@ -120,11 +119,20 @@ const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
       });
 };
 
+const isWrapped = (client: OpenAI): boolean => {
+  const Constructor = Object.getPrototypeOf(client).constructor;
+  const clean = new Constructor();
+  return (
+    String(client.chat.completions.create) !==
+    String(clean.chat.completions.create)
+  );
+};
+
 export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
   const client = resolveOpenAIClient(options);
 
   // avoid re-wrapping if the client is already wrapped (proxied)
-  if (globalThis.__inherited_braintrust_wrap_openai && !types.isProxy(client)) {
+  if (globalThis.__inherited_braintrust_wrap_openai && !isWrapped(client)) {
     return globalThis.__inherited_braintrust_wrap_openai(client);
   }
 

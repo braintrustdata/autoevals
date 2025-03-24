@@ -25,7 +25,6 @@ extras_require = {
         "openai",  # used for testing
         "pre-commit",
         "pytest",
-        "pytest-watch",
         "respx",
         "twine",
     ],

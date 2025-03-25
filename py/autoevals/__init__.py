@@ -51,7 +51,7 @@ Configure your client to use the proxy:
 ```python
 import os
 from openai import AsyncOpenAI
-from autoevals.llm import Correctness
+from autoevals.llm import Factuality
 
 # Configure client to use Braintrust AI Proxy
 client = AsyncOpenAI(
@@ -60,7 +60,7 @@ client = AsyncOpenAI(
 )
 
 # Use with any evaluator
-evaluator = Correctness(client=client)
+evaluator = Factuality(client=client)
 ```
 
 **Braintrust integration**:

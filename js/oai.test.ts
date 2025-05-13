@@ -143,7 +143,7 @@ describe("OAI", () => {
 
   test("default wraps", async () => {
     delete process.env.OPENAI_API_KEY;
-    delete process.env.OPENAI_API_BASE_URL;
+    delete process.env.OPENAI_BASE_URL;
 
     server.use(
       http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
@@ -169,7 +169,7 @@ describe("OAI", () => {
 
   test("wraps once", async () => {
     delete process.env.OPENAI_API_KEY;
-    delete process.env.OPENAI_API_BASE_URL;
+    delete process.env.OPENAI_BASE_URL;
 
     server.use(
       http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {

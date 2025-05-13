@@ -75,8 +75,8 @@ def check_required(name, **kwargs):
             raise ValueError(f"{name} requires {key} value")
 
 
-DEFAULT_RAGAS_MODEL = "gpt-3.5-turbo-16k"
-DEFAULT_RAGAS_EMBEDDING_MODEL = "text-embedding-ada-002"
+DEFAULT_RAGAS_MODEL = "gpt-4o-mini"
+DEFAULT_RAGAS_EMBEDDING_MODEL = "text-embedding-3-small"
 
 ENTITY_PROMPT = """Given a text, extract unique entities without repetition. Ensure you consider different forms or mentions of the same entity as a single entity.
 

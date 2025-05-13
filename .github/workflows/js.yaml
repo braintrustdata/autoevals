@@ -1,8 +1,5 @@
 name: js
 
-env:
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
 on:
   pull_request:
   push:
@@ -14,7 +11,8 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x]
+        # duckdb has an incredibly slow install with 24.x
+        node-version: [20.x, 22.x]
 
     steps:
       - uses: actions/checkout@v3
@@ -34,4 +32,8 @@ jobs:
       - uses: pnpm/action-setup@v4
       - run: pnpm install
       - run: pnpm run test
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
       - run: pnpm run build

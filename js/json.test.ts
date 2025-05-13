@@ -2,6 +2,8 @@ import { JSONDiff, ValidJSON } from "./json";
 import { NumericDiff } from "./number";
 import { ExactMatch } from "./value";
 
+import { test, expect } from "vitest";
+
 test("JSON String Test", async () => {
   const cases = [
     { a: "", b: "", expected: 1 },

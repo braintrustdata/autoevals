@@ -1,9 +1,6 @@
 # Modified from https://github.com/actions/starter-workflows/blob/main/ci/python-app.yml
 name: python
 
-env:
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
 on:
   pull_request:
   push:
@@ -29,3 +26,7 @@ jobs:
       - name: Test with pytest
         run: |
           pytest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}

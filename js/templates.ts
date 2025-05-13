@@ -33,9 +33,12 @@ const templateStrings = {
   translation,
 } as const;
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
 export const templates = Object.fromEntries(
   Object.entries(templateStrings).map(([name, template]) => [
     name,
-    modelGradedSpecSchema.parse(yaml.load(template)),
+    modelGradedSpecSchema.parse(
+      typeof template === "string" ? yaml.load(template) : template,
+    ),
   ]),
 ) as Record<keyof typeof templateStrings, ModelGradedSpec>;

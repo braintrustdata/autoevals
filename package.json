@@ -26,27 +26,25 @@
     "build": "tsup",
     "watch": "tsup --watch",
     "docs": "npx typedoc --options typedoc.json js/index.ts",
-    "test": "jest",
+    "test": "vitest",
     "prepublishOnly": "../scripts/node_prepublish_autoevals.py",
     "postpublish": "../scripts/node_postpublish_autoevals.py"
   },
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@types/jest": "^29.5.11",
+    "@rollup/plugin-yaml": "^4.1.2",
     "@types/js-levenshtein": "^1.1.3",
     "@types/js-yaml": "^4.0.9",
     "@types/mustache": "^4.2.5",
     "@types/node": "^20.10.5",
-    "jest": "^29.7.0",
-    "jest-text-transformer": "^1.0.4",
     "msw": "^2.7.3",
-    "ts-jest": "^29.1.1",
     "tsup": "^8.4.0",
     "tsx": "^3.14.0",
     "typedoc": "^0.25.4",
     "typedoc-plugin-markdown": "^3.17.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.9"
   },
   "dependencies": {
     "@braintrust/core": "^0.0.8",

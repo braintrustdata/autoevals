@@ -1,21 +1,30 @@
+import { bypass, http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
+import { OpenAI } from "openai";
 import { ChatCompletionMessageParam } from "openai/resources";
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import {
   Battle,
+  buildClassificationTools,
   LLMClassifierFromTemplate,
   OpenAIClassifier,
-  buildClassificationTools,
 } from "../js/llm";
-import { bypass, http, HttpResponse } from "msw";
-import { server } from "./test/setup";
-import { OpenAI } from "openai";
-import { init } from "./oai";
 import {
   openaiClassifierShouldEvaluateArithmeticExpressions,
   openaiClassifierShouldEvaluateTitles,
   openaiClassifierShouldEvaluateTitlesWithCoT,
 } from "./llm.fixtures";
+import { init } from "./oai";
+
+export const server = setupServer();
 
 beforeAll(() => {
+  server.listen({
+    onUnhandledRequest: (req) => {
+      throw new Error(`Unhandled request ${req.method}, ${req.url}`);
+    },
+  });
+
   init({
     client: new OpenAI({
       apiKey: "test-api-key",
@@ -24,7 +33,12 @@ beforeAll(() => {
   });
 });
 
+afterEach(() => {
+  server.resetHandlers();
+});
+
 afterAll(() => {
+  server.close();
   init();
 });
 

@@ -1,5 +1,3 @@
-import mustache from "mustache";
-
 import { Score, Scorer, ScorerArgs } from "@braintrust/core";
 import { ChatCache, OpenAIAuth, cachedChatCompletion } from "./oai";
 import { ModelGradedSpec, templates } from "./templates";

@@ -6,8 +6,6 @@ import {
 } from "openai/resources";
 import { AzureOpenAI, OpenAI } from "openai";
 
-import { Env } from "./env";
-
 export interface CachedLLMParams {
   /**
    Model to use for the completion.
@@ -102,21 +100,29 @@ const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
     return globalThis.__client;
   }
 
-  return azureOpenAi
-    ? new AzureOpenAI({
-        apiKey: azureOpenAi.apiKey,
-        endpoint: azureOpenAi.endpoint,
-        apiVersion: azureOpenAi.apiVersion,
-        defaultHeaders: openAiDefaultHeaders,
-        dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
-      })
-    : new OpenAI({
-        apiKey: openAiApiKey || Env.OPENAI_API_KEY || Env.BRAINTRUST_API_KEY,
-        organization: openAiOrganizationId,
-        baseURL: openAiBaseUrl || Env.OPENAI_BASE_URL || PROXY_URL,
-        defaultHeaders: openAiDefaultHeaders,
-        dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
-      });
+  if (azureOpenAi) {
+    // if not unset will could raise an exception
+    delete process.env.OPENAI_BASE_URL;
+
+    return new AzureOpenAI({
+      apiKey: azureOpenAi.apiKey,
+      endpoint: azureOpenAi.endpoint,
+      apiVersion: azureOpenAi.apiVersion,
+      defaultHeaders: openAiDefaultHeaders,
+      dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
+    });
+  }
+
+  return new OpenAI({
+    apiKey:
+      openAiApiKey ||
+      process.env.OPENAI_API_KEY ||
+      process.env.BRAINTRUST_API_KEY,
+    organization: openAiOrganizationId,
+    baseURL: openAiBaseUrl || process.env.OPENAI_BASE_URL || PROXY_URL,
+    defaultHeaders: openAiDefaultHeaders,
+    dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
+  });
 };
 
 const isWrapped = (client: OpenAI): boolean => {

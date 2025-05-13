@@ -1,7 +1,47 @@
-import { buildOpenAIClient, init } from "./oai";
 import { http, HttpResponse } from "msw";
-import { server } from "./test/setup";
 import OpenAI from "openai";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
+import { buildOpenAIClient, init } from "./oai";
+
+import { setupServer } from "msw/node";
+
+export const server = setupServer();
+
+beforeAll(() => {
+  server.listen({
+    onUnhandledRequest: (req) => {
+      throw new Error(`Unhandled request ${req.method}, ${req.url}`);
+    },
+  });
+});
+
+let OPENAI_API_KEY: string | undefined;
+let OPENAI_BASE_URL: string | undefined;
+
+beforeEach(() => {
+  OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
+});
+
+afterEach(() => {
+  server.resetHandlers();
+
+  process.env.OPENAI_API_KEY = OPENAI_API_KEY;
+  process.env.OPENAI_BASE_URL = OPENAI_BASE_URL;
+});
+
+afterAll(() => {
+  server.close();
+});
 
 const MOCK_OPENAI_COMPLETION_RESPONSE = {
   choices: [
@@ -78,8 +118,12 @@ describe("OAI", () => {
   });
 
   test("calls proxy if everything unset", async () => {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_BASE_URL;
+
     server.use(
       http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
+        debugger;
         return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
       }),
     );
@@ -90,12 +134,17 @@ describe("OAI", () => {
       messages: [{ role: "user", content: "Hello" }],
     });
 
+    debugger;
+
     expect(response.choices[0].message.content).toBe(
       "Hello, I am a mock response!",
     );
   });
 
   test("default wraps", async () => {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_BASE_URL;
+
     server.use(
       http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
         return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
@@ -119,6 +168,9 @@ describe("OAI", () => {
   });
 
   test("wraps once", async () => {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_BASE_URL;
+
     server.use(
       http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
         return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
@@ -210,10 +262,10 @@ describe("OAI", () => {
 const withMockWrapper = async (
   fn: (args: {
     wrapperMock: (client: any) => any;
-    createSpy: jest.Mock;
+    createSpy: ReturnType<typeof vi.fn>;
   }) => Promise<void>,
 ) => {
-  const createSpy = jest.fn();
+  const createSpy = vi.fn();
   const wrapperMock = (client: any) => {
     return new Proxy(client, {
       get(target, prop) {

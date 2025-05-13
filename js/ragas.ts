@@ -66,7 +66,7 @@ const entitySchema = z.object({
 export const ContextEntityRecall: ScorerWithPartial<
   string,
   RagasArgs & {
-    pairwiseScorer?: Scorer<string, {}>;
+    pairwiseScorer?: Scorer<string, object>;
   }
 > = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
@@ -775,7 +775,7 @@ export const AnswerCorrectness: ScorerWithPartial<
   RagasArgs & {
     factualityWeight?: number;
     answerSimilarityWeight?: number;
-    answerSimilarity?: Scorer<string, {}>;
+    answerSimilarity?: Scorer<string, object>;
   }
 > = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
@@ -904,7 +904,8 @@ function checkRequired<T>(
     }
   }
 
-  return args as Record<string, T>;
+  // eslint-disable-next-line
+  return args as Record<string, any>;
 }
 
 function mustParseArgs(

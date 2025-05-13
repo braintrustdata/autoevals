@@ -21,6 +21,8 @@ const UNRELATED = [
   "I like to eat apples",
 ];
 
+import { test, expect } from "vitest";
+
 test("Embeddings Test", async () => {
   const prefix = "resource type: ";
   for (const { word, synonyms } of SYNONYMS) {

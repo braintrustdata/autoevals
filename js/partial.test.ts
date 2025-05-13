@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 import { ClosedQA } from "./llm";
 import { Levenshtein } from "./string";
 

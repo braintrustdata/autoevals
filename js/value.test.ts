@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 import { ListContains } from "./list";
 import { NumericDiff } from "./number";
 import { LevenshteinScorer } from "./string";
@@ -32,7 +33,6 @@ test("Numeric Test", async () => {
   ];
 
   for (const { a, b, expected } of cases) {
-    console.log(a, b, expected);
     const score = (await NumericDiff({ output: a, expected: b })).score;
     expect(score).toBeCloseTo(expected);
   }
@@ -75,7 +75,6 @@ test("ListContains Test", async () => {
   ];
 
   for (const { a, b, expected } of cases) {
-    console.log(a, b, expected);
     const score = (await ListContains({ output: a, expected: b })).score;
     expect(score).toBeCloseTo(expected, 4);
   }

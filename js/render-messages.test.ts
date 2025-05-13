@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { renderMessages } from "./render-messages";
 import { ChatCompletionMessageParam } from "openai/resources";
 

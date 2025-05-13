@@ -41,4 +41,4 @@ test-py:
 	source env.sh && python3 -m pytest
 
 test-js:
-	npm install && npm run test
+	pnpm install && pnpm run test

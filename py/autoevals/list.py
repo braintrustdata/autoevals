@@ -1,9 +1,8 @@
 import sys
 
-from braintrust_core.score import Score
-
 from autoevals.partial import ScorerWithPartial
 
+from .score import Score
 from .string import Levenshtein
 
 

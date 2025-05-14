@@ -1,4 +1,4 @@
-from braintrust_core.score import Scorer
+from .score import Scorer
 
 
 class ScorerWithPartial(Scorer):

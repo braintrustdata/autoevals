@@ -15,12 +15,12 @@ This module provides scorers for working with JSON data:
 
 import json
 
-from braintrust_core.score import Score, Scorer
 from jsonschema import ValidationError, validate
 
 from autoevals.partial import ScorerWithPartial
 
 from .number import NumericDiff
+from .score import Score, Scorer
 from .string import Levenshtein
 
 

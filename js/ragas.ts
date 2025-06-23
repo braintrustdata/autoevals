@@ -1,7 +1,7 @@
 /*These metrics are ported, with some enhancements, from the [RAGAS](https://github.com/explodinggradients/ragas) project. */
 import mustache from "mustache";
 
-import { Scorer, ScorerArgs } from "@braintrust/core";
+import { Scorer, ScorerArgs } from "./score";
 import { DEFAULT_MODEL, LLMArgs } from "./llm";
 import { buildOpenAIClient, extractOpenAIArgs } from "./oai";
 import OpenAI from "openai";

@@ -7,9 +7,6 @@ settings:
 importers:
   .:
     dependencies:
-      "@braintrust/core":
-        specifier: ^0.0.8
-        version: 0.0.8
       ajv:
         specifier: ^8.13.0
         version: 8.17.1
@@ -129,13 +126,6 @@ packages:
       "@asteasolutions/zod-to-openapi": 6.4.0(zod@3.24.2)
       uuid: 9.0.1
       zod: 3.24.2
-    dev: false
-
-  /@braintrust/core@0.0.8:
-    resolution:
-      {
-        integrity: sha512-jAaT2+GGB0OOoO7SI+S7C+i1kf/FkwfUo0bQuBLqtp37R7xK4KrEWawYN5751LsUxrssp9zXVtznqwzDrL5bhg==,
-      }
     dev: false
 
   /@bundled-es-modules/cookie@2.0.1:

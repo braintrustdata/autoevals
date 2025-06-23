@@ -1,4 +1,4 @@
-import { Scorer, ScorerArgs } from "@braintrust/core";
+import { Scorer, ScorerArgs } from "./score";
 import levenshtein from "js-levenshtein";
 import { OpenAIAuth, buildOpenAIClient } from "./oai";
 import cossim from "compute-cosine-similarity";

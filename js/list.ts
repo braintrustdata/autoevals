@@ -1,4 +1,4 @@
-import { Scorer } from "@braintrust/core";
+import { Scorer } from "./score";
 import { Levenshtein } from "./string";
 import { linearSumAssignment } from "linear-sum-assignment";
 import { makePartial, ScorerWithPartial } from "./partial";

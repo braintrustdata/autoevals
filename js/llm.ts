@@ -1,4 +1,4 @@
-import { Score, Scorer, ScorerArgs } from "@braintrust/core";
+import { Score, Scorer, ScorerArgs } from "./score";
 import { ChatCache, OpenAIAuth, cachedChatCompletion } from "./oai";
 import { ModelGradedSpec, templates } from "./templates";
 import {

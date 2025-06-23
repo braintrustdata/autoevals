@@ -27,7 +27,7 @@
  * @module autoevals
  */
 
-export type { Score, ScorerArgs, Scorer } from "@braintrust/core";
+export type { Score, ScorerArgs, Scorer } from "./score";
 export * from "./llm";
 export { init } from "./oai";
 export * from "./string";

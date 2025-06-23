@@ -1,6 +1,6 @@
 {
   "name": "autoevals",
-  "version": "0.0.0",
+  "version": "0.0.130",
   "description": "Universal library for evaluating AI models",
   "repository": {
     "type": "git",
@@ -47,7 +47,6 @@
     "vitest": "^2.1.9"
   },
   "dependencies": {
-    "@braintrust/core": "^0.0.8",
     "ajv": "^8.13.0",
     "compute-cosine-similarity": "^1.1.0",
     "js-levenshtein": "^1.1.6",

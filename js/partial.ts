@@ -1,4 +1,4 @@
-import { Scorer, ScorerArgs } from "@braintrust/core";
+import { Scorer, ScorerArgs } from "./score";
 
 export interface ScorerWithPartial<Output, Extra>
   extends Scorer<Output, Extra> {

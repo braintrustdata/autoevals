@@ -1,4 +1,4 @@
-import { Scorer } from "@braintrust/core";
+import { Scorer } from "./score";
 import { NumericDiff } from "./number";
 import { LevenshteinScorer } from "./string";
 import Ajv, { JSONSchemaType, Schema } from "ajv";

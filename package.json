@@ -1,6 +1,6 @@
 {
   "name": "autoevals",
-  "version": "0.0.130",
+  "version": "0.0.131",
   "description": "Universal library for evaluating AI models",
   "repository": {
     "type": "git",
@@ -36,26 +36,26 @@
     "@rollup/plugin-yaml": "^4.1.2",
     "@types/js-levenshtein": "^1.1.3",
     "@types/js-yaml": "^4.0.9",
-    "@types/mustache": "^4.2.5",
-    "@types/node": "^20.10.5",
-    "msw": "^2.7.3",
-    "tsup": "^8.4.0",
+    "@types/mustache": "^4.2.6",
+    "@types/node": "^20.19.11",
+    "msw": "^2.10.5",
+    "tsup": "^8.5.0",
     "tsx": "^3.14.0",
-    "typedoc": "^0.25.4",
+    "typedoc": "^0.25.13",
     "typedoc-plugin-markdown": "^3.17.1",
-    "typescript": "^5.3.3",
+    "typescript": "^5.9.2",
     "vitest": "^2.1.9"
   },
   "dependencies": {
-    "ajv": "^8.13.0",
+    "ajv": "^8.17.1",
     "compute-cosine-similarity": "^1.1.0",
     "js-levenshtein": "^1.1.6",
     "js-yaml": "^4.1.0",
     "linear-sum-assignment": "^1.0.7",
     "mustache": "^4.2.0",
-    "openai": "^4.47.1",
-    "zod": "^3.22.4",
-    "zod-to-json-schema": "^3.22.5"
+    "openai": "^4.104.0",
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.24.6"
   },
   "packageManager": "pnpm@8.15.5"
 }

@@ -36,11 +36,11 @@ init(client=client)
 
 ```python
 from openai import AsyncOpenAI
-from autoevals.ragas import CloseQA
+from autoevals.ragas import ClosedQA
 
 # Pass client directly to evaluator
 client = AsyncOpenAI()
-evaluator = CloseQA(client=client)
+evaluator = ClosedQA(client=client)
 ```
 
 **Multi-provider support via the Braintrust AI Proxy**:
@@ -70,22 +70,22 @@ Autoevals automatically integrates with Braintrust logging when you install the 
 ```python
 from openai import AsyncOpenAI
 from braintrust import wrap_openai
-from autoevals.ragas import CloseQA
+from autoevals.ragas import ClosedQA
 
 # Explicitly wrap the client if needed
 client = wrap_openai(AsyncOpenAI())
-evaluator = CloseQA(client=client)
+evaluator = ClosedQA(client=client)
 ```
 
 **Example Autoevals usage**:
 
 ```python
-from autoevals.ragas import CloseQA
+from autoevals.ragas import ClosedQA
 import asyncio
 
 async def evaluate_qa():
     # Create evaluator for question answering
-    evaluator = CloseQA()
+    evaluator = ClosedQA()
 
     # Question and context
     question = "What was the purpose of the Apollo missions?"

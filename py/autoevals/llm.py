@@ -53,11 +53,11 @@ from typing import Dict, List, Optional
 
 import chevron
 import yaml
-from braintrust_core.score import Score
 
 from autoevals.partial import ScorerWithPartial
 
 from .oai import Client, arun_cached_request, run_cached_request
+from .score import Score
 
 # Disable HTML escaping in chevron.
 chevron.renderer._html_escape = lambda x: x  # type: ignore[attr-defined]

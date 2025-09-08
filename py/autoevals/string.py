@@ -20,13 +20,13 @@ This module provides scorers for text comparison:
 import threading
 from typing import Optional
 
-from braintrust_core.score import Score
 from polyleven import levenshtein as distance
 
 from autoevals.partial import ScorerWithPartial
 from autoevals.value import normalize_value
 
 from .oai import LLMClient, arun_cached_request, run_cached_request
+from .score import Score
 
 
 class Levenshtein(ScorerWithPartial):

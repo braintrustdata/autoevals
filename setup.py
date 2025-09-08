@@ -11,7 +11,7 @@ with open(os.path.join(dir_name, "py", "autoevals", "version.py"), encoding="utf
 with open(os.path.join(dir_name, "README.md"), "r", encoding="utf-8") as f:
     long_description = f.read()
 
-install_requires = ["chevron", "polyleven", "pyyaml", "braintrust_core", "jsonschema"]
+install_requires = ["chevron", "polyleven", "pyyaml", "jsonschema"]
 
 extras_require = {
     "dev": [

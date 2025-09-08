@@ -120,8 +120,6 @@ asyncio.run(evaluate_qa())
 See individual module documentation for detailed usage and options.
 """
 
-from braintrust_core.score import Score, Scorer
-
 from .json import *
 from .list import *
 from .llm import *
@@ -129,5 +127,6 @@ from .moderation import *
 from .number import *
 from .oai import init
 from .ragas import *
+from .score import Score, Scorer, SerializableDataClass
 from .string import *
 from .value import ExactMatch

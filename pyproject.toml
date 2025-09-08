@@ -3,4 +3,4 @@ line-length = 119
 
 [tool.ruff]
 line-length = 119
-select = ["I001"]
+lint.select = ["I001"]

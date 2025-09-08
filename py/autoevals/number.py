@@ -11,9 +11,9 @@ Features:
 - Suitable for both small and large number comparisons
 """
 
-from braintrust_core.score import Score
-
 from autoevals.partial import ScorerWithPartial
+
+from .score import Score
 
 
 class NumericDiff(ScorerWithPartial):

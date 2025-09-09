@@ -20,7 +20,7 @@ export type LLMArgs = {
   temperature?: number;
 } & OpenAIAuth;
 
-export const DEFAULT_MODEL = "gpt-4o";
+export const DEFAULT_MODEL = "gpt-5-mini";
 
 const PLAIN_RESPONSE_SCHEMA = {
   properties: {
@@ -217,7 +217,6 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
-    const maxTokens = 512;
     const messages: ChatCompletionMessageParam[] = [
       {
         role: "user",
@@ -231,7 +230,6 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       choiceScores,
       classificationTools: buildClassificationTools(useCoT, choiceStrings),
       model,
-      maxTokens,
       temperature,
       __choices: choiceStrings,
       ...runtimeArgs,

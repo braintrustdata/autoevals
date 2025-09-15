@@ -27,13 +27,13 @@ importers:
         version: 4.2.0
       openai:
         specifier: ^4.104.0
-        version: 4.104.0(zod@3.25.76)
+        version: 4.104.0(zod@4.1.8)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: 4.1.8
+        version: 4.1.8
       zod-to-json-schema:
         specifier: ^3.24.6
-        version: 3.24.6(zod@3.25.76)
+        version: 3.24.6(zod@4.1.8)
     devDependencies:
       "@rollup/plugin-yaml":
         specifier: ^4.1.2
@@ -81,8 +81,8 @@ importers:
         specifier: ^0.0.140
         version: 0.0.140
       zod:
-        specifier: ^3.22.4
-        version: 3.24.2
+        specifier: 4.1.8
+        version: 4.1.8
     devDependencies:
       "@types/node":
         specifier: ^20.10.5
@@ -105,7 +105,7 @@ packages:
       json-schema: 0.4.0
     dev: false
 
-  /@asteasolutions/zod-to-openapi@6.4.0(zod@3.24.2):
+  /@asteasolutions/zod-to-openapi@6.4.0(zod@3.25.76):
     resolution:
       {
         integrity: sha512-8cxfF7AHHx2PqnN4Cd8/O8CBu/nVYJP9DpnfVLW3BFb66VJDnqI/CczZnkqMc3SNh6J9GiX7JbJ5T4BSP4HZ2Q==,
@@ -114,7 +114,7 @@ packages:
       zod: ^3.20.2
     dependencies:
       openapi3-ts: 4.4.0
-      zod: 3.24.2
+      zod: 3.25.76
     dev: false
 
   /@braintrust/core@0.0.44:
@@ -123,9 +123,9 @@ packages:
         integrity: sha512-5aA7A4i9TCt3lr6u/ogpRyZztghVEOuoTnP6nHoUaqvVo9AQHPgh2FarxsVB6yYnbWoV28o5AizO/kZseE8aBA==,
       }
     dependencies:
-      "@asteasolutions/zod-to-openapi": 6.4.0(zod@3.24.2)
+      "@asteasolutions/zod-to-openapi": 6.4.0(zod@3.25.76)
       uuid: 9.0.1
-      zod: 3.24.2
+      zod: 3.25.76
     dev: false
 
   /@bundled-es-modules/cookie@2.0.1:
@@ -1906,7 +1906,7 @@ packages:
       pluralize: 8.0.0
       simple-git: 3.27.0
       uuid: 9.0.1
-      zod: 3.24.2
+      zod: 3.25.76
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -3671,7 +3671,7 @@ packages:
       wrappy: 1.0.2
     dev: true
 
-  /openai@4.104.0(zod@3.25.76):
+  /openai@4.104.0(zod@4.1.8):
     resolution:
       {
         integrity: sha512-p99EFNsA/yX6UhVO93f5kJsDRLAg+CTA2RBqdHK4RtK8u5IJw32Hyb2dTGKbnnFmnuoBv5r7Z2CURI9sGZpSuA==,
@@ -3693,7 +3693,7 @@ packages:
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
       node-fetch: 2.7.0
-      zod: 3.25.76
+      zod: 4.1.8
     transitivePeerDependencies:
       - encoding
     dev: false
@@ -5022,7 +5022,7 @@ packages:
     engines: { node: ">=18" }
     dev: true
 
-  /zod-to-json-schema@3.24.6(zod@3.25.76):
+  /zod-to-json-schema@3.24.6(zod@4.1.8):
     resolution:
       {
         integrity: sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==,
@@ -5030,19 +5030,19 @@ packages:
     peerDependencies:
       zod: ^3.24.1
     dependencies:
-      zod: 3.25.76
-    dev: false
-
-  /zod@3.24.2:
-    resolution:
-      {
-        integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==,
-      }
+      zod: 4.1.8
     dev: false
 
   /zod@3.25.76:
     resolution:
       {
         integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==,
+      }
+    dev: false
+
+  /zod@4.1.8:
+    resolution:
+      {
+        integrity: sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ==,
       }
     dev: false

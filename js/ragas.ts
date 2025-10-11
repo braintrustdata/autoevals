@@ -911,10 +911,10 @@ function checkRequired<T>(
 function mustParseArgs(
   resp: OpenAI.Chat.Completions.ChatCompletion,
 ): Record<string, unknown> {
-  const args = resp.choices[0]?.message.tool_calls?.[0]?.function.arguments;
-  if (!args) {
+  const toolCall = resp.choices[0]?.message.tool_calls?.[0];
+  if (!toolCall || toolCall.type !== "function") {
     throw new Error("No tool call returned");
   }
 
-  return JSON.parse(args);
+  return JSON.parse(toolCall.function.arguments);
 }

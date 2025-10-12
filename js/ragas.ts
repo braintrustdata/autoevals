@@ -826,7 +826,7 @@ export const AnswerCorrectness: ScorerWithPartial<
     }),
     answerSimilarityWeight === 0
       ? null
-      : answerSimilarity({ output, expected }),
+      : answerSimilarity({ output, expected, openAiApiKey: args.openAiApiKey }),
   ]);
 
   const factuality = answerCorrectnessClassificationSchema.parse(

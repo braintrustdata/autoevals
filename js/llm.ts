@@ -168,6 +168,9 @@ function parseResponse(
     throw new Error("No tool calls in response");
   }
   const toolCall = resp.tool_calls[0];
+  if (toolCall.type !== "function") {
+    throw new Error("Unexpected tool call type");
+  }
   if (toolCall.function.name !== "select_choice") {
     throw new Error("Unexpected tool call");
   }

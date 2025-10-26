@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "tsconfig": "./tsconfig.json",
+  "excludeExternals": true,
+  "externalPattern": [
+    "**/node_modules/**"
+  ],
+  "exclude": [
+    "**/examples/**"
+  ],
+  "plugin": [
+    "typedoc-plugin-markdown"
+  ],
+  "out": "../docs/reference/autoevals/nodejs",
+  "publicPath": "/reference/autoevals/nodejs/",
+  "githubPages": false,
+  "disableSources": false,
+  "excludePrivate": true,
+  "hideBreadcrumbs": true,
+  "excludeInternal": true,
+  "theme": "markdown",
+  "groupOrder": [
+    "Functions",
+    "*"
+  ]
+}

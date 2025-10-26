@@ -41,8 +41,8 @@
     "msw": "^2.10.5",
     "tsup": "^8.5.0",
     "tsx": "^3.14.0",
-    "typedoc": "^0.25.13",
-    "typedoc-plugin-markdown": "^3.17.1",
+    "typedoc": "^0.28.5",
+    "typedoc-plugin-markdown": "^4.6.4",
     "typescript": "^5.9.2",
     "vitest": "^2.1.9"
   },

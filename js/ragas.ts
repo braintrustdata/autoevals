@@ -911,9 +911,16 @@ function checkRequired<T>(
 function mustParseArgs(
   resp: OpenAI.Chat.Completions.ChatCompletion,
 ): Record<string, unknown> {
-  const args = resp.choices[0]?.message.tool_calls?.[0]?.function.arguments;
-  if (!args) {
+  const toolCall = resp.choices[0]?.message.tool_calls?.[0];
+  if (!toolCall) {
     throw new Error("No tool call returned");
+  }
+  if (toolCall.type !== "function") {
+    throw new Error("Expected function tool call");
+  }
+  const args = toolCall.function.arguments;
+  if (!args) {
+    throw new Error("No arguments in tool call");
   }
 
   return JSON.parse(args);

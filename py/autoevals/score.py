@@ -25,6 +25,7 @@ class Score(SerializableDataClass):
 
     def as_dict(self):
         return {
+            "name": self.name,
             "score": self.score,
             "metadata": self.metadata,
         }

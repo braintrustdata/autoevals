@@ -20,7 +20,7 @@ export type LLMArgs = {
   temperature?: number;
 } & OpenAIAuth;
 
-export const DEFAULT_MODEL = "gpt-4o";
+export const DEFAULT_MODEL = "gpt-4o-mini";
 
 const PLAIN_RESPONSE_SCHEMA = {
   properties: {

@@ -1,5 +1,5 @@
 import sys
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import openai
 import pytest
@@ -25,7 +25,7 @@ from autoevals.oai import (  # type: ignore[import]
 )
 
 
-def unwrap_named_wrapper(obj: Union[NamedWrapper, OpenAIV1Module.OpenAI, OpenAIV0Module]) -> Any:
+def unwrap_named_wrapper(obj: NamedWrapper | OpenAIV1Module.OpenAI | OpenAIV0Module) -> Any:
     return getattr(obj, "_NamedWrapper__wrapped")
 
 

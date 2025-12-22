@@ -58,7 +58,6 @@ For more examples and detailed usage of each evaluator, see their individual cla
 
 import asyncio
 import json
-from typing import Optional
 
 import chevron
 
@@ -133,12 +132,12 @@ def extract_entities_request(text, **extra_args):
     )
 
 
-async def aextract_entities(*, text, client: Optional[Client] = None, **extra_args):
+async def aextract_entities(*, text, client: Client | None = None, **extra_args):
     response = await arun_cached_request(client=client, **extract_entities_request(text=text, **extra_args))
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
 
-def extract_entities(*, text, client: Optional[Client] = None, **extra_args):
+def extract_entities(*, text, client: Client | None = None, **extra_args):
     response = run_cached_request(client=client, **extract_entities_request(text=text, **extra_args))
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
@@ -169,7 +168,7 @@ class ContextEntityRecall(OpenAILLMScorer):
         context: The context document(s) to search for entities in
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Client | None = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.extraction_model = model
@@ -313,7 +312,7 @@ class ContextRelevancy(OpenAILLMScorer):
         context: The context document(s) to evaluate
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Client | None = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.model = model
@@ -473,7 +472,7 @@ class ContextRecall(OpenAILLMScorer):
         context: The context document(s) to evaluate
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Client | None = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.model = model
@@ -633,7 +632,7 @@ class ContextPrecision(OpenAILLMScorer):
         context: The context document(s) to evaluate
     """
 
-    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
+    def __init__(self, pairwise_scorer=None, model=DEFAULT_RAGAS_MODEL, client: Client | None = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.model = model
@@ -839,28 +838,28 @@ def extract_faithfulness_request(context, statements, **extra_args):
     )
 
 
-async def aextract_statements(question, answer, client: Optional[Client] = None, **extra_args):
+async def aextract_statements(question, answer, client: Client | None = None, **extra_args):
     response = await arun_cached_request(
         client=client, **extract_statements_request(question=question, answer=answer, **extra_args)
     )
     return load_function_call(response)
 
 
-def extract_statements(question, answer, client: Optional[Client] = None, **extra_args):
+def extract_statements(question, answer, client: Client | None = None, **extra_args):
     response = run_cached_request(
         client=client, **extract_statements_request(question=question, answer=answer, **extra_args)
     )
     return load_function_call(response)
 
 
-async def aextract_faithfulness(context, statements, client: Optional[Client] = None, **extra_args):
+async def aextract_faithfulness(context, statements, client: Client | None = None, **extra_args):
     response = await arun_cached_request(
         client=client, **extract_faithfulness_request(context=context, statements=statements, **extra_args)
     )
     return load_function_call(response)
 
 
-def extract_faithfulness(context, statements, client: Optional[Client] = None, **extra_args):
+def extract_faithfulness(context, statements, client: Client | None = None, **extra_args):
     response = run_cached_request(
         client=client, **extract_faithfulness_request(context=context, statements=statements, **extra_args)
     )
@@ -895,7 +894,7 @@ class Faithfulness(OpenAILLMScorer):
         context: The context document(s) to evaluate against
     """
 
-    def __init__(self, model=DEFAULT_RAGAS_MODEL, client: Optional[Client] = None, **kwargs):
+    def __init__(self, model=DEFAULT_RAGAS_MODEL, client: Client | None = None, **kwargs):
         super().__init__(client=client, **kwargs)
 
         self.model = model
@@ -1061,7 +1060,7 @@ class AnswerRelevancy(OpenAILLMScorer):
         strictness=3,
         temperature=0.5,
         embedding_model=DEFAULT_RAGAS_EMBEDDING_MODEL,
-        client: Optional[Client] = None,
+        client: Client | None = None,
         **kwargs,
     ):
         super().__init__(temperature=temperature, client=client, **kwargs)
@@ -1162,7 +1161,7 @@ class AnswerSimilarity(OpenAILLMScorer):
         self,
         pairwise_scorer=None,
         model=DEFAULT_RAGAS_EMBEDDING_MODEL,
-        client: Optional[Client] = None,
+        client: Client | None = None,
         **kwargs,
     ):
         super().__init__(client=client, **kwargs)
@@ -1306,7 +1305,7 @@ class AnswerCorrectness(OpenAILLMScorer):
         factuality_weight=0.75,
         answer_similarity_weight=0.25,
         answer_similarity=None,
-        client: Optional[Client] = None,
+        client: Client | None = None,
         **kwargs,
     ):
         super().__init__(client=client, **kwargs)
@@ -1387,9 +1386,9 @@ def load_function_call(response):
     return json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
 
-async def aload_function_call_request(client: Optional[Client] = None, **kwargs):
+async def aload_function_call_request(client: Client | None = None, **kwargs):
     return load_function_call(await arun_cached_request(client=client, **kwargs))
 
 
-def load_function_call_request(client: Optional[Client] = None, **kwargs):
+def load_function_call_request(client: Client | None = None, **kwargs):
     return load_function_call(run_cached_request(client=client, **kwargs))

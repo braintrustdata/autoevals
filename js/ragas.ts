@@ -9,6 +9,14 @@ import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod";
 import zodToJsonSchema from "zod-to-json-schema";
+
+function schemaToJson(schema: z.ZodType): OpenAI.FunctionParameters {
+  const anySchema = schema as any;
+  if (typeof anySchema?.toJSON === "function") {
+    return anySchema.toJSON();
+  }
+  return zodToJsonSchema(schema as any) as unknown as OpenAI.FunctionParameters;
+}
 import { makePartial, ScorerWithPartial } from "./partial";
 
 type RagasArgs = {
@@ -92,7 +100,7 @@ export const ContextEntityRecall: ScorerWithPartial<
         function: {
           name: "extract_entities",
           description: "Extract unique entities from a given text",
-          parameters: zodToJsonSchema(entitySchema),
+          parameters: schemaToJson(entitySchema),
         },
       },
     ],
@@ -172,7 +180,7 @@ export const ContextRelevancy: ScorerWithPartial<string, RagasArgs> =
           function: {
             name: "extract_sentences",
             description: "Extract relevant sentences from a given context",
-            parameters: zodToJsonSchema(relevantSentencesSchema),
+            parameters: schemaToJson(relevantSentencesSchema),
           },
         },
       ],
@@ -271,7 +279,7 @@ export const ContextRecall: ScorerWithPartial<string, RagasArgs> = makePartial(
           type: "function",
           function: {
             name: "extract_statements",
-            parameters: zodToJsonSchema(contextRecallSchema),
+            parameters: schemaToJson(contextRecallSchema),
           },
         },
       ],
@@ -373,7 +381,7 @@ export const ContextPrecision: ScorerWithPartial<string, RagasArgs> =
             name: "verify",
             description:
               "Verify if context was useful in arriving at the answer",
-            parameters: zodToJsonSchema(contextPrecisionSchema),
+            parameters: schemaToJson(contextPrecisionSchema),
           },
         },
       ],
@@ -499,7 +507,7 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
           function: {
             name: "extract_statements",
             description: "Extract statements from an answer given a question",
-            parameters: zodToJsonSchema(extractedStatementsSchema),
+            parameters: schemaToJson(extractedStatementsSchema),
           },
         },
       ],
@@ -531,7 +539,7 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
             name: "judge_statements",
             description:
               "Judge whether the statements are faithful to the context",
-            parameters: zodToJsonSchema(statementFaithfulnessSchema),
+            parameters: schemaToJson(statementFaithfulnessSchema),
           },
         },
       ],
@@ -641,7 +649,7 @@ export const AnswerRelevancy: ScorerWithPartial<
               name: "generate_question",
               description:
                 "Generate a question for the given answer and identify if the answer is noncommittal",
-              parameters: zodToJsonSchema(questionGenSchema),
+              parameters: schemaToJson(questionGenSchema),
             },
           },
         ],
@@ -815,7 +823,9 @@ export const AnswerCorrectness: ScorerWithPartial<
           function: {
             name: "classify_statements",
             description: "Classify statements as TP, FP, or FN",
-            parameters: zodToJsonSchema(answerCorrectnessClassificationSchema),
+            parameters: zodToJsonSchema(
+              answerCorrectnessClassificationSchema as any,
+            ),
           },
         },
       ],

@@ -826,9 +826,7 @@ export const AnswerCorrectness: ScorerWithPartial<
           function: {
             name: "classify_statements",
             description: "Classify statements as TP, FP, or FN",
-            parameters: zodToJsonSchema(
-              answerCorrectnessClassificationSchema as any,
-            ),
+            parameters: schemaToJson(answerCorrectnessClassificationSchema),
           },
         },
       ],

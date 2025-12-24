@@ -12,6 +12,9 @@ import zodToJsonSchema from "zod-to-json-schema";
 
 function schemaToJson(schema: z.ZodType): OpenAI.FunctionParameters {
   const anySchema = schema as any;
+  if (typeof anySchema?.toJSONSchema === "function") {
+    return anySchema.toJSONSchema();
+  }
   if (typeof anySchema?.toJSON === "function") {
     return anySchema.toJSON();
   }

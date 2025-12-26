@@ -8,17 +8,9 @@ import OpenAI from "openai";
 import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod";
-import zodToJsonSchema from "zod-to-json-schema";
 
 function schemaToJson(schema: z.ZodType): OpenAI.FunctionParameters {
-  const anySchema = schema as any;
-  if (typeof anySchema?.toJSONSchema === "function") {
-    return anySchema.toJSONSchema();
-  }
-  if (typeof anySchema?.toJSON === "function") {
-    return anySchema.toJSON();
-  }
-  return zodToJsonSchema(schema as any) as unknown as OpenAI.FunctionParameters;
+  return schema.toJSONSchema() as unknown as OpenAI.FunctionParameters;
 }
 import { makePartial, ScorerWithPartial } from "./partial";
 

@@ -8,9 +8,10 @@ import OpenAI from "openai";
 import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod";
+import { customZodToJsonSchema } from "braintrust/util";
 
 function schemaToJson(schema: z.ZodType): OpenAI.FunctionParameters {
-  return schema.toJSONSchema() as unknown as OpenAI.FunctionParameters;
+  return customZodToJsonSchema(schema) as unknown as OpenAI.FunctionParameters;
 }
 import { makePartial, ScorerWithPartial } from "./partial";
 

@@ -41,7 +41,7 @@ VALUES = [
 def test_embedding_values():
     for run_async in [False, True]:
         evaluator = EmbeddingSimilarity()
-        for (word1, word2) in VALUES:
+        for word1, word2 in VALUES:
             if run_async:
                 result = asyncio.run(evaluator.eval_async(word1, word2))
             else:

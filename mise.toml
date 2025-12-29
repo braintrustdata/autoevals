@@ -7,3 +7,6 @@ _.python.venv = { path = "venv", create = true, uv_create_args = ['--seed']}
 
 # See env.example to configure API keys.
 _.file = ".env"
+
+[tools]
+pnpm = "9.13.2"

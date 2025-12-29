@@ -5,14 +5,10 @@ import { Scorer, ScorerArgs } from "./score";
 import { DEFAULT_MODEL, LLMArgs } from "./llm";
 import { buildOpenAIClient, extractOpenAIArgs } from "./oai";
 import OpenAI from "openai";
+import { zodFunction } from "openai/helpers/zod";
 import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod";
-
-function schemaToJson(schema: z.ZodType): OpenAI.FunctionParameters {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (schema as any).toJSONSchema() as unknown as OpenAI.FunctionParameters;
-}
 import { makePartial, ScorerWithPartial } from "./partial";
 
 type RagasArgs = {
@@ -91,14 +87,11 @@ export const ContextEntityRecall: ScorerWithPartial<
       },
     ],
     tools: [
-      {
-        type: "function",
-        function: {
-          name: "extract_entities",
-          description: "Extract unique entities from a given text",
-          parameters: schemaToJson(entitySchema),
-        },
-      },
+      zodFunction({
+        name: "extract_entities",
+        description: "Extract unique entities from a given text",
+        parameters: entitySchema,
+      }),
     ],
     tool_choice: { type: "function", function: { name: "extract_entities" } },
   });
@@ -171,14 +164,11 @@ export const ContextRelevancy: ScorerWithPartial<string, RagasArgs> =
         },
       ],
       tools: [
-        {
-          type: "function",
-          function: {
-            name: "extract_sentences",
-            description: "Extract relevant sentences from a given context",
-            parameters: schemaToJson(relevantSentencesSchema),
-          },
-        },
+        zodFunction({
+          name: "extract_sentences",
+          description: "Extract relevant sentences from a given context",
+          parameters: relevantSentencesSchema,
+        }),
       ],
       tool_choice: {
         type: "function",
@@ -271,13 +261,10 @@ export const ContextRecall: ScorerWithPartial<string, RagasArgs> = makePartial(
         },
       ],
       tools: [
-        {
-          type: "function",
-          function: {
-            name: "extract_statements",
-            parameters: schemaToJson(contextRecallSchema),
-          },
-        },
+        zodFunction({
+          name: "extract_statements",
+          parameters: contextRecallSchema,
+        }),
       ],
       tool_choice: {
         type: "function",
@@ -371,15 +358,11 @@ export const ContextPrecision: ScorerWithPartial<string, RagasArgs> =
         },
       ],
       tools: [
-        {
-          type: "function",
-          function: {
-            name: "verify",
-            description:
-              "Verify if context was useful in arriving at the answer",
-            parameters: schemaToJson(contextPrecisionSchema),
-          },
-        },
+        zodFunction({
+          name: "verify",
+          description: "Verify if context was useful in arriving at the answer",
+          parameters: contextPrecisionSchema,
+        }),
       ],
       tool_choice: { type: "function", function: { name: "verify" } },
     });
@@ -498,14 +481,11 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
         },
       ],
       tools: [
-        {
-          type: "function",
-          function: {
-            name: "extract_statements",
-            description: "Extract statements from an answer given a question",
-            parameters: schemaToJson(extractedStatementsSchema),
-          },
-        },
+        zodFunction({
+          name: "extract_statements",
+          description: "Extract statements from an answer given a question",
+          parameters: extractedStatementsSchema,
+        }),
       ],
       tool_choice: {
         type: "function",
@@ -529,15 +509,12 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
         },
       ],
       tools: [
-        {
-          type: "function",
-          function: {
-            name: "judge_statements",
-            description:
-              "Judge whether the statements are faithful to the context",
-            parameters: schemaToJson(statementFaithfulnessSchema),
-          },
-        },
+        zodFunction({
+          name: "judge_statements",
+          description:
+            "Judge whether the statements are faithful to the context",
+          parameters: statementFaithfulnessSchema,
+        }),
       ],
       tool_choice: { type: "function", function: { name: "judge_statements" } },
     });
@@ -639,15 +616,12 @@ export const AnswerRelevancy: ScorerWithPartial<
           },
         ],
         tools: [
-          {
-            type: "function",
-            function: {
-              name: "generate_question",
-              description:
-                "Generate a question for the given answer and identify if the answer is noncommittal",
-              parameters: schemaToJson(questionGenSchema),
-            },
-          },
+          zodFunction({
+            name: "generate_question",
+            description:
+              "Generate a question for the given answer and identify if the answer is noncommittal",
+            parameters: questionGenSchema,
+          }),
         ],
         tool_choice: {
           type: "function",
@@ -814,14 +788,11 @@ export const AnswerCorrectness: ScorerWithPartial<
         },
       ],
       tools: [
-        {
-          type: "function",
-          function: {
-            name: "classify_statements",
-            description: "Classify statements as TP, FP, or FN",
-            parameters: schemaToJson(answerCorrectnessClassificationSchema),
-          },
-        },
+        zodFunction({
+          name: "classify_statements",
+          description: "Classify statements as TP, FP, or FN",
+          parameters: answerCorrectnessClassificationSchema,
+        }),
       ],
       tool_choice: {
         type: "function",

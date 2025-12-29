@@ -26,8 +26,8 @@ importers:
         specifier: ^4.2.0
         version: 4.2.0
       openai:
-        specifier: ^6.3.0
-        version: 6.3.0(zod@4.2.1)
+        specifier: ^6.7.0
+        version: 6.15.0(zod@4.2.1)
       zod:
         specifier: ^4.2.1
         version: 4.2.1
@@ -3411,10 +3411,10 @@ packages:
       wrappy: 1.0.2
     dev: true
 
-  /openai@6.3.0(zod@4.2.1):
+  /openai@6.15.0(zod@4.2.1):
     resolution:
       {
-        integrity: sha512-E6vOGtZvdcb4yXQ5jXvDlUG599OhIkb/GjBLZXS+qk0HF+PJReIldEc9hM8Ft81vn+N6dRdFRb7BZNK8bbvXrw==,
+        integrity: sha512-F1Lvs5BoVvmZtzkUEVyh8mDQPPFolq4F+xdsx/DO8Hee8YF3IGAlZqUIsF+DVGhqf4aU0a3bTghsxB6OIsRy1g==,
       }
     hasBin: true
     peerDependencies:

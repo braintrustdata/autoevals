@@ -2,13 +2,8 @@ SHELL := /bin/bash
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 VENV_PRE_COMMIT := ${ROOT_DIR}/venv/.pre_commit
 
-.PHONY: all mise-install
+.PHONY: all
 all: ${VENV_PRE_COMMIT}
-
-.PHONY: mise-install
-mise-install:
-	@command -v mise >/dev/null 2>&1 || { echo "Error: mise is not installed. Visit https://mise.jdx.dev/getting-started.html"; exit 1; }
-	mise install
 
 .PHONY: py
 py: ${VENV_PYTHON_PACKAGES}
@@ -32,7 +27,7 @@ ${VENV_PRE_COMMIT}: ${VENV_PYTHON_PACKAGES}
 	bash -c 'source venv/bin/activate && pre-commit install'
 	@touch $@
 
-develop: mise-install ${VENV_PRE_COMMIT}
+develop: ${VENV_PRE_COMMIT}
 	@echo "--\nRun "source env.sh" to enter development mode!"
 
 fixup:

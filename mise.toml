@@ -9,4 +9,4 @@ _.python.venv = { path = "venv", create = true, uv_create_args = ['--seed']}
 _.file = ".env"
 
 [tools]
-pnpm = "9.13.2"
+pnpm = "10.26.2"

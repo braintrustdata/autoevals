@@ -1,3 +1,8 @@
 packages:
-  - "."
-  - "evals"
+  - .
+  - evals
+
+ignoredBuiltDependencies:
+  - duckdb
+  - esbuild
+  - msw

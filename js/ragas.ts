@@ -8,10 +8,10 @@ import OpenAI from "openai";
 import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod";
-import { customZodToJsonSchema } from "./custom_zod_to_json_schema";
 
 function schemaToJson(schema: z.ZodType): OpenAI.FunctionParameters {
-  return customZodToJsonSchema(schema) as unknown as OpenAI.FunctionParameters;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (schema as any).toJSONSchema() as unknown as OpenAI.FunctionParameters;
 }
 import { makePartial, ScorerWithPartial } from "./partial";
 

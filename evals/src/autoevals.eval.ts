@@ -7,7 +7,7 @@ import {
   coqaCaseSchema,
   dataDir,
 } from "./datasets";
-import { z } from "zod";
+import { z } from "zod/v3";
 import {
   AnswerCorrectness,
   ClosedQA,

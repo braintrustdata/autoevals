@@ -8,7 +8,7 @@ import OpenAI from "openai";
 import { zodFunction } from "openai/helpers/zod";
 import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { makePartial, ScorerWithPartial } from "./partial";
 
 type RagasArgs = {

@@ -1,14 +1,13 @@
 import unittest
 from dataclasses import dataclass
-from typing import List, Optional
 
 from .serializable_data_class import SerializableDataClass
 
 
 @dataclass
 class PromptData(SerializableDataClass):
-    prompt: Optional[str] = None
-    options: Optional[dict] = None
+    prompt: str | None = None
+    options: dict | None = None
 
 
 @dataclass
@@ -18,9 +17,9 @@ class PromptSchema(SerializableDataClass):
     _xact_id: str
     name: str
     slug: str
-    description: Optional[str]
+    description: str | None
     prompt_data: PromptData
-    tags: Optional[List[str]]
+    tags: list[str] | None
 
 
 class TestSerializableDataClass(unittest.TestCase):

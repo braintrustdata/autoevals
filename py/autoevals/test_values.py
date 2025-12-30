@@ -1,4 +1,3 @@
-import pytest
 from pytest import approx
 
 from autoevals.list import ListContains

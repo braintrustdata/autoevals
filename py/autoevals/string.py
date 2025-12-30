@@ -18,7 +18,6 @@ This module provides scorers for text comparison:
 """
 
 import threading
-from typing import Optional
 
 from polyleven import levenshtein as distance
 
@@ -120,7 +119,7 @@ class EmbeddingSimilarity(ScorerWithPartial):
         expected_min=0.7,
         api_key=None,
         base_url=None,
-        client: Optional[LLMClient] = None,
+        client: LLMClient | None = None,
     ):
         self.prefix = prefix
         self.expected_min = expected_min

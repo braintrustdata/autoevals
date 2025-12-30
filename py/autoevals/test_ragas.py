@@ -1,8 +1,6 @@
 import asyncio
-from typing import cast
 
 import pytest
-from pytest import approx
 
 from autoevals.ragas import *
 

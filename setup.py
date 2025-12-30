@@ -48,6 +48,7 @@ setuptools.setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
         "Operating System :: OS Independent",
     ],
     package_dir={"": "py"},

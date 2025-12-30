@@ -1,5 +1,3 @@
-from typing import Optional
-
 from autoevals.llm import OpenAIScorer
 
 from .oai import Client, arun_cached_request, run_cached_request
@@ -50,7 +48,7 @@ class Moderation(OpenAIScorer):
         threshold=None,
         api_key=None,
         base_url=None,
-        client: Optional[Client] = None,
+        client: Client | None = None,
     ):
         """Initialize a Moderation scorer.
 

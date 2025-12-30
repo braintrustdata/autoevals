@@ -1,6 +1,6 @@
 import dataclasses
 import json
-from typing import Dict, Union, get_origin
+from typing import Union, get_origin
 
 
 class SerializableDataClass:
@@ -16,15 +16,15 @@ class SerializableDataClass:
         return getattr(self, item)
 
     @classmethod
-    def from_dict(cls, d: Dict):
+    def from_dict(cls, d: dict):
         """Deserialize the object from a dictionary. This method
         is shallow and will not call from_dict() on nested objects."""
-        fields = set(f.name for f in dataclasses.fields(cls))
+        fields = {f.name for f in dataclasses.fields(cls)}
         filtered = {k: v for k, v in d.items() if k in fields}
         return cls(**filtered)
 
     @classmethod
-    def from_dict_deep(cls, d: Dict):
+    def from_dict_deep(cls, d: dict):
         """Deserialize the object from a dictionary. This method
         is deep and will call from_dict_deep() on nested objects."""
         fields = {f.name: f for f in dataclasses.fields(cls)}

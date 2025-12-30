@@ -1,7 +1,6 @@
 import asyncio
 
 from autoevals import EmbeddingSimilarity
-from autoevals.value import normalize_value
 
 SYNONYMS = [
     ("water", ["water", "H2O", "agua"]),

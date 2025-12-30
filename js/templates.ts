@@ -1,4 +1,4 @@
-import { z } from "zod/v3";
+import { z } from "zod";
 import * as yaml from "js-yaml";
 
 import battle from "../templates/battle.yaml";

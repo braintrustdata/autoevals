@@ -1,6 +1,6 @@
 import { duckq, getDuckDBConn } from "./duckdb";
 
-import { z } from "zod/v3";
+import { z } from "zod";
 import {
   coqaSchema,
   dataDir,

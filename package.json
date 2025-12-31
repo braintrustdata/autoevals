@@ -44,7 +44,8 @@
     "typedoc": "^0.25.13",
     "typedoc-plugin-markdown": "^3.17.1",
     "typescript": "^5.9.2",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "zod": "3.25.67"
   },
   "peerDependencies": {
     "zod": "^3.0.0 || ^4.0.0"

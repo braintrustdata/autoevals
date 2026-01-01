@@ -1,7 +1,7 @@
 import dataclasses
 import sys
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .serializable_data_class import SerializableDataClass
 
@@ -13,14 +13,14 @@ class Score(SerializableDataClass):
     name: str
     """The name of the score. This should be a unique name for the scorer."""
 
-    score: Optional[float] = None
+    score: float | None = None
     """The score for the evaluation. This should be a float between 0 and 1. If the score is None, the evaluation is considered to be skipped."""
 
-    metadata: Dict[str, Any] = dataclasses.field(default_factory=dict)
+    metadata: dict[str, Any] = dataclasses.field(default_factory=dict)
     """Metadata for the score. This can be used to store additional information about the score."""
 
     # DEPRECATION_NOTICE: this field is deprecated, as errors are propagated up to the caller.
-    error: Optional[Exception] = None
+    error: Exception | None = None
     """Deprecated: The error field is deprecated, as errors are now propagated to the caller. The field will be removed in a future version of the library."""
 
     def as_dict(self):

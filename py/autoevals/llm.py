@@ -49,7 +49,6 @@ import os
 import re
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 import chevron
 import yaml
@@ -126,9 +125,9 @@ def build_classification_tools(useCoT, choice_strings):
 class OpenAIScorer(ScorerWithPartial):
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        client: Optional[Client] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        client: Client | None = None,
     ) -> None:
         self.extra_args = {}
         if api_key:
@@ -142,10 +141,10 @@ class OpenAIScorer(ScorerWithPartial):
 class OpenAILLMScorer(OpenAIScorer):
     def __init__(
         self,
-        temperature: Optional[float] = None,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        client: Optional[Client] = None,
+        temperature: float | None = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        client: Client | None = None,
     ) -> None:
         super().__init__(
             api_key=api_key,
@@ -159,7 +158,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
     def __init__(
         self,
         name: str,
-        messages: List,
+        messages: list,
         model,
         choice_scores,
         classification_tools,
@@ -169,7 +168,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         engine=None,
         api_key=None,
         base_url=None,
-        client: Optional[Client] = None,
+        client: Client | None = None,
     ):
         super().__init__(
             client=client,
@@ -264,11 +263,11 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 @dataclass
 class ModelGradedSpec:
     prompt: str
-    choice_scores: Dict[str, float]
-    model: Optional[str] = None
-    engine: Optional[str] = None
-    use_cot: Optional[bool] = None
-    temperature: Optional[float] = None
+    choice_scores: dict[str, float]
+    model: str | None = None
+    engine: str | None = None
+    use_cot: bool | None = None
+    temperature: float | None = None
 
 
 class LLMClassifier(OpenAILLMClassifier):
@@ -316,7 +315,7 @@ class LLMClassifier(OpenAILLMClassifier):
         **extra_render_args: Additional template variables
     """
 
-    _SPEC_FILE_CONTENTS: Dict[str, str] = defaultdict(str)
+    _SPEC_FILE_CONTENTS: dict[str, str] = defaultdict(str)
 
     def __init__(
         self,
@@ -330,7 +329,7 @@ class LLMClassifier(OpenAILLMClassifier):
         engine=None,
         api_key=None,
         base_url=None,
-        client: Optional[Client] = None,
+        client: Client | None = None,
         **extra_render_args,
     ):
         choice_strings = list(choice_scores.keys())
@@ -359,11 +358,11 @@ class LLMClassifier(OpenAILLMClassifier):
         )
 
     @classmethod
-    def from_spec(cls, name: str, spec: ModelGradedSpec, client: Optional[Client] = None, **kwargs):
+    def from_spec(cls, name: str, spec: ModelGradedSpec, client: Client | None = None, **kwargs):
         return cls(name, spec.prompt, spec.choice_scores, client=client, **kwargs)
 
     @classmethod
-    def from_spec_file(cls, name: str, path: str, client: Optional[Client] = None, **kwargs):
+    def from_spec_file(cls, name: str, path: str, client: Client | None = None, **kwargs):
         if cls._SPEC_FILE_CONTENTS[name] == "":
             with open(path) as f:
                 cls._SPEC_FILE_CONTENTS[name] = f.read()
@@ -381,7 +380,7 @@ class SpecFileClassifier(LLMClassifier):
         temperature=None,
         api_key=None,
         base_url=None,
-        client: Optional[Client] = None,
+        client: Client | None = None,
     ):
         kwargs = {}
         if model is not None:

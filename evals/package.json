@@ -14,7 +14,7 @@
   "dependencies": {
     "autoevals": "workspace:*",
     "braintrust": "^0.0.140",
-    "zod": "^3.22.4"
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",

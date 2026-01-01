@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v3";
 import * as yaml from "js-yaml";
 
 import battle from "../templates/battle.yaml";
@@ -13,7 +13,7 @@ import translation from "../templates/translation.yaml";
 
 export const modelGradedSpecSchema = z.object({
   prompt: z.string(),
-  choice_scores: z.record(z.number()),
+  choice_scores: z.record(z.string(), z.number()),
   model: z.string().optional(),
   use_cot: z.boolean().optional(),
   temperature: z.number().optional(),

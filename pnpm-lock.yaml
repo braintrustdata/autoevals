@@ -26,18 +26,15 @@ importers:
         specifier: ^4.2.0
         version: 4.2.0
       openai:
-        specifier: ^6.3.0
-        version: 6.3.0(zod@3.25.76)
-      zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^6.7.0
+        version: 6.15.0(zod@3.25.67)
       zod-to-json-schema:
-        specifier: ^3.24.6
-        version: 3.24.6(zod@3.25.76)
+        specifier: 3.25.0
+        version: 3.25.0(zod@3.25.67)
     devDependencies:
       "@rollup/plugin-yaml":
         specifier: ^4.1.2
-        version: 4.1.2
+        version: 4.1.2(rollup@4.46.4)
       "@types/js-levenshtein":
         specifier: ^1.1.3
         version: 1.1.3
@@ -55,7 +52,7 @@ importers:
         version: 2.10.5(@types/node@20.19.11)(typescript@5.9.2)
       tsup:
         specifier: ^8.5.0
-        version: 8.5.0(tsx@3.14.0)(typescript@5.9.2)
+        version: 8.5.0(postcss@8.5.6)(tsx@3.14.0)(typescript@5.9.2)(yaml@2.7.0)
       tsx:
         specifier: ^3.14.0
         version: 3.14.0
@@ -64,13 +61,16 @@ importers:
         version: 0.25.13(typescript@5.9.2)
       typedoc-plugin-markdown:
         specifier: ^3.17.1
-        version: 3.17.1(typedoc@0.25.13)
+        version: 3.17.1(typedoc@0.25.13(typescript@5.9.2))
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@20.19.11)(msw@2.10.5)
+        version: 2.1.9(@types/node@20.19.11)(msw@2.10.5(@types/node@20.19.11)(typescript@5.9.2))
+      zod:
+        specifier: 3.25.67
+        version: 3.25.67
 
   evals:
     dependencies:
@@ -81,15 +81,15 @@ importers:
         specifier: ^0.0.140
         version: 0.0.140
       zod:
-        specifier: ^3.22.4
-        version: 3.24.2
+        specifier: ^4.2.1
+        version: 4.2.1
     devDependencies:
       "@types/node":
         specifier: ^20.10.5
         version: 20.17.24
       duckdb:
         specifier: ^1.0.0
-        version: 1.2.0
+        version: 1.2.0(encoding@0.1.13)
       tsx:
         specifier: ^3.14.0
         version: 3.14.0
@@ -2418,10 +2418,10 @@ packages:
         integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==,
       }
 
-  openai@6.3.0:
+  openai@6.15.0:
     resolution:
       {
-        integrity: sha512-E6vOGtZvdcb4yXQ5jXvDlUG599OhIkb/GjBLZXS+qk0HF+PJReIldEc9hM8Ft81vn+N6dRdFRb7BZNK8bbvXrw==,
+        integrity: sha512-F1Lvs5BoVvmZtzkUEVyh8mDQPPFolq4F+xdsx/DO8Hee8YF3IGAlZqUIsF+DVGhqf4aU0a3bTghsxB6OIsRy1g==,
       }
     hasBin: true
     peerDependencies:
@@ -3349,24 +3349,24 @@ packages:
       }
     engines: { node: ">=18" }
 
-  zod-to-json-schema@3.24.6:
+  zod-to-json-schema@3.25.0:
     resolution:
       {
-        integrity: sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==,
+        integrity: sha512-HvWtU2UG41LALjajJrML6uQejQhNJx+JBO9IflpSja4R03iNWfKXrj6W2h7ljuLyc1nKS+9yDyL/9tD1U/yBnQ==,
       }
     peerDependencies:
-      zod: ^3.24.1
+      zod: ^3.25 || ^4
 
-  zod@3.24.2:
+  zod@3.25.67:
     resolution:
       {
-        integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==,
+        integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==,
       }
 
-  zod@3.25.76:
+  zod@4.2.1:
     resolution:
       {
-        integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==,
+        integrity: sha512-0wZ1IRqGGhMP76gLqz8EyfBXKk0J2qo2+H3fi4mcUP/KtTocoX08nmIAHl1Z2kJIZbZee8KOpBCSNPRgauucjw==,
       }
 
 snapshots:
@@ -3374,16 +3374,16 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  "@asteasolutions/zod-to-openapi@6.4.0(zod@3.24.2)":
+  "@asteasolutions/zod-to-openapi@6.4.0(zod@3.25.67)":
     dependencies:
       openapi3-ts: 4.4.0
-      zod: 3.24.2
+      zod: 3.25.67
 
   "@braintrust/core@0.0.44":
     dependencies:
-      "@asteasolutions/zod-to-openapi": 6.4.0(zod@3.24.2)
+      "@asteasolutions/zod-to-openapi": 6.4.0(zod@3.25.67)
       uuid: 9.0.1
-      zod: 3.24.2
+      zod: 3.25.67
 
   "@bundled-es-modules/cookie@2.0.1":
     dependencies:
@@ -3617,24 +3617,26 @@ snapshots:
     dependencies:
       "@inquirer/core": 10.1.15(@types/node@20.19.11)
       "@inquirer/type": 3.0.8(@types/node@20.19.11)
+    optionalDependencies:
       "@types/node": 20.19.11
 
   "@inquirer/core@10.1.15(@types/node@20.19.11)":
     dependencies:
       "@inquirer/figures": 1.0.13
       "@inquirer/type": 3.0.8(@types/node@20.19.11)
-      "@types/node": 20.19.11
       ansi-escapes: 4.3.2
       cli-width: 4.1.0
       mute-stream: 2.0.0
       signal-exit: 4.1.0
       wrap-ansi: 6.2.0
       yoctocolors-cjs: 2.1.2
+    optionalDependencies:
+      "@types/node": 20.19.11
 
   "@inquirer/figures@1.0.13": {}
 
   "@inquirer/type@3.0.8(@types/node@20.19.11)":
-    dependencies:
+    optionalDependencies:
       "@types/node": 20.19.11
 
   "@isaacs/cliui@8.0.2":
@@ -3672,12 +3674,12 @@ snapshots:
 
   "@kwsites/promise-deferred@1.1.1": {}
 
-  "@mapbox/node-pre-gyp@2.0.0":
+  "@mapbox/node-pre-gyp@2.0.0(encoding@0.1.13)":
     dependencies:
       consola: 3.4.1
       detect-libc: 2.0.3
       https-proxy-agent: 7.0.6
-      node-fetch: 2.7.0
+      node-fetch: 2.7.0(encoding@0.1.13)
       nopt: 8.1.0
       semver: 7.7.1
       tar: 7.4.3
@@ -3718,17 +3720,21 @@ snapshots:
   "@pkgjs/parseargs@0.11.0":
     optional: true
 
-  "@rollup/plugin-yaml@4.1.2":
+  "@rollup/plugin-yaml@4.1.2(rollup@4.46.4)":
     dependencies:
-      "@rollup/pluginutils": 5.2.0
+      "@rollup/pluginutils": 5.2.0(rollup@4.46.4)
       js-yaml: 4.1.0
       tosource: 2.0.0-alpha.3
+    optionalDependencies:
+      rollup: 4.46.4
 
-  "@rollup/pluginutils@5.2.0":
+  "@rollup/pluginutils@5.2.0(rollup@4.46.4)":
     dependencies:
       "@types/estree": 1.0.8
       estree-walker: 2.0.2
       picomatch: 4.0.3
+    optionalDependencies:
+      rollup: 4.46.4
 
   "@rollup/rollup-android-arm-eabi@4.46.4":
     optional: true
@@ -3821,11 +3827,12 @@ snapshots:
       chai: 5.3.1
       tinyrainbow: 1.2.0
 
-  "@vitest/mocker@2.1.9(msw@2.10.5)(vite@5.4.19)":
+  "@vitest/mocker@2.1.9(msw@2.10.5(@types/node@20.19.11)(typescript@5.9.2))(vite@5.4.19(@types/node@20.19.11))":
     dependencies:
       "@vitest/spy": 2.1.9
       estree-walker: 3.0.3
       magic-string: 0.30.17
+    optionalDependencies:
       msw: 2.10.5(@types/node@20.19.11)(typescript@5.9.2)
       vite: 5.4.19(@types/node@20.19.11)
 
@@ -3946,7 +3953,7 @@ snapshots:
       pluralize: 8.0.0
       simple-git: 3.27.0
       uuid: 9.0.1
-      zod: 3.24.2
+      zod: 3.25.67
     transitivePeerDependencies:
       - supports-color
 
@@ -4082,9 +4089,9 @@ snapshots:
 
   dotenv@16.4.7: {}
 
-  duckdb@1.2.0:
+  duckdb@1.2.0(encoding@0.1.13):
     dependencies:
-      "@mapbox/node-pre-gyp": 2.0.0
+      "@mapbox/node-pre-gyp": 2.0.0(encoding@0.1.13)
       node-addon-api: 7.1.1
       node-gyp: 9.4.1
     transitivePeerDependencies:
@@ -4206,7 +4213,7 @@ snapshots:
   fast-uri@3.0.6: {}
 
   fdir@6.5.0(picomatch@4.0.3):
-    dependencies:
+    optionalDependencies:
       picomatch: 4.0.3
 
   fft.js@4.0.4: {}
@@ -4547,8 +4554,9 @@ snapshots:
       picocolors: 1.1.1
       strict-event-emitter: 0.5.1
       type-fest: 4.41.0
-      typescript: 5.9.2
       yargs: 17.7.2
+    optionalDependencies:
+      typescript: 5.9.2
     transitivePeerDependencies:
       - "@types/node"
 
@@ -4570,9 +4578,11 @@ snapshots:
 
   node-addon-api@7.1.1: {}
 
-  node-fetch@2.7.0:
+  node-fetch@2.7.0(encoding@0.1.13):
     dependencies:
       whatwg-url: 5.0.0
+    optionalDependencies:
+      encoding: 0.1.13
 
   node-gyp@9.4.1:
     dependencies:
@@ -4612,9 +4622,9 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
-  openai@6.3.0(zod@3.25.76):
-    dependencies:
-      zod: 3.25.76
+  openai@6.15.0(zod@3.25.67):
+    optionalDependencies:
+      zod: 3.25.67
 
   openapi3-ts@4.4.0:
     dependencies:
@@ -4659,10 +4669,13 @@ snapshots:
 
   pluralize@8.0.0: {}
 
-  postcss-load-config@6.0.1(tsx@3.14.0):
+  postcss-load-config@6.0.1(postcss@8.5.6)(tsx@3.14.0)(yaml@2.7.0):
     dependencies:
       lilconfig: 3.1.3
+    optionalDependencies:
+      postcss: 8.5.6
       tsx: 3.14.0
+      yaml: 2.7.0
 
   postcss@8.5.6:
     dependencies:
@@ -4915,7 +4928,7 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  tsup@8.5.0(tsx@3.14.0)(typescript@5.9.2):
+  tsup@8.5.0(postcss@8.5.6)(tsx@3.14.0)(typescript@5.9.2)(yaml@2.7.0):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.25.9)
       cac: 6.7.14
@@ -4926,7 +4939,7 @@ snapshots:
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
       picocolors: 1.1.1
-      postcss-load-config: 6.0.1(tsx@3.14.0)
+      postcss-load-config: 6.0.1(postcss@8.5.6)(tsx@3.14.0)(yaml@2.7.0)
       resolve-from: 5.0.0
       rollup: 4.46.4
       source-map: 0.8.0-beta.0
@@ -4934,6 +4947,8 @@ snapshots:
       tinyexec: 0.3.2
       tinyglobby: 0.2.14
       tree-kill: 1.2.2
+    optionalDependencies:
+      postcss: 8.5.6
       typescript: 5.9.2
     transitivePeerDependencies:
       - jiti
@@ -4953,7 +4968,7 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typedoc-plugin-markdown@3.17.1(typedoc@0.25.13):
+  typedoc-plugin-markdown@3.17.1(typedoc@0.25.13(typescript@5.9.2)):
     dependencies:
       handlebars: 4.7.8
       typedoc: 0.25.13(typescript@5.9.2)
@@ -5020,18 +5035,17 @@ snapshots:
 
   vite@5.4.19(@types/node@20.19.11):
     dependencies:
-      "@types/node": 20.19.11
       esbuild: 0.21.5
       postcss: 8.5.6
       rollup: 4.46.4
     optionalDependencies:
+      "@types/node": 20.19.11
       fsevents: 2.3.3
 
-  vitest@2.1.9(@types/node@20.19.11)(msw@2.10.5):
+  vitest@2.1.9(@types/node@20.19.11)(msw@2.10.5(@types/node@20.19.11)(typescript@5.9.2)):
     dependencies:
-      "@types/node": 20.19.11
       "@vitest/expect": 2.1.9
-      "@vitest/mocker": 2.1.9(msw@2.10.5)(vite@5.4.19)
+      "@vitest/mocker": 2.1.9(msw@2.10.5(@types/node@20.19.11)(typescript@5.9.2))(vite@5.4.19(@types/node@20.19.11))
       "@vitest/pretty-format": 2.1.9
       "@vitest/runner": 2.1.9
       "@vitest/snapshot": 2.1.9
@@ -5050,6 +5064,8 @@ snapshots:
       vite: 5.4.19(@types/node@20.19.11)
       vite-node: 2.1.9(@types/node@20.19.11)
       why-is-node-running: 2.3.0
+    optionalDependencies:
+      "@types/node": 20.19.11
     transitivePeerDependencies:
       - less
       - lightningcss
@@ -5137,10 +5153,10 @@ snapshots:
 
   yoctocolors-cjs@2.1.2: {}
 
-  zod-to-json-schema@3.24.6(zod@3.25.76):
+  zod-to-json-schema@3.25.0(zod@3.25.67):
     dependencies:
-      zod: 3.25.76
+      zod: 3.25.67
 
-  zod@3.24.2: {}
+  zod@3.25.67: {}
 
-  zod@3.25.76: {}
+  zod@4.2.1: {}

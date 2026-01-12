@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 import pytest
 
@@ -44,3 +45,77 @@ def test_ragas_retrieval(metric: OpenAILLMScorer, expected_score: float, is_asyn
             pytest.xfail(f"Expected score {expected_score} but got {score}")
         else:
             raise e
+
+
+def test_context_relevancy_score_clamping():
+    """Test that ContextRelevancy clamps scores to [0, 1] range (#80).
+
+    When the LLM returns sentences longer than the original context
+    (due to paraphrasing or hallucination), the raw score would exceed 1.0.
+    This test verifies the score is properly clamped.
+    """
+    scorer = ContextRelevancy()
+
+    # Short context
+    context = "Hello world"
+
+    # Mock response where extracted sentences are LONGER than the context
+    # This would produce a raw score > 1.0 without clamping
+    mock_response = {
+        "choices": [
+            {
+                "message": {
+                    "tool_calls": [
+                        {
+                            "function": {
+                                "arguments": json.dumps(
+                                    {
+                                        "sentences": [
+                                            {
+                                                "sentence": "Hello world, this is a much longer sentence than the original context"
+                                            }
+                                        ]
+                                    }
+                                )
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    result = scorer._postprocess(context, mock_response)
+
+    # Score should be clamped to 1.0, not exceed it
+    assert result.score == 1.0
+    assert result.score <= 1.0
+    assert result.score >= 0.0
+
+
+def test_context_relevancy_score_normal_case():
+    """Test that ContextRelevancy returns expected score for normal case."""
+    scorer = ContextRelevancy()
+
+    context = "Hello world, this is a test context with some content."
+
+    # Mock response where extracted sentences are shorter than the context
+    mock_response = {
+        "choices": [
+            {
+                "message": {
+                    "tool_calls": [
+                        {"function": {"arguments": json.dumps({"sentences": [{"sentence": "Hello world"}]})}}
+                    ]
+                }
+            }
+        ]
+    }
+
+    result = scorer._postprocess(context, mock_response)
+
+    # Score should be len("Hello world") / len(context) = 11 / 54 ≈ 0.204
+    expected_score = len("Hello world") / len(context)
+    assert result.score == pytest.approx(expected_score, rel=1e-3)
+    assert result.score <= 1.0
+    assert result.score >= 0.0

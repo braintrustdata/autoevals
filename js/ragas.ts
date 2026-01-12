@@ -183,11 +183,14 @@ export const ContextRelevancy: ScorerWithPartial<string, RagasArgs> =
     });
 
     const sentences = relevantSentencesSchema.parse(mustParseArgs(response));
+    // Clamp score to [0, 1] - the LLM may return sentences longer than the
+    // original context due to paraphrasing or hallucination (#80)
+    const rawScore =
+      sentences.sentences.map((s) => s.sentence).join("").length /
+      context.length;
     return {
       name: "ContextRelevancy",
-      score:
-        sentences.sentences.map((s) => s.sentence).join("").length /
-        context.length,
+      score: Math.min(Math.max(rawScore, 0), 1),
       metadata: {
         relevantSentences: sentences.sentences,
       },

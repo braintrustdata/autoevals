@@ -10,7 +10,7 @@ import {
   test,
   vi,
 } from "vitest";
-import { buildOpenAIClient, init } from "./oai";
+import { buildOpenAIClient, init, getDefaultModel } from "./oai";
 
 import { setupServer } from "msw/node";
 
@@ -37,6 +37,9 @@ afterEach(() => {
 
   process.env.OPENAI_API_KEY = OPENAI_API_KEY;
   process.env.OPENAI_BASE_URL = OPENAI_BASE_URL;
+
+  // Reset init state
+  init({ client: undefined, defaultModel: undefined });
 });
 
 afterAll(() => {
@@ -256,6 +259,32 @@ describe("OAI", () => {
     const builtClient = buildOpenAIClient({ client: otherClient });
 
     expect(Object.is(builtClient, otherClient)).toBe(true);
+  });
+
+  test("getDefaultModel returns gpt-4o by default", () => {
+    expect(getDefaultModel()).toBe("gpt-4o");
+  });
+
+  test("init sets default model", () => {
+    init({ defaultModel: "claude-3-5-sonnet-20241022" });
+    expect(getDefaultModel()).toBe("claude-3-5-sonnet-20241022");
+  });
+
+  test("init can reset default model", () => {
+    init({ defaultModel: "claude-3-5-sonnet-20241022" });
+    expect(getDefaultModel()).toBe("claude-3-5-sonnet-20241022");
+
+    init({ defaultModel: undefined });
+    expect(getDefaultModel()).toBe("gpt-4o");
+  });
+
+  test("init can set both client and default model", () => {
+    const client = new OpenAI({ apiKey: "test-api-key" });
+    init({ client, defaultModel: "gpt-4-turbo" });
+
+    const builtClient = buildOpenAIClient({});
+    expect(Object.is(builtClient, client)).toBe(true);
+    expect(getDefaultModel()).toBe("gpt-4-turbo");
   });
 });
 

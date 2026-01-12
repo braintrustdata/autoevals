@@ -2,7 +2,8 @@
 import mustache from "mustache";
 
 import { Scorer, ScorerArgs } from "./score";
-import { DEFAULT_MODEL, LLMArgs } from "./llm";
+import { LLMArgs } from "./llm";
+import { getDefaultModel } from "./oai";
 import { buildOpenAIClient, extractOpenAIArgs } from "./oai";
 import OpenAI from "openai";
 import { ListContains } from "./list";
@@ -869,7 +870,7 @@ function parseArgs(args: ScorerArgs<string, RagasArgs>): {
     OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
     "messages"
   > = {
-    model: args.model ?? DEFAULT_MODEL,
+    model: args.model ?? getDefaultModel(),
     temperature: args.temperature ?? 0,
   };
   if (args.maxTokens) {

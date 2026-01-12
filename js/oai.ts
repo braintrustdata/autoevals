@@ -149,10 +149,59 @@ declare global {
   /* eslint-disable no-var */
   var __inherited_braintrust_wrap_openai: ((openai: any) => any) | undefined;
   var __client: OpenAI | undefined;
+  var __defaultModel: string | undefined;
 }
 
-export const init = ({ client }: { client?: OpenAI } = {}) => {
+export interface InitOptions {
+  /**
+   * An OpenAI-compatible client to use for all evaluations.
+   * This can be an OpenAI client, or any client that implements the OpenAI API
+   * (e.g., configured to use the Braintrust proxy with Anthropic, Gemini, etc.)
+   */
+  client?: OpenAI;
+  /**
+   * The default model to use for evaluations when not specified per-call.
+   * Defaults to "gpt-4o" if not set.
+   *
+   * When using non-OpenAI providers via the Braintrust proxy, set this to
+   * the appropriate model string (e.g., "claude-3-5-sonnet-20241022").
+   */
+  defaultModel?: string;
+}
+
+/**
+ * Initialize autoevals with a custom client and/or default model.
+ *
+ * @example
+ * // Using with OpenAI (default)
+ * import { init } from "autoevals";
+ * import { OpenAI } from "openai";
+ *
+ * init({ client: new OpenAI() });
+ *
+ * @example
+ * // Using with Anthropic via Braintrust proxy
+ * import { init } from "autoevals";
+ * import { OpenAI } from "openai";
+ *
+ * init({
+ *   client: new OpenAI({
+ *     apiKey: process.env.BRAINTRUST_API_KEY,
+ *     baseURL: "https://api.braintrust.dev/v1/proxy",
+ *   }),
+ *   defaultModel: "claude-3-5-sonnet-20241022",
+ * });
+ */
+export const init = ({ client, defaultModel }: InitOptions = {}) => {
   globalThis.__client = client;
+  globalThis.__defaultModel = defaultModel;
+};
+
+/**
+ * Get the configured default model, or "gpt-4o" if not set.
+ */
+export const getDefaultModel = (): string => {
+  return globalThis.__defaultModel ?? "gpt-4o";
 };
 
 export async function cachedChatCompletion(

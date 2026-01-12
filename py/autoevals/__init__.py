@@ -46,21 +46,26 @@ evaluator = ClosedQA(client=client)
 **Multi-provider support via the Braintrust AI Proxy**:
 
 Autoevals supports multiple LLM providers (Anthropic, Azure, etc.) through the Braintrust AI Proxy.
-Configure your client to use the proxy:
+Configure your client to use the proxy and set the default model:
 
 ```python
 import os
 from openai import AsyncOpenAI
+from autoevals import init
 from autoevals.llm import Factuality
 
-# Configure client to use Braintrust AI Proxy
+# Configure client to use Braintrust AI Proxy with Claude
 client = AsyncOpenAI(
-    base_url="https://api.braintrustproxy.com/v1",
+    base_url="https://api.braintrust.dev/v1/proxy",
     api_key=os.getenv("BRAINTRUST_API_KEY"),
 )
 
-# Use with any evaluator
-evaluator = Factuality(client=client)
+# Initialize with the client and default model
+init(client=client, default_model="claude-3-5-sonnet-20241022")
+
+# All evaluators will now use Claude by default
+evaluator = Factuality()
+result = evaluator.eval(input="...", output="...", expected="...")
 ```
 
 **Braintrust integration**:
@@ -125,7 +130,7 @@ from .list import *
 from .llm import *
 from .moderation import *
 from .number import *
-from .oai import init
+from .oai import get_default_model, init
 from .ragas import *
 from .score import Score, Scorer, SerializableDataClass
 from .string import *

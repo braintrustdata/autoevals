@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from autoevals import init
 from autoevals.llm import Battle, Factuality, LLMClassifier, OpenAILLMClassifier, build_classification_tools
-from autoevals.oai import OpenAIV1Module
+from autoevals.oai import OpenAIV1Module, get_default_model
 
 
 class TestModel(BaseModel):
@@ -470,3 +470,80 @@ def test_llm_classifier_includes_parameters_when_specified():
     # Verify that max_tokens and temperature ARE in the request with correct values
     assert captured_request_body["max_tokens"] == 256
     assert captured_request_body["temperature"] == 0.5
+
+
+@respx.mock
+def test_llm_classifier_uses_configured_default_model():
+    """Test that LLMClassifier uses the configured default model."""
+    captured_model = None
+
+    def capture_model(request):
+        nonlocal captured_model
+        captured_model = request.content.decode("utf-8")
+        # Parse JSON to extract model
+        import json
+
+        data = json.loads(captured_model)
+        captured_model = data.get("model")
+
+        return Response(
+            200,
+            json={
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 1234567890,
+                "model": captured_model,
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "call_test",
+                                    "type": "function",
+                                    "function": {"name": "select_choice", "arguments": '{"choice": "1"}'},
+                                }
+                            ],
+                        },
+                        "finish_reason": "tool_calls",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+            },
+        )
+
+    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=capture_model)
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+
+    # Test with configured default model
+    init(client, default_model="claude-3-5-sonnet-20241022")
+    assert get_default_model() == "claude-3-5-sonnet-20241022"
+
+    classifier = LLMClassifier(
+        name="test",
+        prompt_template="Test prompt: {{output}}",
+        choice_scores={"1": 1, "2": 0},
+    )
+
+    classifier.eval(output="test output", expected="test expected")
+
+    assert captured_model == "claude-3-5-sonnet-20241022"
+
+    # Test that explicit model overrides default
+    captured_model = None
+    classifier_with_model = LLMClassifier(
+        name="test",
+        prompt_template="Test prompt: {{output}}",
+        choice_scores={"1": 1, "2": 0},
+        model="gpt-4-turbo",
+    )
+
+    classifier_with_model.eval(output="test output", expected="test expected")
+
+    assert captured_model == "gpt-4-turbo"
+
+    # Reset for other tests
+    init(None)

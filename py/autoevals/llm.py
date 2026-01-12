@@ -56,7 +56,7 @@ import yaml
 
 from autoevals.partial import ScorerWithPartial
 
-from .oai import Client, arun_cached_request, run_cached_request
+from .oai import Client, arun_cached_request, get_default_model, run_cached_request
 from .score import Score
 
 # Disable HTML escaping in chevron.
@@ -78,6 +78,7 @@ single choice by setting the `choice` parameter to a single choice from {{__choi
     "\n", " "
 )
 
+# Deprecated: Use init(default_model="...") to configure the default model instead.
 DEFAULT_MODEL = "gpt-4o"
 
 PLAIN_RESPONSE_SCHEMA = {
@@ -324,7 +325,7 @@ class LLMClassifier(OpenAILLMClassifier):
         name,
         prompt_template,
         choice_scores,
-        model=DEFAULT_MODEL,
+        model=None,
         use_cot=True,
         max_tokens=None,
         temperature=None,
@@ -335,6 +336,9 @@ class LLMClassifier(OpenAILLMClassifier):
         **extra_render_args,
     ):
         choice_strings = list(choice_scores.keys())
+        # Use configured default model if not specified
+        if model is None:
+            model = get_default_model()
 
         prompt = prompt_template + "\n" + (COT_SUFFIX if use_cot else NO_COT_SUFFIX)
         messages = [

@@ -197,6 +197,7 @@ class LLMClient:
 
 
 _client_var = ContextVar[Optional[LLMClient]]("client")
+_default_model_var = ContextVar[Optional[str]]("default_model")
 
 T = TypeVar("T")
 
@@ -238,8 +239,8 @@ def resolve_client(client: Client, is_async: bool = False) -> LLMClient:
     return LLMClient(openai=client, is_async=is_async)
 
 
-def init(client: Client | None = None, is_async: bool = False):
-    """Initialize Autoevals with an optional custom LLM client.
+def init(client: Client | None = None, is_async: bool = False, default_model: str | None = None):
+    """Initialize Autoevals with an optional custom LLM client and default model.
 
     This function sets up the global client context for Autoevals to use. If no client is provided,
     the default OpenAI client will be used.
@@ -252,8 +253,39 @@ def init(client: Client | None = None, is_async: bool = False):
             - OpenAIV1: Wrapped in a new LLMClient instance (OpenAI SDK v1)
         is_async: Whether to create a client with async operations. Defaults to False.
             Deprecated: Use the `client` argument directly with your desired async/sync configuration.
+        default_model: The default model to use for evaluations when not specified per-call.
+            Defaults to "gpt-4o" if not set. When using non-OpenAI providers via the Braintrust
+            proxy, set this to the appropriate model string (e.g., "claude-3-5-sonnet-20241022").
+
+    Example:
+        Using with OpenAI (default)::
+
+            from openai import OpenAI
+            from autoevals import init
+
+            init(client=OpenAI())
+
+        Using with Anthropic via Braintrust proxy::
+
+            import os
+            from openai import OpenAI
+            from autoevals import init
+
+            init(
+                client=OpenAI(
+                    api_key=os.environ["BRAINTRUST_API_KEY"],
+                    base_url="https://api.braintrust.dev/v1/proxy",
+                ),
+                default_model="claude-3-5-sonnet-20241022",
+            )
     """
     _client_var.set(resolve_client(client, is_async=is_async) if client else None)
+    _default_model_var.set(default_model)
+
+
+def get_default_model() -> str:
+    """Get the configured default model, or "gpt-4o" if not set."""
+    return _default_model_var.get(None) or "gpt-4o"
 
 
 warned_deprecated_api_key_base_url = False

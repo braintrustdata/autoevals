@@ -20,6 +20,7 @@ from autoevals.oai import (  # type: ignore[import]
     OpenAIV1Module,
     _named_wrapper,  # type: ignore[import]  # Accessing private members for testing
     _wrap_openai,  # type: ignore[import]  # Accessing private members for testing
+    get_default_model,
     get_openai_wrappers,
     prepare_openai,
 )
@@ -249,3 +250,45 @@ def test_prepare_openai_v0_with_client(mock_openai_v0: OpenAIV0Module):
     assert prepared_client.is_wrapped
     assert prepared_client.openai.api_key is mock_openai_v0.api_key  # must be set by the user
     assert prepared_client.complete.__name__ == "acreate"
+
+
+def test_get_default_model_returns_gpt_4o_by_default():
+    """Test that get_default_model returns gpt-4o when no default is configured."""
+    # Reset init to clear any previous default model
+    init(None)
+    assert get_default_model() == "gpt-4o"
+
+
+def test_init_sets_default_model():
+    """Test that init sets the default model correctly."""
+    init(None, default_model="claude-3-5-sonnet-20241022")
+    assert get_default_model() == "claude-3-5-sonnet-20241022"
+
+    # Reset
+    init(None)
+
+
+def test_init_can_reset_default_model():
+    """Test that init can reset the default model to gpt-4o."""
+    init(None, default_model="claude-3-5-sonnet-20241022")
+    assert get_default_model() == "claude-3-5-sonnet-20241022"
+
+    init(None, default_model=None)
+    assert get_default_model() == "gpt-4o"
+
+
+def test_init_can_set_both_client_and_default_model():
+    """Test that init can set both client and default model together."""
+    client = openai.OpenAI(api_key="api-key", base_url="http://test")
+    init(client, default_model="gpt-4-turbo")
+
+    prepared_client = prepare_openai()
+    assert prepared_client.is_wrapped
+
+    # Unwrap to check it's the same client
+    assert unwrap_named_wrapper(prepared_client.openai) == client
+
+    assert get_default_model() == "gpt-4-turbo"
+
+    # Reset
+    init(None)

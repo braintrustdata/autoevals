@@ -1,5 +1,10 @@
 import { Score, Scorer, ScorerArgs } from "./score";
-import { ChatCache, OpenAIAuth, cachedChatCompletion } from "./oai";
+import {
+  ChatCache,
+  OpenAIAuth,
+  cachedChatCompletion,
+  getDefaultModel,
+} from "./oai";
 import { ModelGradedSpec, templates } from "./templates";
 import {
   ChatCompletionMessage,
@@ -20,6 +25,10 @@ export type LLMArgs = {
   temperature?: number;
 } & OpenAIAuth;
 
+/**
+ * The default model to use for LLM-based evaluations.
+ * @deprecated Use `init({ defaultModel: "..." })` to configure the default model instead.
+ */
 export const DEFAULT_MODEL = "gpt-4o";
 
 const PLAIN_RESPONSE_SCHEMA = {
@@ -203,7 +212,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   name,
   promptTemplate,
   choiceScores,
-  model = DEFAULT_MODEL,
+  model: modelArg,
   useCoT: useCoTArg,
   temperature,
   maxTokens: maxTokensArg,
@@ -221,6 +230,8 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>,
   ) => {
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
+    // Use runtime model > template model > configured default model
+    const model = runtimeArgs.model ?? modelArg ?? getDefaultModel();
 
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);

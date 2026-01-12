@@ -1,8 +1,10 @@
 import asyncio
+import json
 from typing import cast
 
 import pytest
 import respx
+from httpx import Response
 from openai import OpenAI
 from pydantic import BaseModel
 
@@ -354,3 +356,117 @@ def test_battle():
         print(response.as_json(indent=2))
         assert response.score == 0
         assert response.error is None
+
+
+@respx.mock
+def test_llm_classifier_omits_optional_parameters_when_not_specified():
+    """Test that max_tokens and temperature are not included in API request when not specified."""
+    captured_request_body = None
+
+    def capture_request(request):
+        nonlocal captured_request_body
+        captured_request_body = json.loads(request.content.decode("utf-8"))
+
+        return Response(
+            200,
+            json={
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 1234567890,
+                "model": "gpt-4o",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "call_test",
+                                    "type": "function",
+                                    "function": {"name": "select_choice", "arguments": '{"choice": "1"}'},
+                                }
+                            ],
+                        },
+                        "finish_reason": "tool_calls",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+            },
+        )
+
+    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=capture_request)
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    # Create classifier without specifying max_tokens or temperature
+    classifier = LLMClassifier(
+        "test",
+        "Test prompt: {{output}} vs {{expected}}",
+        {"1": 1, "2": 0},
+    )
+
+    classifier.eval(output="test output", expected="test expected")
+
+    # Verify that max_tokens and temperature are NOT in the request
+    assert "max_tokens" not in captured_request_body
+    assert "temperature" not in captured_request_body
+
+
+@respx.mock
+def test_llm_classifier_includes_parameters_when_specified():
+    """Test that max_tokens and temperature are included in API request when specified."""
+    captured_request_body = None
+
+    def capture_request(request):
+        nonlocal captured_request_body
+        captured_request_body = json.loads(request.content.decode("utf-8"))
+
+        return Response(
+            200,
+            json={
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 1234567890,
+                "model": "gpt-4o",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "call_test",
+                                    "type": "function",
+                                    "function": {"name": "select_choice", "arguments": '{"choice": "1"}'},
+                                }
+                            ],
+                        },
+                        "finish_reason": "tool_calls",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+            },
+        )
+
+    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=capture_request)
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    # Create classifier with max_tokens and temperature specified
+    classifier = LLMClassifier(
+        "test",
+        "Test prompt: {{output}} vs {{expected}}",
+        {"1": 1, "2": 0},
+        max_tokens=256,
+        temperature=0.5,
+    )
+
+    classifier.eval(output="test output", expected="test expected")
+
+    # Verify that max_tokens and temperature ARE in the request with correct values
+    assert captured_request_body["max_tokens"] == 256
+    assert captured_request_body["temperature"] == 0.5

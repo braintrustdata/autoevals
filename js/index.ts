@@ -29,7 +29,8 @@
 
 export type { Score, ScorerArgs, Scorer } from "./score";
 export * from "./llm";
-export { init } from "./oai";
+export { init, getDefaultModel } from "./oai";
+export type { InitOptions } from "./oai";
 export * from "./string";
 export * from "./list";
 export * from "./moderation";

@@ -3,8 +3,9 @@
 This module provides a collection of pre-built LLM scorers for common evaluation tasks.
 
 All evaluators accept the following common arguments:
-- model: Model to use (defaults to gpt-4)
-- temperature: Controls randomness (0-1, defaults to 0)
+- model: Model to use (defaults to gpt-4o)
+- temperature: Controls randomness (0-1). If not specified, uses the model's default.
+- max_tokens: Maximum tokens to generate. If not specified, uses the model's default.
 - client: OpenAI client (defaults to global client from init())
 
 Example:
@@ -151,7 +152,8 @@ class OpenAILLMScorer(OpenAIScorer):
             base_url=base_url,
             client=client,
         )
-        self.extra_args["temperature"] = temperature or 0
+        if temperature is not None:
+            self.extra_args["temperature"] = temperature
 
 
 class OpenAILLMClassifier(OpenAILLMScorer):
@@ -174,6 +176,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
             client=client,
             api_key=api_key,
             base_url=base_url,
+            temperature=temperature,
         )
 
         self.name = name
@@ -182,9 +185,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         self.engine = engine
         self.messages = messages
 
-        self.extra_args["temperature"] = temperature or 0
-
-        if max_tokens:
+        if max_tokens is not None:
             self.extra_args["max_tokens"] = max(max_tokens, 5)
 
         self.render_args = {}
@@ -268,6 +269,7 @@ class ModelGradedSpec:
     engine: str | None = None
     use_cot: bool | None = None
     temperature: float | None = None
+    max_tokens: int | None = None
 
 
 class LLMClassifier(OpenAILLMClassifier):
@@ -306,8 +308,8 @@ class LLMClassifier(OpenAILLMClassifier):
         choice_scores: Mapping of choices to scores (e.g. `{"good": 1, "bad": 0}`)
         model: Model to use. Defaults to DEFAULT_MODEL.
         use_cot: Enable chain of thought reasoning. Defaults to True.
-        max_tokens: Maximum tokens to generate. Defaults to 512.
-        temperature: Controls randomness (0-1). Defaults to 0.
+        max_tokens: Maximum tokens to generate. If not specified, uses the model's default.
+        temperature: Controls randomness (0-1). If not specified, uses the model's default.
         engine: Deprecated by OpenAI. Use model instead.
         api_key: Deprecated. Use client instead.
         base_url: Deprecated. Use client instead.
@@ -324,8 +326,8 @@ class LLMClassifier(OpenAILLMClassifier):
         choice_scores,
         model=DEFAULT_MODEL,
         use_cot=True,
-        max_tokens=512,
-        temperature=0,
+        max_tokens=None,
+        temperature=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -359,7 +361,19 @@ class LLMClassifier(OpenAILLMClassifier):
 
     @classmethod
     def from_spec(cls, name: str, spec: ModelGradedSpec, client: Client | None = None, **kwargs):
-        return cls(name, spec.prompt, spec.choice_scores, client=client, **kwargs)
+        spec_kwargs = {}
+        if spec.model is not None:
+            spec_kwargs["model"] = spec.model
+        if spec.engine is not None:
+            spec_kwargs["engine"] = spec.engine
+        if spec.use_cot is not None:
+            spec_kwargs["use_cot"] = spec.use_cot
+        if spec.temperature is not None:
+            spec_kwargs["temperature"] = spec.temperature
+        if spec.max_tokens is not None:
+            spec_kwargs["max_tokens"] = spec.max_tokens
+        # kwargs can override spec values
+        return cls(name, spec.prompt, spec.choice_scores, client=client, **spec_kwargs, **kwargs)
 
     @classmethod
     def from_spec_file(cls, name: str, path: str, client: Client | None = None, **kwargs):

@@ -222,4 +222,122 @@ Issue Description: {{page_content}}
       expect(response.error).toBeUndefined();
     }
   });
+
+  test("LLMClassifierFromTemplate omits optional parameters when not specified", async () => {
+    let capturedRequestBody: any;
+
+    server.use(
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          capturedRequestBody = await request.json();
+
+          return HttpResponse.json({
+            id: "chatcmpl-test",
+            object: "chat.completion",
+            created: 1234567890,
+            model: "gpt-4o",
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: JSON.stringify({ choice: "1" }),
+                      },
+                    },
+                  ],
+                },
+                finish_reason: "tool_calls",
+              },
+            ],
+          });
+        },
+      ),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    const classifier = LLMClassifierFromTemplate({
+      name: "test",
+      promptTemplate: "Test prompt: {{output}} vs {{expected}}",
+      choiceScores: { "1": 1, "2": 0 },
+    });
+
+    await classifier({ output: "test output", expected: "test expected" });
+
+    // Verify that max_tokens and temperature are NOT in the request
+    expect(capturedRequestBody.max_tokens).toBeUndefined();
+    expect(capturedRequestBody.temperature).toBeUndefined();
+  });
+
+  test("LLMClassifierFromTemplate includes parameters when specified", async () => {
+    let capturedRequestBody: any;
+
+    server.use(
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          capturedRequestBody = await request.json();
+
+          return HttpResponse.json({
+            id: "chatcmpl-test",
+            object: "chat.completion",
+            created: 1234567890,
+            model: "gpt-4o",
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: JSON.stringify({ choice: "1" }),
+                      },
+                    },
+                  ],
+                },
+                finish_reason: "tool_calls",
+              },
+            ],
+          });
+        },
+      ),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    const classifier = LLMClassifierFromTemplate({
+      name: "test",
+      promptTemplate: "Test prompt: {{output}} vs {{expected}}",
+      choiceScores: { "1": 1, "2": 0 },
+      maxTokens: 256,
+      temperature: 0.5,
+    });
+
+    await classifier({ output: "test output", expected: "test expected" });
+
+    // Verify that max_tokens and temperature ARE in the request with correct values
+    expect(capturedRequestBody.max_tokens).toBe(256);
+    expect(capturedRequestBody.temperature).toBe(0.5);
+  });
 });

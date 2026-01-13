@@ -108,10 +108,13 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     ...remainingRenderArgs
   } = remaining;
 
-  const extraArgs = {
-    temperature: temperature || 0,
-    max_tokens: maxTokens,
-  };
+  const extraArgs: { temperature?: number; max_tokens?: number } = {};
+  if (temperature !== undefined) {
+    extraArgs.temperature = temperature;
+  }
+  if (maxTokens !== undefined) {
+    extraArgs.max_tokens = maxTokens;
+  }
 
   const renderArgs = {
     output,
@@ -203,6 +206,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   model = DEFAULT_MODEL,
   useCoT: useCoTArg,
   temperature,
+  maxTokens: maxTokensArg,
 }: {
   name: string;
   promptTemplate: string;
@@ -210,6 +214,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   model?: string;
   useCoT?: boolean;
   temperature?: number;
+  maxTokens?: number;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
   const ret = async (
@@ -220,7 +225,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
-    const maxTokens = 512;
+    const maxTokens = runtimeArgs.maxTokens ?? maxTokensArg;
     const messages: ChatCompletionMessageParam[] = [
       {
         role: "user",
@@ -263,6 +268,7 @@ export function LLMClassifierFromSpec<RenderArgs>(
     model: spec.model,
     useCoT: spec.use_cot,
     temperature: spec.temperature,
+    maxTokens: spec.max_tokens,
   });
 }
 

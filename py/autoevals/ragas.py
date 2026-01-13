@@ -1245,15 +1245,15 @@ class AnswerSimilarity(OpenAILLMScorer):
     async def _run_eval_async(self, output, expected=None, input=None, **kwargs):
         check_required("AnswerSimilarity", expected=expected, output=output)
 
-        return await EmbeddingSimilarity(client=self.client).eval_async(
-            output=output, expected=expected, model=self.model, **self.extra_args
+        return await EmbeddingSimilarity(client=self.client, model=self.model).eval_async(
+            output=output, expected=expected, **self.extra_args
         )
 
     def _run_eval_sync(self, output, expected=None, input=None, **kwargs):
         check_required("AnswerSimilarity", expected=expected, output=output)
 
-        return EmbeddingSimilarity(client=self.client).eval(
-            output=output, expected=expected, model=self.model, **self.extra_args
+        return EmbeddingSimilarity(client=self.client, model=self.model).eval(
+            output=output, expected=expected, **self.extra_args
         )
 
 
@@ -1370,6 +1370,7 @@ class AnswerCorrectness(OpenAILLMScorer):
         factuality_weight: Optional float between 0-1 for factual correctness weight
         answer_similarity_weight: Optional float between 0-1 for answer similarity weight
         answer_similarity: Optional AnswerSimilarity instance for similarity evaluation
+        embedding_model: Optional model to use for answer similarity embeddings
     """
 
     def __init__(
@@ -1379,13 +1380,17 @@ class AnswerCorrectness(OpenAILLMScorer):
         factuality_weight=0.75,
         answer_similarity_weight=0.25,
         answer_similarity=None,
+        embedding_model=None,
         client: Client | None = None,
         **kwargs,
     ):
         super().__init__(client=client, **kwargs)
 
         self.model = _get_model(model)
-        self.answer_similarity = answer_similarity or AnswerSimilarity(client=client)
+        self.answer_similarity = answer_similarity or AnswerSimilarity(
+            model=embedding_model if embedding_model is not None else DEFAULT_RAGAS_EMBEDDING_MODEL,
+            client=client,
+        )
 
         if factuality_weight == 0 and answer_similarity_weight == 0:
             raise ValueError("At least one weight must be nonzero")
@@ -1416,14 +1421,12 @@ class AnswerCorrectness(OpenAILLMScorer):
     async def _run_answer_similarity_async(self, output, expected):
         if self.answer_similarity_weight == 0:
             return None
-        return await self.answer_similarity.eval_async(
-            output=output, expected=expected, model=self.model, **self.extra_args
-        )
+        return await self.answer_similarity.eval_async(output=output, expected=expected, **self.extra_args)
 
     def _run_answer_similarity_sync(self, output, expected):
         if self.answer_similarity_weight == 0:
             return None
-        return self.answer_similarity.eval(output=output, expected=expected, model=self.model, **self.extra_args)
+        return self.answer_similarity.eval(output=output, expected=expected, **self.extra_args)
 
     async def _run_eval_async(self, output, expected=None, input=None, **kwargs):
         check_required("AnswerCorrectness", input=input, expected=expected, output=output)

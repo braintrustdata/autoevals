@@ -20,7 +20,7 @@ These metrics are ported from the RAGAS project with some enhancements.
     - `model`: Model to use for evaluation, defaults to DEFAULT_RAGAS_MODEL (gpt-3.5-turbo-16k)
     - `client`: Optional Client for API calls. If not provided, uses global client from init()
 
-**Example**:
+**Example - Direct usage**:
     ```python
     from openai import OpenAI
     from autoevals import init
@@ -37,7 +37,7 @@ These metrics are ported from the RAGAS project with some enhancements.
     result = relevancy.eval(
         input="What is the capital of France?",
         output="Paris is the capital of France",
-        context="Paris is the capital of France. The city is known for the Eiffel Tower."
+        context=["Paris is the capital of France.", "The city is known for the Eiffel Tower."]
     )
     print(f"Context relevance score: {result.score}")  # 1.0 for highly relevant
 
@@ -46,9 +46,58 @@ These metrics are ported from the RAGAS project with some enhancements.
     result = faithfulness.eval(
         input="What is France's capital city?",
         output="Paris is the capital of France and has the Eiffel Tower",
-        context="Paris is the capital of France. The city is known for the Eiffel Tower."
+        context=["Paris is the capital of France.", "The city is known for the Eiffel Tower."]
     )
     print(f"Faithfulness score: {result.score}")  # 1.0 for fully supported claims
+    ```
+
+**Example - Using with Braintrust Eval**:
+    ```python
+    from braintrust import Eval
+    from autoevals import init
+    from autoevals.ragas import Faithfulness, ContextRelevancy
+    from openai import OpenAI
+
+    # Initialize autoevals
+    init(OpenAI())
+
+    # Dataset with context in metadata
+    dataset = [
+        {
+            "input": "What is the capital of France?",
+            "expected": "Paris",
+            "metadata": {
+                "context": [
+                    "Paris is the capital of France.",
+                    "Berlin is the capital of Germany."
+                ]
+            }
+        },
+        # ... more examples
+    ]
+
+    # Create scorer functions that extract context from metadata
+    def faithfulness_scorer(output, expected, input, metadata):
+        return Faithfulness().eval(
+            input=input,
+            output=output,
+            context=metadata.get("context", [])
+        )
+
+    def context_relevancy_scorer(output, expected, input, metadata):
+        return ContextRelevancy().eval(
+            input=input,
+            output=output,
+            context=metadata.get("context", [])
+        )
+
+    # Run evaluation
+    Eval(
+        "my-rag-eval",
+        data=dataset,
+        task=lambda input: generate_answer(input),  # Your LLM function
+        scores=[faithfulness_scorer, context_relevancy_scorer]
+    )
     ```
 
 For more examples and detailed usage of each evaluator, see their individual class docstrings.

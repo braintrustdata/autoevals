@@ -343,10 +343,12 @@ class ContextRelevancy(OpenAILLMScorer):
     def _postprocess(self, context, response):
         sentences = json.loads(response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"])
 
+        # Clamp score to [0, 1] - the LLM may return sentences longer than the
+        # original context due to paraphrasing or hallucination (#80)
+        raw_score = len("".join([s["sentence"] for s in sentences["sentences"]])) / len(context)
         return Score(
             name=self._name(),
-            # Simplify this by just using the string length, rather than the number of sentences.
-            score=len("".join([s["sentence"] for s in sentences["sentences"]])) / len(context),
+            score=min(max(raw_score, 0), 1),
             metadata={
                 "relevant_sentences": sentences["sentences"],
             },

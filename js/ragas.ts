@@ -1,4 +1,104 @@
-/*These metrics are ported, with some enhancements, from the [RAGAS](https://github.com/explodinggradients/ragas) project. */
+/**
+ * RAGAS (Retrieval-Augmented Generation Assessment) metrics for evaluating RAG systems.
+ *
+ * These metrics are ported, with some enhancements, from the [RAGAS](https://github.com/explodinggradients/ragas) project.
+ *
+ * ## Context Quality Evaluators
+ *
+ * - **ContextEntityRecall**: Measures how well context contains expected entities
+ * - **ContextRelevancy**: Evaluates relevance of context to question
+ * - **ContextRecall**: Checks if context supports expected answer
+ * - **ContextPrecision**: Measures precision of context relative to question
+ *
+ * ## Answer Quality Evaluators
+ *
+ * - **Faithfulness**: Checks if answer claims are supported by context
+ * - **AnswerRelevancy**: Measures answer relevance to question
+ * - **AnswerSimilarity**: Compares semantic similarity to expected answer
+ * - **AnswerCorrectness**: Evaluates factual correctness against ground truth
+ *
+ * @example
+ * // Direct usage
+ * import { init } from "autoevals";
+ * import { Faithfulness, ContextRelevancy } from "autoevals/ragas";
+ * import OpenAI from "openai";
+ *
+ * // Initialize with your OpenAI client
+ * init({ client: new OpenAI() });
+ *
+ * // Evaluate context relevance
+ * const relevancyResult = await ContextRelevancy({
+ *   input: "What is the capital of France?",
+ *   output: "Paris is the capital of France",
+ *   context: [
+ *     "Paris is the capital of France.",
+ *     "The city is known for the Eiffel Tower."
+ *   ]
+ * });
+ * console.log(relevancyResult.score); // 1.0 for highly relevant
+ *
+ * // Check answer faithfulness
+ * const faithfulnessResult = await Faithfulness({
+ *   input: "What is France's capital city?",
+ *   output: "Paris is the capital of France and has the Eiffel Tower",
+ *   context: [
+ *     "Paris is the capital of France.",
+ *     "The city is known for the Eiffel Tower."
+ *   ]
+ * });
+ * console.log(faithfulnessResult.score); // 1.0 for fully supported
+ *
+ * @example
+ * // Using with Braintrust Eval
+ * import { Eval } from "braintrust";
+ * import { init } from "autoevals";
+ * import { Faithfulness, ContextRelevancy } from "autoevals/ragas";
+ * import OpenAI from "openai";
+ *
+ * // Initialize autoevals
+ * init({ client: new OpenAI() });
+ *
+ * // Dataset with context in metadata
+ * const dataset = [
+ *   {
+ *     input: "What is the capital of France?",
+ *     expected: "Paris",
+ *     metadata: {
+ *       context: [
+ *         "Paris is the capital of France.",
+ *         "Berlin is the capital of Germany."
+ *       ]
+ *     }
+ *   },
+ *   // ... more examples
+ * ];
+ *
+ * // Create scorer functions that extract context from metadata
+ * const faithfulnessScorer = ({ output, input, metadata }) => {
+ *   return Faithfulness({
+ *     input,
+ *     output,
+ *     context: metadata.context || []
+ *   });
+ * };
+ *
+ * const contextRelevancyScorer = ({ output, input, metadata }) => {
+ *   return ContextRelevancy({
+ *     input,
+ *     output,
+ *     context: metadata.context || []
+ *   });
+ * };
+ *
+ * // Run evaluation
+ * Eval("my-rag-eval", {
+ *   data: () => dataset,
+ *   task: (input) => generateAnswer(input), // Your LLM function
+ *   scores: [faithfulnessScorer, contextRelevancyScorer]
+ * });
+ *
+ * @module ragas
+ */
 import mustache from "mustache";
 
 import { Scorer, ScorerArgs } from "./score";

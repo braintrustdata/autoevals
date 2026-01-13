@@ -361,6 +361,8 @@ Eval(
 - Numeric difference
 - JSON diff
 
+For detailed documentation on all scorers, including parameters, score ranges, and usage examples, see the [**Scorer Reference**](SCORERS.md).
+
 ## Custom evaluation prompts
 
 Autoevals supports custom evaluation prompts for model-graded evaluation. To use them, simply pass in a prompt and scoring mechanism:

@@ -9,5 +9,7 @@ export default defineConfig([
     loader: {
       ".yaml": "text",
     },
+    // Bundle ESM-only dependencies to ensure CJS compatibility (#152)
+    noExternal: ["linear-sum-assignment"],
   },
 ]);

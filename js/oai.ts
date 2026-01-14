@@ -166,6 +166,7 @@ declare global {
   var __inherited_braintrust_wrap_openai: ((openai: any) => any) | undefined;
   var __client: OpenAI | undefined;
   var __defaultModel: string | undefined;
+  var __defaultEmbeddingModel: string | undefined;
 }
 
 export interface InitOptions {
@@ -176,17 +177,57 @@ export interface InitOptions {
    */
   client?: OpenAI;
   /**
-   * The default model to use for evaluations when not specified per-call.
-   * Defaults to "gpt-4o" if not set.
+   * The default model(s) to use for evaluations when not specified per-call.
+   *
+   * Can be either:
+   * - A string (for backward compatibility): Sets the default completion model only.
+   *   Defaults to "gpt-4o" if not set.
+   * - An object with `completion` and/or `embedding` properties: Allows setting
+   *   default models for different evaluation types. Only the specified models
+   *   are updated; others remain unchanged.
    *
    * When using non-OpenAI providers via the Braintrust proxy, set this to
    * the appropriate model string (e.g., "claude-3-5-sonnet-20241022").
+   *
+   * @example
+   * // String form (backward compatible)
+   * init({ defaultModel: "gpt-4-turbo" })
+   *
+   * @example
+   * // Object form: set both models
+   * init({
+   *   defaultModel: {
+   *     completion: "claude-3-5-sonnet-20241022",
+   *     embedding: "text-embedding-3-large"
+   *   }
+   * })
+   *
+   * @example
+   * // Object form: set only embedding model
+   * init({
+   *   defaultModel: {
+   *     embedding: "text-embedding-3-large"
+   *   }
+   * })
    */
-  defaultModel?: string;
+  defaultModel?:
+    | string
+    | {
+        /**
+         * Default model for LLM-as-a-judge evaluations (completion).
+         * Defaults to "gpt-4o" if not set.
+         */
+        completion?: string;
+        /**
+         * Default model for embedding-based evaluations.
+         * Defaults to "text-embedding-ada-002" if not set.
+         */
+        embedding?: string;
+      };
 }
 
 /**
- * Initialize autoevals with a custom client and/or default model.
+ * Initialize autoevals with a custom client and/or default models.
  *
  * @example
  * // Using with OpenAI (default)
@@ -205,19 +246,49 @@ export interface InitOptions {
  *     apiKey: process.env.BRAINTRUST_API_KEY,
  *     baseURL: "https://api.braintrust.dev/v1/proxy",
  *   }),
- *   defaultModel: "claude-3-5-sonnet-20241022",
+ *   defaultModel: {
+ *     completion: "claude-3-5-sonnet-20241022",
+ *     embedding: "text-embedding-3-large",
+ *   },
  * });
+ *
+ * @example
+ * // String form (backward compatible)
+ * init({ defaultModel: "gpt-4-turbo" });
  */
 export const init = ({ client, defaultModel }: InitOptions = {}) => {
   globalThis.__client = client;
-  globalThis.__defaultModel = defaultModel;
+  if (typeof defaultModel === "string") {
+    // String form: sets completion model only, resets embedding to default
+    globalThis.__defaultModel = defaultModel;
+    globalThis.__defaultEmbeddingModel = undefined;
+  } else if (defaultModel) {
+    // Object form: only update models that are explicitly provided
+    if ("completion" in defaultModel) {
+      globalThis.__defaultModel = defaultModel.completion;
+    }
+    if ("embedding" in defaultModel) {
+      globalThis.__defaultEmbeddingModel = defaultModel.embedding;
+    }
+  } else {
+    // No defaultModel: reset both to defaults
+    globalThis.__defaultModel = undefined;
+    globalThis.__defaultEmbeddingModel = undefined;
+  }
 };
 
 /**
- * Get the configured default model, or "gpt-4o" if not set.
+ * Get the configured default completion model, or "gpt-4o" if not set.
  */
 export const getDefaultModel = (): string => {
   return globalThis.__defaultModel ?? "gpt-4o";
+};
+
+/**
+ * Get the configured default embedding model, or "text-embedding-ada-002" if not set.
+ */
+export const getDefaultEmbeddingModel = (): string => {
+  return globalThis.__defaultEmbeddingModel ?? "text-embedding-ada-002";
 };
 
 export async function cachedChatCompletion(

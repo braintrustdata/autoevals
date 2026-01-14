@@ -1,6 +1,6 @@
 import { Scorer, ScorerArgs } from "./score";
 import levenshtein from "js-levenshtein";
-import { OpenAIAuth, buildOpenAIClient } from "./oai";
+import { OpenAIAuth, buildOpenAIClient, getDefaultEmbeddingModel } from "./oai";
 import cossim from "compute-cosine-similarity";
 import { makePartial, ScorerWithPartial } from "./partial";
 
@@ -69,7 +69,7 @@ export const EmbeddingSimilarity: ScorerWithPartial<
     [output, expected].map((input) =>
       openai.embeddings.create({
         input,
-        model: args.model ?? "text-embedding-ada-002",
+        model: args.model ?? getDefaultEmbeddingModel(),
       }),
     ),
   );

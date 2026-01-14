@@ -11,6 +11,7 @@ import {
   ChatCompletionMessageParam,
   ChatCompletionTool,
 } from "openai/resources";
+import { ReasoningEffort } from "openai/resources/shared";
 import { makePartial, ScorerWithPartial } from "./partial";
 import { renderMessages } from "./render-messages";
 
@@ -23,6 +24,7 @@ const COT_SUFFIX =
 export type LLMArgs = {
   maxTokens?: number;
   temperature?: number;
+  reasoningEffort?: ReasoningEffort;
 } & OpenAIAuth;
 
 /**
@@ -113,16 +115,24 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     classificationTools: classificationTools,
     maxTokens,
     temperature,
+    reasoningEffort,
     cache,
     ...remainingRenderArgs
   } = remaining;
 
-  const extraArgs: { temperature?: number; max_tokens?: number } = {};
+  const extraArgs: {
+    temperature?: number;
+    max_tokens?: number;
+    reasoning_effort?: ReasoningEffort;
+  } = {};
   if (temperature !== undefined) {
     extraArgs.temperature = temperature;
   }
   if (maxTokens !== undefined) {
     extraArgs.max_tokens = maxTokens;
+  }
+  if (reasoningEffort !== undefined) {
+    extraArgs.reasoning_effort = reasoningEffort;
   }
 
   const renderArgs = {

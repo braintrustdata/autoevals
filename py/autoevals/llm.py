@@ -168,6 +168,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         render_args=None,
         max_tokens=None,
         temperature=None,
+        reasoning_effort=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -188,6 +189,9 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
         if max_tokens is not None:
             self.extra_args["max_tokens"] = max(max_tokens, 5)
+
+        if reasoning_effort is not None:
+            self.extra_args["reasoning_effort"] = reasoning_effort
 
         self.render_args = {}
         if render_args:
@@ -311,6 +315,7 @@ class LLMClassifier(OpenAILLMClassifier):
         use_cot: Enable chain of thought reasoning. Defaults to True.
         max_tokens: Maximum tokens to generate. If not specified, uses the model's default.
         temperature: Controls randomness (0-1). If not specified, uses the model's default.
+        reasoning_effort: Controls reasoning depth for o-series models (e.g., "low", "medium", "high").
         engine: Deprecated by OpenAI. Use model instead.
         api_key: Deprecated. Use client instead.
         base_url: Deprecated. Use client instead.
@@ -329,6 +334,7 @@ class LLMClassifier(OpenAILLMClassifier):
         use_cot=True,
         max_tokens=None,
         temperature=None,
+        reasoning_effort=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -356,6 +362,7 @@ class LLMClassifier(OpenAILLMClassifier):
             classification_tools=build_classification_tools(use_cot, choice_strings),
             max_tokens=max_tokens,
             temperature=temperature,
+            reasoning_effort=reasoning_effort,
             engine=engine,
             api_key=api_key,
             base_url=base_url,

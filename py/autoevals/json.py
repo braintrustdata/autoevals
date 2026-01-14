@@ -2,15 +2,85 @@
 
 This module provides scorers for working with JSON data:
 
-- JSONDiff: Compare JSON objects for structural and content similarity
+- **JSONDiff**: Compare JSON objects for structural and content similarity
   - Handles nested structures, strings, numbers
   - Customizable with different scorers for string and number comparisons
   - Can automatically parse JSON strings
 
-- ValidJSON: Validate if a string is valid JSON and matches an optional schema
+- **ValidJSON**: Validate if a string is valid JSON and matches an optional schema
   - Validates JSON syntax
   - Optional JSON Schema validation
   - Works with both strings and parsed objects
+
+Creating Custom JSON Scorers
+-----------------------------
+
+You can create custom JSON scorers by composing existing scorers or building new ones:
+
+Example 1: Combine schema validation with semantic comparison
+    ```python
+    from autoevals import Scorer, Score
+    from autoevals.json import JSONDiff, ValidJSON
+    from autoevals.string import EmbeddingSimilarity
+    from openai import OpenAI
+
+    class CustomJSONScorer(Scorer):
+        def __init__(self, schema=None):
+            self.schema = schema
+            self.validator = ValidJSON(schema=schema)
+            self.differ = JSONDiff(string_scorer=EmbeddingSimilarity(client=OpenAI()))
+
+        def _run_eval_sync(self, output, expected=None, **kwargs):
+            # First validate both against schema
+            output_valid = self.validator.eval(output)
+            expected_valid = self.validator.eval(expected)
+
+            if output_valid.score == 0 or expected_valid.score == 0:
+                return Score(
+                    name="CustomJSONScorer",
+                    score=0,
+                    error="Invalid JSON format"
+                )
+
+            # Then compare semantically
+            return self.differ.eval(output, expected)
+    ```
+
+Example 2: Custom scorer for API response validation
+    ```python
+    from autoevals import Scorer, Score
+    import json
+
+    class APIResponseScorer(Scorer):
+        def _run_eval_sync(self, output, **kwargs):
+            parsed = json.loads(output) if isinstance(output, str) else output
+
+            score = 0
+            errors = []
+
+            # Check required fields
+            if parsed.get("status"):
+                score += 0.3
+            else:
+                errors.append("Missing status field")
+
+            if parsed.get("data"):
+                score += 0.3
+            else:
+                errors.append("Missing data field")
+
+            # Check data structure
+            if isinstance(parsed.get("data", {}).get("items"), list):
+                score += 0.4
+            else:
+                errors.append("data.items must be an array")
+
+            return Score(
+                name="APIResponseScorer",
+                score=min(score, 1),
+                metadata={"errors": errors}
+            )
+    ```
 """
 
 import json

@@ -1,3 +1,73 @@
+/**
+ * JSON evaluation scorers for comparing and validating JSON data.
+ *
+ * This module provides scorers for working with JSON data:
+ *
+ * - **JSONDiff**: Compare JSON objects for structural and content similarity
+ * - **ValidJSON**: Validate if a value is valid JSON and matches an optional schema
+ *
+ * ## Creating Custom JSON Scorers
+ *
+ * You can create custom JSON scorers by composing existing scorers or building new ones:
+ *
+ * @example
+ * ```typescript
+ * import { Scorer } from "autoevals";
+ * import { JSONDiff, ValidJSON } from "autoevals/json";
+ * import { EmbeddingSimilarity } from "autoevals/string";
+ *
+ * // Custom scorer that validates JSON schema then compares semantically
+ * const myJSONScorer: Scorer<any, { schema?: any }> = async ({ output, expected, schema }) => {
+ *   // First, validate both outputs against schema
+ *   const outputValid = await ValidJSON({ output, schema });
+ *   const expectedValid = await ValidJSON({ output: expected, schema });
+ *
+ *   if (outputValid.score === 0 || expectedValid.score === 0) {
+ *     return {
+ *       name: "CustomJSONScorer",
+ *       score: 0,
+ *       error: "Invalid JSON format"
+ *     };
+ *   }
+ *
+ *   // Then compare using semantic similarity for strings
+ *   return JSONDiff({
+ *     output,
+ *     expected,
+ *     stringScorer: EmbeddingSimilarity
+ *   });
+ * };
+ *
+ * // Custom scorer for specific JSON structure validation
+ * const apiResponseScorer: Scorer<any, object> = async ({ output }) => {
+ *   const parsed = typeof output === "string" ? JSON.parse(output) : output;
+ *
+ *   let score = 0;
+ *   const errors: string[] = [];
+ *
+ *   // Check required fields
+ *   if (parsed.status) score += 0.3;
+ *   else errors.push("Missing status field");
+ *
+ *   if (parsed.data) score += 0.3;
+ *   else errors.push("Missing data field");
+ *
+ *   // Check data structure
+ *   if (parsed.data?.items && Array.isArray(parsed.data.items)) {
+ *     score += 0.4;
+ *   } else {
+ *     errors.push("data.items must be an array");
+ *   }
+ *
+ *   return {
+ *     name: "APIResponseScorer",
+ *     score: Math.min(score, 1),
+ *     metadata: { errors }
+ *   };
+ * };
+ * ```
+ */
+
 import { Scorer } from "./score";
 import { NumericDiff } from "./number";
 import { LevenshteinScorer } from "./string";
@@ -5,8 +75,48 @@ import Ajv, { JSONSchemaType, Schema } from "ajv";
 import { makePartial, ScorerWithPartial } from "./partial";
 
 /**
- * A simple scorer that compares JSON objects, using a customizable comparison method for strings
- * (defaults to Levenshtein) and numbers (defaults to NumericDiff).
+ * Compare JSON objects for structural and content similarity.
+ *
+ * This scorer recursively compares JSON objects, handling:
+ * - Nested dictionaries and arrays
+ * - String similarity using Levenshtein distance (or custom scorer)
+ * - Numeric value comparison (or custom scorer)
+ * - Automatic parsing of JSON strings
+ *
+ * @example
+ * ```typescript
+ * import { JSONDiff } from "autoevals";
+ * import { EmbeddingSimilarity } from "autoevals/string";
+ *
+ * // Basic comparison
+ * const result = await JSONDiff({
+ *   output: {
+ *     name: "John Smith",
+ *     age: 30,
+ *     skills: ["python", "javascript"]
+ *   },
+ *   expected: {
+ *     name: "John A. Smith",
+ *     age: 31,
+ *     skills: ["python", "typescript"]
+ *   }
+ * });
+ * console.log(result.score); // Similarity score between 0-1
+ *
+ * // With custom string scorer using embeddings
+ * const semanticResult = await JSONDiff({
+ *   output: { description: "A fast car" },
+ *   expected: { description: "A quick automobile" },
+ *   stringScorer: EmbeddingSimilarity
+ * });
+ * ```
+ *
+ * @param output - The JSON object or string to evaluate
+ * @param expected - The expected JSON object or string to compare against
+ * @param stringScorer - Optional custom scorer for string comparisons (default: LevenshteinScorer)
+ * @param numberScorer - Optional custom scorer for number comparisons (default: NumericDiff)
+ * @param preserveStrings - Don't attempt to parse strings as JSON (default: false)
+ * @returns Score object with similarity score between 0-1
  */
 export const JSONDiff: ScorerWithPartial<
   any,
@@ -38,8 +148,54 @@ export const JSONDiff: ScorerWithPartial<
 );
 
 /**
- * A binary scorer that evaluates the validity of JSON output, optionally validating against a
- * JSON Schema definition (see https://json-schema.org/learn/getting-started-step-by-step#create).
+ * Validate if a value is valid JSON and optionally matches a JSON Schema.
+ *
+ * This scorer checks if:
+ * - The input can be parsed as valid JSON (if it's a string)
+ * - The parsed JSON matches an optional JSON Schema
+ * - Handles both string inputs and pre-parsed JSON objects
+ *
+ * @example
+ * ```typescript
+ * import { ValidJSON } from "autoevals";
+ *
+ * // Basic JSON validation
+ * const result1 = await ValidJSON({
+ *   output: '{"name": "John", "age": 30}'
+ * });
+ * console.log(result1.score); // 1 (valid JSON)
+ *
+ * const result2 = await ValidJSON({
+ *   output: '{invalid json}'
+ * });
+ * console.log(result2.score); // 0 (invalid JSON)
+ *
+ * // With schema validation
+ * const schema = {
+ *   type: "object",
+ *   properties: {
+ *     name: { type: "string" },
+ *     age: { type: "number" }
+ *   },
+ *   required: ["name", "age"]
+ * };
+ *
+ * const result3 = await ValidJSON({
+ *   output: { name: "John", age: 30 },
+ *   schema
+ * });
+ * console.log(result3.score); // 1 (matches schema)
+ *
+ * const result4 = await ValidJSON({
+ *   output: { name: "John" }, // missing required "age"
+ *   schema
+ * });
+ * console.log(result4.score); // 0 (doesn't match schema)
+ * ```
+ *
+ * @param output - The value to validate (string or object)
+ * @param schema - Optional JSON Schema to validate against (see https://json-schema.org)
+ * @returns Score object with score of 1 if valid, 0 otherwise
  */
 export const ValidJSON: ScorerWithPartial<any, { schema?: any }> = makePartial(
   async ({ output, schema }) => {

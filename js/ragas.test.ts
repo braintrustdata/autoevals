@@ -1,4 +1,7 @@
-import { expect, test } from "vitest";
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
+import { OpenAI } from "openai";
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import {
   AnswerCorrectness,
   AnswerRelevancy,
@@ -9,6 +12,7 @@ import {
   ContextRelevancy,
   Faithfulness,
 } from "./ragas";
+import { init } from "./oai";
 
 const data = {
   input: "Can starred docs from different workspaces be accessed in one place?",
@@ -84,3 +88,243 @@ test("Ragas end-to-end test", async () => {
     }
   }
 }, 600000);
+
+// Tests for ContextRelevancy score clamping (#80)
+describe("ContextRelevancy score clamping", () => {
+  const server = setupServer();
+
+  beforeAll(() => {
+    server.listen({
+      onUnhandledRequest: (req) => {
+        throw new Error(`Unhandled request ${req.method}, ${req.url}`);
+      },
+    });
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+    init();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  test("clamps score to 1.0 when LLM returns sentences longer than context", async () => {
+    // Mock response where extracted sentences are LONGER than the context
+    // This would produce a raw score > 1.0 without clamping
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", () => {
+        return HttpResponse.json({
+          id: "chatcmpl-test",
+          object: "chat.completion",
+          created: Date.now(),
+          model: "gpt-4o",
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                content: null,
+                tool_calls: [
+                  {
+                    id: "call_test",
+                    type: "function",
+                    function: {
+                      name: "extract_sentences",
+                      arguments: JSON.stringify({
+                        sentences: [
+                          {
+                            sentence:
+                              "Hello world, this is a much longer sentence than the original context that was provided",
+                            reasons: ["This is a test reason"],
+                          },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: "tool_calls",
+            },
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
+        });
+      }),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    // Short context that would cause score > 1.0 without clamping
+    const result = await ContextRelevancy({
+      input: "What is hello?",
+      output: "Hello world",
+      context: "Hello world", // 11 chars, but mock returns 88 chars
+    });
+
+    // Score should be clamped to 1.0, not exceed it
+    expect(result.score).toBe(1);
+    expect(result.score).toBeLessThanOrEqual(1);
+    expect(result.score).toBeGreaterThanOrEqual(0);
+  });
+
+  test("returns expected score for normal case", async () => {
+    const context =
+      "Hello world, this is a test context with some content that is reasonably long.";
+
+    // Mock response where extracted sentences are shorter than the context
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", () => {
+        return HttpResponse.json({
+          id: "chatcmpl-test",
+          object: "chat.completion",
+          created: Date.now(),
+          model: "gpt-4o",
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                content: null,
+                tool_calls: [
+                  {
+                    id: "call_test",
+                    type: "function",
+                    function: {
+                      name: "extract_sentences",
+                      arguments: JSON.stringify({
+                        sentences: [
+                          { sentence: "Hello world", reasons: ["Test reason"] },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: "tool_calls",
+            },
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
+        });
+      }),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    const result = await ContextRelevancy({
+      input: "What is hello?",
+      output: "Hello world",
+      context,
+    });
+
+    // Score should be len("Hello world") / len(context) = 11 / 79 ≈ 0.139
+    const expectedScore = "Hello world".length / context.length;
+    expect(result.score).toBeCloseTo(expectedScore, 2);
+    expect(result.score).toBeLessThanOrEqual(1);
+    expect(result.score).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("AnswerCorrectness custom embedding model", () => {
+  const server = setupServer();
+
+  beforeAll(() => {
+    server.listen({
+      onUnhandledRequest: (req) => {
+        throw new Error(`Unhandled request ${req.method}, ${req.url}`);
+      },
+    });
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+    init();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  test("AnswerCorrectness uses custom embedding model", async () => {
+    let capturedEmbeddingModel: string | undefined;
+
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", async () => {
+        return HttpResponse.json({
+          id: "test-id",
+          object: "chat.completion",
+          created: Date.now(),
+          model: "gpt-4o",
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    id: "call_test",
+                    type: "function",
+                    function: {
+                      name: "classify_statements",
+                      arguments: JSON.stringify({
+                        TP: ["Paris is the capital"],
+                        FP: [],
+                        FN: [],
+                      }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: "tool_calls",
+            },
+          ],
+        });
+      }),
+      http.post("https://api.openai.com/v1/embeddings", async ({ request }) => {
+        const body = (await request.json()) as { model: string; input: string };
+        capturedEmbeddingModel = body.model;
+        return HttpResponse.json({
+          object: "list",
+          data: [
+            {
+              object: "embedding",
+              embedding: new Array(1536).fill(0.1),
+              index: 0,
+            },
+          ],
+          model: body.model,
+          usage: {
+            prompt_tokens: 5,
+            total_tokens: 5,
+          },
+        });
+      }),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    await AnswerCorrectness({
+      input: "What is the capital of France?",
+      output: "Paris",
+      expected: "Paris is the capital of France",
+      embeddingModel: "text-embedding-3-large",
+    });
+
+    expect(capturedEmbeddingModel).toBe("text-embedding-3-large");
+  });
+});

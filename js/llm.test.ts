@@ -14,7 +14,7 @@ import {
   openaiClassifierShouldEvaluateTitles,
   openaiClassifierShouldEvaluateTitlesWithCoT,
 } from "./llm.fixtures";
-import { init } from "./oai";
+import { init, getDefaultModel } from "./oai";
 
 export const server = setupServer();
 
@@ -221,5 +221,204 @@ Issue Description: {{page_content}}
 
       expect(response.error).toBeUndefined();
     }
+  });
+
+  test("LLMClassifierFromTemplate omits optional parameters when not specified", async () => {
+    let capturedRequestBody: any;
+
+    server.use(
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          capturedRequestBody = await request.json();
+
+          return HttpResponse.json({
+            id: "chatcmpl-test",
+            object: "chat.completion",
+            created: 1234567890,
+            model: "gpt-4o",
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: JSON.stringify({ choice: "1" }),
+                      },
+                    },
+                  ],
+                },
+                finish_reason: "tool_calls",
+              },
+            ],
+          });
+        },
+      ),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    const classifier = LLMClassifierFromTemplate({
+      name: "test",
+      promptTemplate: "Test prompt: {{output}} vs {{expected}}",
+      choiceScores: { "1": 1, "2": 0 },
+    });
+
+    await classifier({ output: "test output", expected: "test expected" });
+
+    // Verify that max_tokens and temperature are NOT in the request
+    expect(capturedRequestBody.max_tokens).toBeUndefined();
+    expect(capturedRequestBody.temperature).toBeUndefined();
+  });
+
+  test("LLMClassifierFromTemplate includes parameters when specified", async () => {
+    let capturedRequestBody: any;
+
+    server.use(
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          capturedRequestBody = await request.json();
+
+          return HttpResponse.json({
+            id: "chatcmpl-test",
+            object: "chat.completion",
+            created: 1234567890,
+            model: "gpt-4o",
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: JSON.stringify({ choice: "1" }),
+                      },
+                    },
+                  ],
+                },
+                finish_reason: "tool_calls",
+              },
+            ],
+          });
+        },
+      ),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    const classifier = LLMClassifierFromTemplate({
+      name: "test",
+      promptTemplate: "Test prompt: {{output}} vs {{expected}}",
+      choiceScores: { "1": 1, "2": 0 },
+      maxTokens: 256,
+      temperature: 0.5,
+    });
+
+    await classifier({ output: "test output", expected: "test expected" });
+
+    // Verify that max_tokens and temperature ARE in the request with correct values
+    expect(capturedRequestBody.max_tokens).toBe(256);
+    expect(capturedRequestBody.temperature).toBe(0.5);
+  });
+
+  test("LLMClassifierFromTemplate uses configured default model", async () => {
+    let capturedModel: string | undefined;
+
+    server.use(
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          const body = (await request.json()) as any;
+          capturedModel = body.model;
+
+          return HttpResponse.json({
+            id: "chatcmpl-test",
+            object: "chat.completion",
+            created: Date.now(),
+            model: body.model,
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: JSON.stringify({ choice: "1" }),
+                      },
+                    },
+                  ],
+                },
+                finish_reason: "tool_calls",
+              },
+            ],
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+              total_tokens: 30,
+            },
+          });
+        },
+      ),
+    );
+
+    const client = new OpenAI({
+      apiKey: "test-api-key",
+      baseURL: "https://api.openai.com/v1",
+    });
+
+    // Test with configured default model
+    init({ client, defaultModel: "claude-3-5-sonnet-20241022" });
+    expect(getDefaultModel()).toBe("claude-3-5-sonnet-20241022");
+
+    const classifier = LLMClassifierFromTemplate({
+      name: "test",
+      promptTemplate: "Test prompt: {{output}}",
+      choiceScores: { "1": 1, "2": 0 },
+    });
+
+    await classifier({
+      output: "test output",
+      expected: "test expected",
+    });
+
+    expect(capturedModel).toBe("claude-3-5-sonnet-20241022");
+
+    // Test that explicit model overrides default
+    capturedModel = undefined;
+    await classifier({
+      output: "test output",
+      expected: "test expected",
+      model: "gpt-4-turbo",
+    });
+
+    expect(capturedModel).toBe("gpt-4-turbo");
+
+    // Reset for other tests
+    init({ client });
   });
 });

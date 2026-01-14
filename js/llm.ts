@@ -1,5 +1,10 @@
 import { Score, Scorer, ScorerArgs } from "./score";
-import { ChatCache, OpenAIAuth, cachedChatCompletion } from "./oai";
+import {
+  ChatCache,
+  OpenAIAuth,
+  cachedChatCompletion,
+  getDefaultModel,
+} from "./oai";
 import { ModelGradedSpec, templates } from "./templates";
 import {
   ChatCompletionMessage,
@@ -20,6 +25,10 @@ export type LLMArgs = {
   temperature?: number;
 } & OpenAIAuth;
 
+/**
+ * The default model to use for LLM-based evaluations.
+ * @deprecated Use `init({ defaultModel: "..." })` to configure the default model instead.
+ */
 export const DEFAULT_MODEL = "gpt-4o";
 
 const PLAIN_RESPONSE_SCHEMA = {
@@ -108,10 +117,13 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     ...remainingRenderArgs
   } = remaining;
 
-  const extraArgs = {
-    temperature: temperature || 0,
-    max_tokens: maxTokens,
-  };
+  const extraArgs: { temperature?: number; max_tokens?: number } = {};
+  if (temperature !== undefined) {
+    extraArgs.temperature = temperature;
+  }
+  if (maxTokens !== undefined) {
+    extraArgs.max_tokens = maxTokens;
+  }
 
   const renderArgs = {
     output,
@@ -200,9 +212,10 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   name,
   promptTemplate,
   choiceScores,
-  model = DEFAULT_MODEL,
+  model: modelArg,
   useCoT: useCoTArg,
   temperature,
+  maxTokens: maxTokensArg,
 }: {
   name: string;
   promptTemplate: string;
@@ -210,17 +223,20 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   model?: string;
   useCoT?: boolean;
   temperature?: number;
+  maxTokens?: number;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
   const ret = async (
     runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>,
   ) => {
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
+    // Use runtime model > template model > configured default model
+    const model = runtimeArgs.model ?? modelArg ?? getDefaultModel();
 
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
-    const maxTokens = 512;
+    const maxTokens = runtimeArgs.maxTokens ?? maxTokensArg;
     const messages: ChatCompletionMessageParam[] = [
       {
         role: "user",
@@ -263,6 +279,7 @@ export function LLMClassifierFromSpec<RenderArgs>(
     model: spec.model,
     useCoT: spec.use_cot,
     temperature: spec.temperature,
+    maxTokens: spec.max_tokens,
   });
 }
 

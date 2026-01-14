@@ -17,6 +17,7 @@ export const modelGradedSpecSchema = z.object({
   model: z.string().optional(),
   use_cot: z.boolean().optional(),
   temperature: z.number().optional(),
+  max_tokens: z.number().optional(),
 });
 
 export type ModelGradedSpec = z.infer<typeof modelGradedSpecSchema>;

@@ -234,3 +234,97 @@ describe("ContextRelevancy score clamping", () => {
     expect(result.score).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe("AnswerCorrectness custom embedding model", () => {
+  const server = setupServer();
+
+  beforeAll(() => {
+    server.listen({
+      onUnhandledRequest: (req) => {
+        throw new Error(`Unhandled request ${req.method}, ${req.url}`);
+      },
+    });
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+    init();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  test("AnswerCorrectness uses custom embedding model", async () => {
+    let capturedEmbeddingModel: string | undefined;
+
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", async () => {
+        return HttpResponse.json({
+          id: "test-id",
+          object: "chat.completion",
+          created: Date.now(),
+          model: "gpt-4o",
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    id: "call_test",
+                    type: "function",
+                    function: {
+                      name: "classify_statements",
+                      arguments: JSON.stringify({
+                        TP: ["Paris is the capital"],
+                        FP: [],
+                        FN: [],
+                      }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: "tool_calls",
+            },
+          ],
+        });
+      }),
+      http.post("https://api.openai.com/v1/embeddings", async ({ request }) => {
+        const body = (await request.json()) as { model: string; input: string };
+        capturedEmbeddingModel = body.model;
+        return HttpResponse.json({
+          object: "list",
+          data: [
+            {
+              object: "embedding",
+              embedding: new Array(1536).fill(0.1),
+              index: 0,
+            },
+          ],
+          model: body.model,
+          usage: {
+            prompt_tokens: 5,
+            total_tokens: 5,
+          },
+        });
+      }),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    await AnswerCorrectness({
+      input: "What is the capital of France?",
+      output: "Paris",
+      expected: "Paris is the capital of France",
+      embeddingModel: "text-embedding-3-large",
+    });
+
+    expect(capturedEmbeddingModel).toBe("text-embedding-3-large");
+  });
+});

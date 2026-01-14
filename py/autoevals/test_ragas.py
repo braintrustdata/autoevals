@@ -2,7 +2,11 @@ import asyncio
 import json
 
 import pytest
+import respx
+from httpx import Response
+from openai import OpenAI
 
+from autoevals import init
 from autoevals.ragas import *
 
 data = {
@@ -119,3 +123,76 @@ def test_context_relevancy_score_normal_case():
     assert result.score == pytest.approx(expected_score, rel=1e-3)
     assert result.score <= 1.0
     assert result.score >= 0.0
+
+
+@respx.mock
+def test_answer_correctness_uses_custom_embedding_model():
+    """Test that AnswerCorrectness passes embedding_model parameter through to embeddings API."""
+    captured_embedding_model = None
+
+    def capture_embedding_model(request):
+        nonlocal captured_embedding_model
+        body = request.content.decode()
+        import json
+
+        data = json.loads(body)
+        captured_embedding_model = data.get("model")
+        return Response(
+            200,
+            json={
+                "object": "list",
+                "data": [
+                    {
+                        "object": "embedding",
+                        "embedding": [0.1] * 1536,
+                        "index": 0,
+                    }
+                ],
+                "model": data.get("model"),
+                "usage": {"prompt_tokens": 5, "total_tokens": 5},
+            },
+        )
+
+    def mock_chat_completions(request):
+        return Response(
+            200,
+            json={
+                "id": "test-id",
+                "object": "chat.completion",
+                "created": 1234567890,
+                "model": "gpt-4o",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "tool_calls": [
+                                {
+                                    "id": "call_test",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "classify_statements",
+                                        "arguments": '{"TP": ["Paris is the capital"], "FP": [], "FN": []}',
+                                    },
+                                }
+                            ],
+                        },
+                        "finish_reason": "tool_calls",
+                    }
+                ],
+            },
+        )
+
+    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=mock_chat_completions)
+    respx.post("https://api.openai.com/v1/embeddings").mock(side_effect=capture_embedding_model)
+
+    init(OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1"))
+
+    metric = AnswerCorrectness(embedding_model="text-embedding-3-large")
+    metric.eval(
+        input="What is the capital of France?",
+        output="Paris",
+        expected="Paris is the capital of France",
+    )
+
+    assert captured_embedding_model == "text-embedding-3-large"

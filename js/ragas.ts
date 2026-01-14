@@ -791,28 +791,31 @@ export const AnswerRelevancy: ScorerWithPartial<
 /**
  * Scores the semantic similarity between the generated answer and ground truth.
  */
-export const AnswerSimilarity: ScorerWithPartial<string, RagasArgs> =
-  makePartial(async (args) => {
-    const { ...inputs } = parseArgs(args);
+export const AnswerSimilarity: ScorerWithPartial<
+  string,
+  RagasArgs & { model?: string }
+> = makePartial(async (args) => {
+  const { ...inputs } = parseArgs(args);
 
-    const { output, expected } = checkRequired(
-      { output: inputs.output, expected: inputs.expected },
-      "AnswerSimilarity",
-    );
+  const { output, expected } = checkRequired(
+    { output: inputs.output, expected: inputs.expected },
+    "AnswerSimilarity",
+  );
 
-    const { score, error } = await EmbeddingSimilarity({
-      ...extractOpenAIArgs(args),
-      output,
-      expected,
-      expectedMin: 0,
-    });
+  const { score, error } = await EmbeddingSimilarity({
+    ...extractOpenAIArgs(args),
+    output,
+    expected,
+    expectedMin: 0,
+    model: args.model,
+  });
 
-    return {
-      name: "AnswerSimilarity",
-      score,
-      error,
-    };
-  }, "AnswerSimilarity");
+  return {
+    name: "AnswerSimilarity",
+    score,
+    error,
+  };
+}, "AnswerSimilarity");
 
 const CORRECTNESS_PROMPT = `Given a ground truth and an answer, analyze each statement in the answer and classify them in one of the following categories:
 
@@ -880,6 +883,7 @@ export const AnswerCorrectness: ScorerWithPartial<
     factualityWeight?: number;
     answerSimilarityWeight?: number;
     answerSimilarity?: Scorer<string, object>;
+    embeddingModel?: string;
   }
 > = makePartial(async (args) => {
   const { chatArgs, client, ...inputs } = parseArgs(args);
@@ -930,7 +934,12 @@ export const AnswerCorrectness: ScorerWithPartial<
     }),
     answerSimilarityWeight === 0
       ? null
-      : answerSimilarity({ output, expected, openAiApiKey: args.openAiApiKey }),
+      : answerSimilarity({
+          output,
+          expected,
+          openAiApiKey: args.openAiApiKey,
+          model: args.embeddingModel,
+        }),
   ]);
 
   const factuality = answerCorrectnessClassificationSchema.parse(

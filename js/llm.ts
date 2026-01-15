@@ -11,7 +11,7 @@ import {
   ChatCompletionMessageParam,
   ChatCompletionTool,
 } from "openai/resources";
-import { ReasoningEffort } from "openai/resources/shared";
+import type { ReasoningEffort } from "openai/resources/shared";
 import { makePartial, ScorerWithPartial } from "./partial";
 import { renderMessages } from "./render-messages";
 
@@ -25,6 +25,8 @@ export type LLMArgs = {
   maxTokens?: number;
   temperature?: number;
   reasoningEffort?: ReasoningEffort;
+  reasoningEnabled?: boolean;
+  reasoningBudget?: number;
 } & OpenAIAuth;
 
 /**
@@ -116,6 +118,8 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     maxTokens,
     temperature,
     reasoningEffort,
+    reasoningEnabled,
+    reasoningBudget,
     cache,
     ...remainingRenderArgs
   } = remaining;
@@ -124,6 +128,8 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     temperature?: number;
     max_tokens?: number;
     reasoning_effort?: ReasoningEffort;
+    reasoning_enabled?: boolean;
+    reasoning_budget?: number;
   } = {};
   if (temperature !== undefined) {
     extraArgs.temperature = temperature;
@@ -133,6 +139,12 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   }
   if (reasoningEffort !== undefined) {
     extraArgs.reasoning_effort = reasoningEffort;
+  }
+  if (reasoningEnabled !== undefined) {
+    extraArgs.reasoning_enabled = reasoningEnabled;
+  }
+  if (reasoningBudget !== undefined) {
+    extraArgs.reasoning_budget = reasoningBudget;
   }
 
   const renderArgs = {
@@ -226,6 +238,9 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   useCoT: useCoTArg,
   temperature,
   maxTokens: maxTokensArg,
+  reasoningEffort,
+  reasoningEnabled,
+  reasoningBudget,
 }: {
   name: string;
   promptTemplate: string;
@@ -234,6 +249,9 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   useCoT?: boolean;
   temperature?: number;
   maxTokens?: number;
+  reasoningEffort?: ReasoningEffort;
+  reasoningEnabled?: boolean;
+  reasoningBudget?: number;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
   const ret = async (
@@ -262,6 +280,9 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       model,
       maxTokens,
       temperature,
+      reasoningEffort,
+      reasoningEnabled,
+      reasoningBudget,
       __choices: choiceStrings,
       ...runtimeArgs,
 

@@ -169,6 +169,8 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         max_tokens=None,
         temperature=None,
         reasoning_effort=None,
+        reasoning_enabled=None,
+        reasoning_budget=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -192,6 +194,12 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
         if reasoning_effort is not None:
             self.extra_args["reasoning_effort"] = reasoning_effort
+
+        if reasoning_enabled is not None:
+            self.extra_args["reasoning_enabled"] = reasoning_enabled
+
+        if reasoning_budget is not None:
+            self.extra_args["reasoning_budget"] = reasoning_budget
 
         self.render_args = {}
         if render_args:
@@ -316,6 +324,8 @@ class LLMClassifier(OpenAILLMClassifier):
         max_tokens: Maximum tokens to generate. If not specified, uses the model's default.
         temperature: Controls randomness (0-1). If not specified, uses the model's default.
         reasoning_effort: Controls reasoning depth for o-series models (e.g., "low", "medium", "high").
+        reasoning_enabled: Enable extended thinking for supported models (e.g., Claude). Defaults to None.
+        reasoning_budget: Token allocation for model's internal reasoning. Defaults to None.
         engine: Deprecated by OpenAI. Use model instead.
         api_key: Deprecated. Use client instead.
         base_url: Deprecated. Use client instead.
@@ -335,6 +345,8 @@ class LLMClassifier(OpenAILLMClassifier):
         max_tokens=None,
         temperature=None,
         reasoning_effort=None,
+        reasoning_enabled=None,
+        reasoning_budget=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -363,6 +375,8 @@ class LLMClassifier(OpenAILLMClassifier):
             max_tokens=max_tokens,
             temperature=temperature,
             reasoning_effort=reasoning_effort,
+            reasoning_enabled=reasoning_enabled,
+            reasoning_budget=reasoning_budget,
             engine=engine,
             api_key=api_key,
             base_url=base_url,

@@ -1196,7 +1196,7 @@ class AnswerRelevancy(OpenAILLMScorer):
             for _ in range(self.strictness)
         ]
         similarity = [
-            EmbeddingSimilarity(client=self.client).eval(output=q["question"], expected=input, model=self.model)
+            EmbeddingSimilarity(client=self.client).eval(output=q["question"], expected=input, model=self.embedding_model)
             for q in questions
         ]
 

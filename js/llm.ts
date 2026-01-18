@@ -8,6 +8,18 @@ import {
 } from "openai/resources";
 import { makePartial, ScorerWithPartial } from "./partial";
 import { renderMessages } from "./render-messages";
+import {
+  computeThreadTemplateVars,
+  type ThreadTemplateVars,
+} from "./thread-utils";
+
+/**
+ * Minimal interface for a Trace object that can provide thread data.
+ * This is compatible with the Trace interface from the braintrust SDK.
+ */
+export interface TraceForScorer {
+  getThread(options?: { preprocessor?: string }): Promise<unknown[]>;
+}
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
@@ -193,6 +205,12 @@ function parseResponse(
 export type LLMClassifierArgs<RenderArgs> = {
   model?: string;
   useCoT?: boolean;
+  /**
+   * Optional trace object for multi-turn scoring.
+   * When provided, thread template variables (thread_text, thread_count, etc.)
+   * are automatically computed and made available in the template.
+   */
+  trace?: TraceForScorer;
 } & LLMArgs &
   RenderArgs;
 
@@ -217,6 +235,24 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   ) => {
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
 
+    // Compute thread template variables if trace is available
+    // These become available in templates as {{thread_text}}, {{thread_count}}, etc.
+    let threadVars: Record<string, unknown> = {};
+    if (runtimeArgs.trace) {
+      const thread = await runtimeArgs.trace.getThread();
+      const computed = computeThreadTemplateVars(thread);
+      threadVars = {
+        thread: computed.thread,
+        thread_text: computed.thread_text,
+        thread_count: computed.thread_count,
+        first_message: computed.first_message,
+        last_message: computed.last_message,
+        user_messages: computed.user_messages,
+        assistant_messages: computed.assistant_messages,
+        human_ai_pairs: computed.human_ai_pairs,
+      };
+    }
+
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
@@ -228,7 +264,8 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       },
     ];
 
-    return await OpenAIClassifier({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const classifierArgs: any = {
       name,
       messages,
       choiceScores,
@@ -237,12 +274,15 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       maxTokens,
       temperature,
       __choices: choiceStrings,
+      // Thread template vars come first so explicit args can override
+      ...threadVars,
       ...runtimeArgs,
-
       // Since the logic is a bit funky for computing this, include
       // it at the end to prevent overrides
       useCoT,
-    });
+    };
+
+    return await OpenAIClassifier(classifierArgs);
   };
   Object.defineProperty(ret, "name", {
     value: name,

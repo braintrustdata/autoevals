@@ -32,12 +32,17 @@ const THREAD_VARIABLE_NAMES = [
   "human_ai_pairs",
 ];
 
+// Pattern to match thread variables in template syntax: {{thread, {{ thread, {%...thread, etc.
+const THREAD_VARIABLE_PATTERN = new RegExp(
+  `\\{[\\{%]\\s*(${THREAD_VARIABLE_NAMES.join("|")})`,
+);
+
 /**
  * Check if a template string might use thread-related template variables.
- * This is a heuristic - if any variable name appears, we run the preprocessor.
+ * This is a heuristic - looks for variable names after {{ or {% syntax.
  */
 function templateUsesThreadVariables(template: string): boolean {
-  return THREAD_VARIABLE_NAMES.some((name) => template.includes(name));
+  return THREAD_VARIABLE_PATTERN.test(template);
 }
 
 const NO_COT_SUFFIX =

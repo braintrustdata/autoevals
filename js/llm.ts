@@ -21,6 +21,33 @@ export interface TraceForScorer {
   getThread(options?: { preprocessor?: string }): Promise<unknown[]>;
 }
 
+// Thread-related template variable names that require preprocessor invocation
+const THREAD_VARIABLE_NAMES = [
+  "thread",
+  "thread_count",
+  "first_message",
+  "last_message",
+  "user_messages",
+  "assistant_messages",
+  "human_ai_pairs",
+];
+
+// Regex pattern to match thread variable usage in templates
+// Matches {{thread}}, {{thread.0}}, {{thread_count}}, {%...thread...%}, etc.
+const THREAD_VARIABLE_PATTERN = new RegExp(
+  `\\{\\{\\s*(${THREAD_VARIABLE_NAMES.join("|")})(\\.[^}]*)?\\s*\\}\\}|` + // Mustache: {{thread}}, {{thread.0}}
+    `\\{%[^%]*\\b(${THREAD_VARIABLE_NAMES.join("|")})\\b[^%]*%\\}|` + // Jinja block: {% for m in thread %}
+    `\\{\\{[^}]*\\b(${THREAD_VARIABLE_NAMES.join("|")})\\b[^}]*\\}\\}`, // Jinja expr: {{ thread[0] }}
+  "i",
+);
+
+/**
+ * Check if a template string uses any thread-related template variables.
+ */
+function templateUsesThreadVariables(template: string): boolean {
+  return THREAD_VARIABLE_PATTERN.test(template);
+}
+
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
 
@@ -235,11 +262,13 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   ) => {
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
 
-    // Compute thread template variables if trace is available.
+    // Compute thread template variables if trace is available AND the template uses them.
     // These become available in templates as {{thread}}, {{thread_count}}, etc.
     // Note: {{thread}} automatically renders as human-readable text via smart escape.
+    // Only call getThread() if the template actually uses thread variables to avoid
+    // creating unnecessary preprocessor spans.
     let threadVars: Record<string, unknown> = {};
-    if (runtimeArgs.trace) {
+    if (runtimeArgs.trace && templateUsesThreadVariables(promptTemplate)) {
       const thread = await runtimeArgs.trace.getThread();
       const computed = computeThreadTemplateVars(thread);
       threadVars = {

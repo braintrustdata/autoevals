@@ -271,15 +271,10 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     if (runtimeArgs.trace && templateUsesThreadVariables(promptTemplate)) {
       const thread = await runtimeArgs.trace.getThread();
       const computed = computeThreadTemplateVars(thread);
-      threadVars = {
-        thread: computed.thread,
-        thread_count: computed.thread_count,
-        first_message: computed.first_message,
-        last_message: computed.last_message,
-        user_messages: computed.user_messages,
-        assistant_messages: computed.assistant_messages,
-        human_ai_pairs: computed.human_ai_pairs,
-      };
+      // Build threadVars from THREAD_VARIABLE_NAMES to keep in sync with the pattern
+      for (const name of THREAD_VARIABLE_NAMES) {
+        threadVars[name] = computed[name as keyof ThreadTemplateVars];
+      }
     }
 
     const prompt =

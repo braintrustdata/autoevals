@@ -246,10 +246,12 @@ export function formatMessageArrayAsText(messages: LLMMessage[]): string {
 
 /**
  * Template variables computed from a thread for use in LLM-as-a-judge scorers.
+ *
+ * Note: `thread` automatically renders as human-readable text in Mustache
+ * templates via the smart escape function. No need for a separate `thread_text`.
  */
 export interface ThreadTemplateVars {
   thread: unknown[];
-  thread_text: string;
   thread_count: number;
   first_message: unknown | null;
   last_message: unknown | null;
@@ -261,11 +263,14 @@ export interface ThreadTemplateVars {
 /**
  * Compute template variables from a thread for use in mustache templates.
  * Uses lazy getters so expensive computations only run when accessed.
+ *
+ * Note: `thread` (and other message variables) will automatically render as
+ * human-readable text when used in templates like `{{thread}}` due to the
+ * smart escape function in renderMessages.
  */
 export function computeThreadTemplateVars(
   thread: unknown[],
 ): ThreadTemplateVars {
-  let _thread_text: string | undefined;
   let _user_messages: unknown[] | undefined;
   let _assistant_messages: unknown[] | undefined;
   let _human_ai_pairs:
@@ -275,21 +280,6 @@ export function computeThreadTemplateVars(
   return {
     thread,
     thread_count: thread.length,
-
-    get thread_text(): string {
-      if (_thread_text === undefined) {
-        if (isLLMMessageArray(thread)) {
-          _thread_text = formatMessageArrayAsText(thread);
-        } else {
-          _thread_text = thread
-            .map((item) =>
-              typeof item === "string" ? item : JSON.stringify(item),
-            )
-            .join("\n");
-        }
-      }
-      return _thread_text;
-    },
 
     get first_message(): unknown | null {
       return thread[0] ?? null;

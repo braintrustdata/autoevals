@@ -235,15 +235,15 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   ) => {
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
 
-    // Compute thread template variables if trace is available
-    // These become available in templates as {{thread_text}}, {{thread_count}}, etc.
+    // Compute thread template variables if trace is available.
+    // These become available in templates as {{thread}}, {{thread_count}}, etc.
+    // Note: {{thread}} automatically renders as human-readable text via smart escape.
     let threadVars: Record<string, unknown> = {};
     if (runtimeArgs.trace) {
       const thread = await runtimeArgs.trace.getThread();
       const computed = computeThreadTemplateVars(thread);
       threadVars = {
         thread: computed.thread,
-        thread_text: computed.thread_text,
         thread_count: computed.thread_count,
         first_message: computed.first_message,
         last_message: computed.last_message,

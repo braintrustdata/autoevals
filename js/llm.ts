@@ -32,20 +32,12 @@ const THREAD_VARIABLE_NAMES = [
   "human_ai_pairs",
 ];
 
-// Regex pattern to match thread variable usage in templates
-// Matches {{thread}}, {{thread.0}}, {{thread_count}}, {%...thread...%}, etc.
-const THREAD_VARIABLE_PATTERN = new RegExp(
-  `\\{\\{\\s*(${THREAD_VARIABLE_NAMES.join("|")})(\\.[^}]*)?\\s*\\}\\}|` + // Mustache: {{thread}}, {{thread.0}}
-    `\\{%[^%]*\\b(${THREAD_VARIABLE_NAMES.join("|")})\\b[^%]*%\\}|` + // Jinja block: {% for m in thread %}
-    `\\{\\{[^}]*\\b(${THREAD_VARIABLE_NAMES.join("|")})\\b[^}]*\\}\\}`, // Jinja expr: {{ thread[0] }}
-  "i",
-);
-
 /**
- * Check if a template string uses any thread-related template variables.
+ * Check if a template string might use thread-related template variables.
+ * This is a heuristic - if any variable name appears, we run the preprocessor.
  */
 function templateUsesThreadVariables(template: string): boolean {
-  return THREAD_VARIABLE_PATTERN.test(template);
+  return THREAD_VARIABLE_NAMES.some((name) => template.includes(name));
 }
 
 const NO_COT_SUFFIX =

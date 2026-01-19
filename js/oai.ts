@@ -4,6 +4,7 @@ import {
   ChatCompletionTool,
   ChatCompletionToolChoiceOption,
 } from "openai/resources";
+import { ReasoningEffort } from "openai/resources/shared";
 import { AzureOpenAI, OpenAI } from "openai";
 
 export interface CachedLLMParams {
@@ -17,6 +18,7 @@ export interface CachedLLMParams {
   tool_choice?: ChatCompletionToolChoiceOption;
   temperature?: number;
   max_tokens?: number;
+  reasoning_effort?: ReasoningEffort;
   span_info?: {
     spanAttributes?: Record<string, string>;
   };

@@ -41,3 +41,11 @@ export * from "./ragas";
 export * from "./value";
 export { Evaluators } from "./manifest";
 export { makePartial, ScorerWithPartial } from "./partial";
+export {
+  computeThreadTemplateVars,
+  formatMessageArrayAsText,
+  isLLMMessageArray,
+  isRoleContentMessage,
+  type LLMMessage,
+  type ThreadTemplateVars,
+} from "./thread-utils";

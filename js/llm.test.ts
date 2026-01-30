@@ -236,7 +236,7 @@ Issue Description: {{page_content}}
             id: "chatcmpl-test",
             object: "chat.completion",
             created: 1234567890,
-            model: "gpt-4o",
+            model: "gpt-5-mini",
             choices: [
               {
                 index: 0,
@@ -294,7 +294,7 @@ Issue Description: {{page_content}}
             id: "chatcmpl-test",
             object: "chat.completion",
             created: 1234567890,
-            model: "gpt-4o",
+            model: "gpt-5-mini",
             choices: [
               {
                 index: 0,

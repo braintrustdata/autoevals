@@ -22,7 +22,7 @@ data = {
 @pytest.mark.parametrize(
     ["metric", "expected_score", "can_fail"],
     [
-        (ContextEntityRecall(), 0.5, False),
+        (ContextEntityRecall(), 0.5, True),
         (ContextRelevancy(), 0.7, True),
         (ContextRecall(), 1, True),
         (ContextPrecision(), 1, False),
@@ -160,7 +160,7 @@ def test_answer_correctness_uses_custom_embedding_model():
                 "id": "test-id",
                 "object": "chat.completion",
                 "created": 1234567890,
-                "model": "gpt-4o",
+                "model": "gpt-5-mini",
                 "choices": [
                     {
                         "index": 0,

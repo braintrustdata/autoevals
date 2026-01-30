@@ -17,7 +17,7 @@ These metrics are ported from the RAGAS project with some enhancements.
 
 **Common arguments**:
 
-    - `model`: Model to use for evaluation, defaults to the model configured via init(default_model=...) or "gpt-4o"
+    - `model`: Model to use for evaluation, defaults to the model configured via init(default_model=...) or "gpt-5-mini"
     - `client`: Optional Client for API calls. If not provided, uses global client from init()
 
 **Example - Direct usage**:
@@ -131,8 +131,8 @@ def check_required(name, **kwargs):
 
 
 # Deprecated: Use init(default_model="...") to configure the default model instead.
-# This was previously "gpt-4o-mini" but now defaults to the configured model.
-DEFAULT_RAGAS_MODEL = "gpt-4o-mini"
+# This was previously "gpt-5-nano" but now defaults to the configured model.
+DEFAULT_RAGAS_MODEL = "gpt-5-nano"
 
 
 def _get_model(model: str | None) -> str:
@@ -145,7 +145,7 @@ def _get_model(model: str | None) -> str:
         return model
 
     # Check if user configured a custom default via init(default_model=...)
-    # If they did (even if it's "gpt-4o"), respect it for consistency
+    # If they did (even if it's "gpt-5-mini"), respect it for consistency
     configured_default = _default_model_var.get(None)
     if configured_default is not None:
         return configured_default

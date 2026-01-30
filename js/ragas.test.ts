@@ -119,7 +119,7 @@ describe("ContextRelevancy score clamping", () => {
           id: "chatcmpl-test",
           object: "chat.completion",
           created: Date.now(),
-          model: "gpt-4o",
+          model: "gpt-5-mini",
           choices: [
             {
               index: 0,
@@ -184,7 +184,7 @@ describe("ContextRelevancy score clamping", () => {
           id: "chatcmpl-test",
           object: "chat.completion",
           created: Date.now(),
-          model: "gpt-4o",
+          model: "gpt-5-mini",
           choices: [
             {
               index: 0,
@@ -264,7 +264,7 @@ describe("AnswerCorrectness custom embedding model", () => {
           id: "test-id",
           object: "chat.completion",
           created: Date.now(),
-          model: "gpt-4o",
+          model: "gpt-5-mini",
           choices: [
             {
               index: 0,

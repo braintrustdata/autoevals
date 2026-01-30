@@ -176,7 +176,7 @@ def test_factuality():
                 }
             ],
             "created": 1734029028,
-            "model": "gpt-4o-2024-08-06",
+            "model": "gpt-5-mini-2025-08-07",
             "object": "chat.completion",
             "system_fingerprint": "fp_cc5cf1c6e3",
             "usage": {
@@ -232,7 +232,7 @@ def test_factuality_client():
                 }
             ],
             "created": 1734029028,
-            "model": "gpt-4o-2024-08-06",
+            "model": "gpt-5-mini-2025-08-07",
             "object": "chat.completion",
             "system_fingerprint": "fp_cc5cf1c6e3",
             "usage": {
@@ -297,7 +297,7 @@ def test_init_client():
                 }
             ],
             "created": 1734029028,
-            "model": "gpt-4o-2024-08-06",
+            "model": "gpt-5-mini-2025-08-07",
             "object": "chat.completion",
             "system_fingerprint": "fp_cc5cf1c6e3",
             "usage": {
@@ -373,7 +373,7 @@ def test_llm_classifier_omits_optional_parameters_when_not_specified():
                 "id": "chatcmpl-test",
                 "object": "chat.completion",
                 "created": 1234567890,
-                "model": "gpt-4o",
+                "model": "gpt-5-mini",
                 "choices": [
                     {
                         "index": 0,
@@ -429,7 +429,7 @@ def test_llm_classifier_includes_parameters_when_specified():
                 "id": "chatcmpl-test",
                 "object": "chat.completion",
                 "created": 1234567890,
-                "model": "gpt-4o",
+                "model": "gpt-5-mini",
                 "choices": [
                     {
                         "index": 0,

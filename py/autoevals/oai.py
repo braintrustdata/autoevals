@@ -275,7 +275,7 @@ def init(
         default_model: The default model(s) to use for evaluations when not specified per-call.
             Can be either:
             - A string (for backward compatibility): Sets the default completion model only.
-              Defaults to "gpt-4o" if not set.
+              Defaults to "gpt-5-mini" if not set.
             - A dictionary with "completion" and/or "embedding" keys: Allows setting default
               models for different evaluation types. Only the specified models are updated;
               others remain unchanged.
@@ -332,8 +332,8 @@ def init(
 
 
 def get_default_model() -> str:
-    """Get the configured default completion model, or "gpt-4o" if not set."""
-    return _default_model_var.get(None) or "gpt-4o"
+    """Get the configured default completion model, or "gpt-5-mini" if not set."""
+    return _default_model_var.get(None) or "gpt-5-mini"
 
 
 def get_default_embedding_model() -> str:

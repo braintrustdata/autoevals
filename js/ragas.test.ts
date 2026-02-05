@@ -59,7 +59,6 @@ test("Ragas generation test", async () => {
       output: data.output,
       expected: data.expected,
       context: data.context,
-      temperature: 0,
     });
 
     if (score === 1) {

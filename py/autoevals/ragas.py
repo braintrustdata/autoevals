@@ -564,7 +564,7 @@ class ContextRecall(OpenAILLMScorer):
 
         return Score(
             name=self._name(),
-            score=ones / total,
+            score=ones / total if total > 0 else 0,
             metadata={
                 "statements": statements,
                 "recall": statements,

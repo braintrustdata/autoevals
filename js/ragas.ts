@@ -390,10 +390,12 @@ export const ContextRecall: ScorerWithPartial<string, RagasArgs> = makePartial(
     return {
       name: "ContextRecall",
       score:
-        statements.statements.reduce(
-          (acc, { attributed }) => acc + attributed,
-          0,
-        ) / statements.statements.length,
+        statements.statements.length > 0
+          ? statements.statements.reduce(
+              (acc, { attributed }) => acc + attributed,
+              0,
+            ) / statements.statements.length
+          : 0,
       metadata: {
         statements: statements.statements,
       },

@@ -24,7 +24,7 @@ data = {
     [
         (ContextEntityRecall(), 0.5, True),
         (ContextRelevancy(), 0.7, True),
-        (ContextRecall(), 1, False),
+        (ContextRecall(), 1, True),
         (ContextPrecision(), 1, False),
     ],
 )

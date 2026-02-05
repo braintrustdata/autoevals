@@ -985,8 +985,10 @@ function parseArgs(args: ScorerArgs<string, RagasArgs>): {
     "messages"
   > = {
     model: args.model ?? getDefaultModel(),
-    temperature: args.temperature ?? 0,
   };
+  if (args.temperature !== undefined) {
+    chatArgs.temperature = args.temperature;
+  }
   if (args.maxTokens) {
     chatArgs.max_tokens = args.maxTokens;
   }

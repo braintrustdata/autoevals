@@ -1,6 +1,6 @@
 {
   "name": "autoevals",
-  "version": "0.0.131",
+  "version": "0.1.0",
   "description": "Universal library for evaluating AI models",
   "repository": {
     "type": "git",
@@ -44,7 +44,11 @@
     "typedoc": "^0.25.13",
     "typedoc-plugin-markdown": "^3.17.1",
     "typescript": "^5.9.2",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "zod": "3.25.67"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.0 || ^4.0.0"
   },
   "dependencies": {
     "ajv": "^8.17.1",
@@ -53,9 +57,8 @@
     "js-yaml": "^4.1.0",
     "linear-sum-assignment": "^1.0.7",
     "mustache": "^4.2.0",
-    "openai": "^6.3.0",
-    "zod": "^3.25.76",
-    "zod-to-json-schema": "^3.24.6"
+    "openai": "^6.7.0",
+    "zod-to-json-schema": "3.25.0"
   },
   "packageManager": "pnpm@10.26.2"
 }

@@ -20,7 +20,7 @@ You can create custom JSON scorers by composing existing scorers or building new
 Example 1: Combine schema validation with semantic comparison
     ```python
     from autoevals import Scorer, Score
-    from autoevals.json import JSONDiff, ValidJSON
+    from autoevals.json_schema import JSONDiff, ValidJSON
     from autoevals.string import EmbeddingSimilarity
     from openai import OpenAI
 

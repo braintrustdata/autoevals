@@ -125,7 +125,7 @@ asyncio.run(evaluate_qa())
 See individual module documentation for detailed usage and options.
 """
 
-from .json import *
+from .json_schema import *
 from .list import *
 from .llm import *
 from .moderation import *

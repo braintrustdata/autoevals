@@ -1,6 +1,6 @@
 from pytest import approx
 
-from autoevals.json import JSONDiff, ValidJSON
+from autoevals.json_schema import JSONDiff, ValidJSON
 from autoevals.number import NumericDiff
 from autoevals.value import ExactMatch
 

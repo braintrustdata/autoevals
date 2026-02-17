@@ -1176,8 +1176,8 @@ class AnswerRelevancy(OpenAILLMScorer):
         )
         similarity = await asyncio.gather(
             *[
-                EmbeddingSimilarity(client=self.client).eval_async(
-                    output=q["question"], expected=input, model=self.embedding_model
+                EmbeddingSimilarity(client=self.client, model=self.embedding_model).eval_async(
+                    output=q["question"], expected=input
                 )
                 for q in questions
             ]
@@ -1196,7 +1196,7 @@ class AnswerRelevancy(OpenAILLMScorer):
             for _ in range(self.strictness)
         ]
         similarity = [
-            EmbeddingSimilarity(client=self.client).eval(output=q["question"], expected=input, model=self.model)
+            EmbeddingSimilarity(client=self.client, model=self.embedding_model).eval(output=q["question"], expected=input)
             for q in questions
         ]
 

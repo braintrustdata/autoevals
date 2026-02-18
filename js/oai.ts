@@ -127,9 +127,15 @@ const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
   });
 };
 
-const isWrapped = (client: OpenAI): boolean => {
+const isWrapped = (
+  client: OpenAI,
+  dangerouslyAllowBrowser?: boolean,
+): boolean => {
   const Constructor = Object.getPrototypeOf(client).constructor;
-  const clean = new Constructor({ apiKey: "dummy" });
+  const clean = new Constructor({
+    apiKey: "dummy",
+    dangerouslyAllowBrowser,
+  });
   return (
     String(client.chat.completions.create) !==
     String(clean.chat.completions.create)
@@ -139,8 +145,16 @@ const isWrapped = (client: OpenAI): boolean => {
 export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
   const client = resolveOpenAIClient(options);
 
+  // Extract from deprecated options or client instance
+  const dangerouslyAllowBrowser =
+    options.openAiDangerouslyAllowBrowser ??
+    (client as any)._options?.dangerouslyAllowBrowser;
+
   // avoid re-wrapping if the client is already wrapped (proxied)
-  if (globalThis.__inherited_braintrust_wrap_openai && !isWrapped(client)) {
+  if (
+    globalThis.__inherited_braintrust_wrap_openai &&
+    !isWrapped(client, dangerouslyAllowBrowser)
+  ) {
     return globalThis.__inherited_braintrust_wrap_openai(client);
   }
 

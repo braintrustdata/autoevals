@@ -214,7 +214,30 @@ class LLMClient:
                         "model": kwargs["model"],
                         "input": kwargs["messages"],
                     }
-                    for key in ["tools", "tool_choice", "temperature", "max_tokens", "reasoning_effort", "span_info"]:
+
+                    # Transform tools from Chat Completions format to Responses API format
+                    if "tools" in kwargs:
+                        tools = []
+                        for tool in kwargs["tools"]:
+                            if isinstance(tool, dict) and tool.get("type") == "function":
+                                tools.append({
+                                    "name": tool["function"]["name"],
+                                    "description": tool["function"].get("description"),
+                                    "parameters": tool["function"].get("parameters"),
+                                })
+                            else:
+                                tools.append(tool)
+                        responses_params["tools"] = tools
+
+                    # Transform tool_choice format if needed
+                    if "tool_choice" in kwargs:
+                        tool_choice = kwargs["tool_choice"]
+                        if isinstance(tool_choice, dict) and tool_choice.get("type") == "function":
+                            responses_params["tool_choice"] = tool_choice["function"]["name"]
+                        else:
+                            responses_params["tool_choice"] = tool_choice
+
+                    for key in ["temperature", "max_tokens", "reasoning_effort", "span_info"]:
                         if key in kwargs:
                             responses_params[key] = kwargs[key]
                     return responses_create(**responses_params)

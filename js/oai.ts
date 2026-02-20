@@ -322,10 +322,30 @@ export async function cachedChatCompletion(
     };
 
     if (fullParams.tools) {
-      responsesParams.tools = fullParams.tools;
+      // Transform tools from Chat Completions format to Responses API format
+      // Chat Completions: { type: "function", function: { name, description, parameters } }
+      // Responses API: { name, description, parameters }
+      responsesParams.tools = fullParams.tools.map((tool) => {
+        if (tool.type === "function") {
+          return {
+            name: tool.function.name,
+            description: tool.function.description,
+            parameters: tool.function.parameters,
+          };
+        }
+        return tool;
+      });
     }
     if (fullParams.tool_choice) {
-      responsesParams.tool_choice = fullParams.tool_choice;
+      // Transform tool_choice format if needed
+      if (
+        typeof fullParams.tool_choice === "object" &&
+        fullParams.tool_choice.type === "function"
+      ) {
+        responsesParams.tool_choice = fullParams.tool_choice.function.name;
+      } else {
+        responsesParams.tool_choice = fullParams.tool_choice;
+      }
     }
     if (fullParams.temperature !== undefined) {
       responsesParams.temperature = fullParams.temperature;

@@ -291,6 +291,10 @@ export const getDefaultEmbeddingModel = (): string => {
   return globalThis.__defaultEmbeddingModel ?? "text-embedding-ada-002";
 };
 
+function isGPT5Model(model: string): boolean {
+  return model.startsWith("gpt-5");
+}
+
 export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth,
@@ -308,6 +312,40 @@ export async function cachedChatCompletion(
         },
       }
     : params;
+
+  // GPT-5 models require the Responses API
+  if (isGPT5Model(params.model)) {
+    // Convert Chat Completions API params to Responses API params
+    const responsesParams: any = {
+      model: fullParams.model,
+      input: fullParams.messages,
+    };
+
+    if (fullParams.tools) {
+      responsesParams.tools = fullParams.tools;
+    }
+    if (fullParams.tool_choice) {
+      responsesParams.tool_choice = fullParams.tool_choice;
+    }
+    if (fullParams.temperature !== undefined) {
+      responsesParams.temperature = fullParams.temperature;
+    }
+    if (fullParams.max_tokens) {
+      responsesParams.max_tokens = fullParams.max_tokens;
+    }
+    if (fullParams.reasoning_effort) {
+      responsesParams.reasoning_effort = fullParams.reasoning_effort;
+    }
+    if (fullParams.span_info) {
+      responsesParams.span_info = fullParams.span_info;
+    }
+
+    // @ts-expect-error - responses API not in types yet
+    const response = await openai.responses.create(responsesParams);
+
+    // Convert Responses API response to Chat Completions format for compatibility
+    return response as ChatCompletion;
+  }
 
   return await openai.chat.completions.create(fullParams);
 }

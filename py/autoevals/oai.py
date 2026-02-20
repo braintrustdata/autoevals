@@ -48,6 +48,11 @@ class Moderations(Protocol):
 
 
 @runtime_checkable
+class Responses(Protocol):
+    create: Callable[..., Any]
+
+
+@runtime_checkable
 class OpenAIV1Module(Protocol):
     class OpenAI(Protocol):
         # Core API resources
@@ -59,6 +64,9 @@ class OpenAIV1Module(Protocol):
 
         @property
         def moderations(self) -> Moderations: ...
+
+        @property
+        def responses(self) -> Responses: ...
 
         # Configuration
         @property
@@ -111,6 +119,11 @@ def get_openai_module() -> OpenAIV1Module | OpenAIV0Module:
 
     _openai_module = cast(Union[OpenAIV1Module, OpenAIV0Module], openai)
     return _openai_module
+
+
+def is_gpt5_model(model: str) -> bool:
+    """Check if a model name indicates a GPT-5 class model."""
+    return model.startswith("gpt-5")
 
 
 @dataclass
@@ -191,7 +204,23 @@ class LLMClient:
             self.openai = cast(OpenAIV1Module.OpenAI, self.openai)
 
             # v1
-            self.complete = self.openai.chat.completions.create
+            chat_complete = self.openai.chat.completions.create
+            responses_create = self.openai.responses.create
+
+            def complete_wrapper(**kwargs: Any) -> Any:
+                model = kwargs.get("model", "")
+                if is_gpt5_model(model):
+                    responses_params = {
+                        "model": kwargs["model"],
+                        "input": kwargs["messages"],
+                    }
+                    for key in ["tools", "tool_choice", "temperature", "max_tokens", "reasoning_effort", "span_info"]:
+                        if key in kwargs:
+                            responses_params[key] = kwargs[key]
+                    return responses_create(**responses_params)
+                return chat_complete(**kwargs)
+
+            self.complete = complete_wrapper
             self.embed = self.openai.embeddings.create
             self.moderation = self.openai.moderations.create
             self.RateLimitError = openai_module.RateLimitError

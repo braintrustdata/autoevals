@@ -216,11 +216,14 @@ class LLMClient:
                     }
 
                     # Transform tools from Chat Completions format to Responses API format
+                    # Chat Completions: { type: "function", function: { name, description, parameters } }
+                    # Responses API: { type: "function", name, description, parameters } (flattened)
                     if "tools" in kwargs:
                         tools = []
                         for tool in kwargs["tools"]:
                             if isinstance(tool, dict) and tool.get("type") == "function":
                                 tools.append({
+                                    "type": "function",
                                     "name": tool["function"]["name"],
                                     "description": tool["function"].get("description"),
                                     "parameters": tool["function"].get("parameters"),

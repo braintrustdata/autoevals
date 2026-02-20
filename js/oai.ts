@@ -324,10 +324,11 @@ export async function cachedChatCompletion(
     if (fullParams.tools) {
       // Transform tools from Chat Completions format to Responses API format
       // Chat Completions: { type: "function", function: { name, description, parameters } }
-      // Responses API: { name, description, parameters }
+      // Responses API: { type: "function", name, description, parameters } (flattened)
       responsesParams.tools = fullParams.tools.map((tool) => {
         if (tool.type === "function") {
           return {
+            type: "function",
             name: tool.function.name,
             description: tool.function.description,
             parameters: tool.function.parameters,
@@ -360,11 +361,10 @@ export async function cachedChatCompletion(
       responsesParams.span_info = fullParams.span_info;
     }
 
-    // @ts-expect-error - responses API not in types yet
     const response = await openai.responses.create(responsesParams);
 
     // Convert Responses API response to Chat Completions format for compatibility
-    return response as ChatCompletion;
+    return response as any as ChatCompletion;
   }
 
   return await openai.chat.completions.create(fullParams);

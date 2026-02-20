@@ -407,26 +407,22 @@ class LLMClassifier(OpenAILLMClassifier):
     def _get_trace_thread_method(trace) -> Callable[..., object] | None:
         if hasattr(trace, "get_thread") and callable(trace.get_thread):
             return trace.get_thread
-        if hasattr(trace, "getThread") and callable(trace.getThread):
-            return trace.getThread
         return None
 
     def _compute_thread_vars_sync(self, trace) -> dict[str, object]:
         method = self._get_trace_thread_method(trace)
         if method is None:
-            return {}
+            raise TypeError("trace must implement async get_thread(options=None)")
 
-        thread = method()
-        if inspect.isawaitable(thread):
-            try:
-                asyncio.get_running_loop()
-            except RuntimeError:
-                thread = asyncio.run(thread)
-            else:
-                raise RuntimeError(
-                    "trace.get_thread() returned an awaitable in sync eval. "
-                    "Use eval_async() or provide a synchronous get_thread()."
-                )
+        thread_awaitable = method()
+        if not inspect.isawaitable(thread_awaitable):
+            raise TypeError("trace.get_thread() must return an awaitable")
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            thread = asyncio.run(thread_awaitable)
+        else:
+            raise RuntimeError("trace.get_thread() is async; use eval_async() when already inside an event loop")
 
         if not isinstance(thread, list):
             thread = list(thread)
@@ -437,11 +433,12 @@ class LLMClassifier(OpenAILLMClassifier):
     async def _compute_thread_vars_async(self, trace) -> dict[str, object]:
         method = self._get_trace_thread_method(trace)
         if method is None:
-            return {}
+            raise TypeError("trace must implement async get_thread(options=None)")
 
-        thread = method()
-        if inspect.isawaitable(thread):
-            thread = await thread
+        thread_awaitable = method()
+        if not inspect.isawaitable(thread_awaitable):
+            raise TypeError("trace.get_thread() must return an awaitable")
+        thread = await thread_awaitable
 
         if not isinstance(thread, list):
             thread = list(thread)

@@ -600,7 +600,7 @@ def test_llm_classifier_injects_thread_vars_from_trace():
             self.thread = thread
             self.calls = 0
 
-        def get_thread(self):
+        async def get_thread(self):
             self.calls += 1
             return self.thread
 
@@ -669,7 +669,7 @@ def test_llm_classifier_does_not_fetch_thread_when_template_does_not_use_it():
         def __init__(self):
             self.calls = 0
 
-        def get_thread(self):
+        async def get_thread(self):
             self.calls += 1
             return [{"role": "user", "content": "unused"}]
 

@@ -232,13 +232,19 @@ class LLMClient:
                                 tools.append(tool)
                         responses_params["tools"] = tools
 
-                    # Transform tool_choice format if needed
+                    # Transform tool_choice format
+                    # Chat Completions API: { type: "function", function: { name: "..." } }
+                    # Responses API only accepts: "none", "auto", or "required"
                     if "tool_choice" in kwargs:
                         tool_choice = kwargs["tool_choice"]
                         if isinstance(tool_choice, dict) and tool_choice.get("type") == "function":
-                            responses_params["tool_choice"] = tool_choice["function"]["name"]
-                        else:
+                            # Force the model to call a tool (equivalent to specifying a specific function)
+                            responses_params["tool_choice"] = "required"
+                        elif tool_choice in ["auto", "none"]:
                             responses_params["tool_choice"] = tool_choice
+                        else:
+                            # Default to required for other cases
+                            responses_params["tool_choice"] = "required"
 
                     for key in ["temperature", "max_tokens", "reasoning_effort", "span_info"]:
                         if key in kwargs:

@@ -338,14 +338,20 @@ export async function cachedChatCompletion(
       });
     }
     if (fullParams.tool_choice) {
-      // Transform tool_choice format if needed
+      // Transform tool_choice format
+      // Chat Completions API: { type: "function", function: { name: "..." } }
+      // Responses API only accepts: "none", "auto", or "required"
       if (
         typeof fullParams.tool_choice === "object" &&
         fullParams.tool_choice.type === "function"
       ) {
-        responsesParams.tool_choice = fullParams.tool_choice.function.name;
-      } else {
+        // Force the model to call a tool (equivalent to specifying a specific function)
+        responsesParams.tool_choice = "required";
+      } else if (fullParams.tool_choice === "auto" || fullParams.tool_choice === "none") {
         responsesParams.tool_choice = fullParams.tool_choice;
+      } else {
+        // Default to required for other cases
+        responsesParams.tool_choice = "required";
       }
     }
     if (fullParams.temperature !== undefined) {

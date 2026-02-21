@@ -222,12 +222,14 @@ class LLMClient:
                         tools = []
                         for tool in kwargs["tools"]:
                             if isinstance(tool, dict) and tool.get("type") == "function":
-                                tools.append({
-                                    "type": "function",
-                                    "name": tool["function"]["name"],
-                                    "description": tool["function"].get("description"),
-                                    "parameters": tool["function"].get("parameters"),
-                                })
+                                tools.append(
+                                    {
+                                        "type": "function",
+                                        "name": tool["function"]["name"],
+                                        "description": tool["function"].get("description"),
+                                        "parameters": tool["function"].get("parameters"),
+                                    }
+                                )
                             else:
                                 tools.append(tool)
                         responses_params["tools"] = tools

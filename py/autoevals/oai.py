@@ -256,7 +256,7 @@ class LLMClient:
                     response = responses_create(**responses_params)
 
                     # Convert Responses API response to Chat Completions format
-                    # Responses API returns { output: [...], ... } instead of { choices: [...], ... }
+                    # Responses API returns { output: [...], ... } with separate items for text and tool calls
                     if hasattr(response, "output"):
                         # Convert response object to dict if needed
                         if hasattr(response, "model_dump"):
@@ -266,6 +266,29 @@ class LLMClient:
                         else:
                             resp_dict = response
 
+                        # Extract text content and tool calls from output array
+                        content = None
+                        tool_calls = []
+
+                        for item in resp_dict.get("output", []):
+                            item_type = item.get("type")
+                            if item_type in ("output_text", "text"):
+                                content = item.get("content") or item.get("text")
+                            elif item_type == "custom_tool_call":
+                                # Convert Responses API tool call format to Chat Completions format
+                                tool_calls.append(
+                                    {
+                                        "id": item.get("call_id"),
+                                        "type": "function",
+                                        "function": {
+                                            "name": item.get("name"),
+                                            "arguments": item.get(
+                                                "input"
+                                            ),  # Responses API uses 'input', Chat Completions uses 'arguments'
+                                        },
+                                    }
+                                )
+
                         # Transform to Chat Completions format
                         chat_completion = {
                             "id": resp_dict.get("id"),
@@ -274,15 +297,14 @@ class LLMClient:
                             "model": resp_dict.get("model"),
                             "choices": [
                                 {
-                                    "index": i,
+                                    "index": 0,
                                     "message": {
                                         "role": "assistant",
-                                        "content": item.get("content"),
-                                        "tool_calls": item.get("tool_calls"),
+                                        "content": content,
+                                        "tool_calls": tool_calls if tool_calls else None,
                                     },
-                                    "finish_reason": item.get("stop_reason", "stop"),
+                                    "finish_reason": resp_dict.get("stop_reason", "stop"),
                                 }
-                                for i, item in enumerate(resp_dict.get("output", []))
                             ],
                         }
                         return chat_completion

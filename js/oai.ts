@@ -368,21 +368,41 @@ export async function cachedChatCompletion(
     const response: any = await openai.responses.create(responsesParams);
 
     // Convert Responses API response to Chat Completions format for compatibility
-    // Responses API returns { output: [...], ... } instead of { choices: [...], ... }
+    // Responses API returns { output: [...], ... } with separate items for text and tool calls
+    // Extract text content and tool calls from output array
+    let content = null;
+    const tool_calls: any[] = [];
+
+    for (const item of response.output) {
+      if (item.type === "output_text" || item.type === "text") {
+        content = item.content || item.text;
+      } else if (item.type === "custom_tool_call") {
+        // Convert Responses API tool call format to Chat Completions format
+        tool_calls.push({
+          id: item.call_id,
+          type: "function",
+          function: {
+            name: item.name,
+            arguments: item.input, // Responses API uses 'input', Chat Completions uses 'arguments'
+          },
+        });
+      }
+    }
+
     const chatCompletion: ChatCompletion = {
       id: response.id,
       object: "chat.completion",
-      created: response.created || Date.now(),
+      created: response.created || Math.floor(Date.now() / 1000),
       model: response.model,
-      choices: response.output.map((item: any, index: number) => ({
-        index,
+      choices: [{
+        index: 0,
         message: {
           role: "assistant",
-          content: item.content || null,
-          tool_calls: item.tool_calls,
+          content,
+          tool_calls: tool_calls.length > 0 ? tool_calls : undefined,
         },
-        finish_reason: item.stop_reason || "stop",
-      })),
+        finish_reason: response.stop_reason || "stop",
+      }],
     };
 
     return chatCompletion;

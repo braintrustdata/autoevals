@@ -357,9 +357,7 @@ export async function cachedChatCompletion(
     if (fullParams.temperature !== undefined) {
       responsesParams.temperature = fullParams.temperature;
     }
-    if (fullParams.max_tokens) {
-      responsesParams.max_tokens = fullParams.max_tokens;
-    }
+    // Note: max_tokens is not supported by Responses API
     if (fullParams.reasoning_effort) {
       responsesParams.reasoning_effort = fullParams.reasoning_effort;
     }
@@ -367,10 +365,27 @@ export async function cachedChatCompletion(
       responsesParams.span_info = fullParams.span_info;
     }
 
-    const response = await openai.responses.create(responsesParams);
+    const response: any = await openai.responses.create(responsesParams);
 
     // Convert Responses API response to Chat Completions format for compatibility
-    return response as any as ChatCompletion;
+    // Responses API returns { output: [...], ... } instead of { choices: [...], ... }
+    const chatCompletion: ChatCompletion = {
+      id: response.id,
+      object: "chat.completion",
+      created: response.created || Date.now(),
+      model: response.model,
+      choices: response.output.map((item: any, index: number) => ({
+        index,
+        message: {
+          role: "assistant",
+          content: item.content || null,
+          tool_calls: item.tool_calls,
+        },
+        finish_reason: item.stop_reason || "stop",
+      })),
+    };
+
+    return chatCompletion;
   }
 
   return await openai.chat.completions.create(fullParams);

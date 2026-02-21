@@ -248,10 +248,46 @@ class LLMClient:
                             # Default to required for other cases
                             responses_params["tool_choice"] = "required"
 
-                    for key in ["temperature", "max_tokens", "reasoning_effort", "span_info"]:
+                    # Copy supported parameters (note: max_tokens is not supported)
+                    for key in ["temperature", "reasoning_effort", "span_info"]:
                         if key in kwargs:
                             responses_params[key] = kwargs[key]
-                    return responses_create(**responses_params)
+
+                    response = responses_create(**responses_params)
+
+                    # Convert Responses API response to Chat Completions format
+                    # Responses API returns { output: [...], ... } instead of { choices: [...], ... }
+                    if hasattr(response, "output"):
+                        # Convert response object to dict if needed
+                        if hasattr(response, "model_dump"):
+                            resp_dict = response.model_dump()
+                        elif hasattr(response, "dict"):
+                            resp_dict = response.dict()
+                        else:
+                            resp_dict = response
+
+                        # Transform to Chat Completions format
+                        chat_completion = {
+                            "id": resp_dict.get("id"),
+                            "object": "chat.completion",
+                            "created": resp_dict.get("created", int(time.time())),
+                            "model": resp_dict.get("model"),
+                            "choices": [
+                                {
+                                    "index": i,
+                                    "message": {
+                                        "role": "assistant",
+                                        "content": item.get("content"),
+                                        "tool_calls": item.get("tool_calls"),
+                                    },
+                                    "finish_reason": item.get("stop_reason", "stop"),
+                                }
+                                for i, item in enumerate(resp_dict.get("output", []))
+                            ],
+                        }
+                        return chat_completion
+
+                    return response
                 return chat_complete(**kwargs)
 
             self.complete = complete_wrapper

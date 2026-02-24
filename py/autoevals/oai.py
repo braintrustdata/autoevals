@@ -252,6 +252,13 @@ class LLMClient:
                             )
 
                     # Transform to Chat Completions format
+                    message = {
+                        "role": "assistant",
+                        "content": content,
+                    }
+                    if tool_calls:
+                        message["tool_calls"] = tool_calls
+
                     return {
                         "id": resp_dict.get("id"),
                         "object": "chat.completion",
@@ -260,11 +267,7 @@ class LLMClient:
                         "choices": [
                             {
                                 "index": 0,
-                                "message": {
-                                    "role": "assistant",
-                                    "content": content,
-                                    "tool_calls": tool_calls if tool_calls else None,
-                                },
+                                "message": message,
                                 "finish_reason": resp_dict.get("stop_reason", "stop"),
                             }
                         ],

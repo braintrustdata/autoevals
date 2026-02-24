@@ -257,7 +257,13 @@ class LLMClient:
 
                     # Convert Responses API response to Chat Completions format
                     # Responses API returns { output: [...], ... } with separate items for text and tool calls
-                    if hasattr(response, "output"):
+                    # Handle both object and dict responses
+                    has_output = False
+                    if isinstance(response, dict):
+                        has_output = "output" in response
+                        resp_dict = response
+                    elif hasattr(response, "output"):
+                        has_output = True
                         # Convert response object to dict if needed
                         if hasattr(response, "model_dump"):
                             resp_dict = response.model_dump()
@@ -265,11 +271,14 @@ class LLMClient:
                             resp_dict = response.dict()
                         else:
                             resp_dict = response
+                    else:
+                        resp_dict = {}
 
-                        # Extract text content and tool calls from output array
-                        content = None
-                        tool_calls = []
+                    # Extract text content and tool calls from output array
+                    content = None
+                    tool_calls = []
 
+                    if has_output:
                         for item in resp_dict.get("output", []):
                             item_type = item.get("type")
                             if item_type in ("output_text", "text"):
@@ -308,6 +317,7 @@ class LLMClient:
                         }
                         return chat_completion
 
+                    # If no output field, return raw response (let caller handle it)
                     return response
                 return chat_complete(**kwargs)
 

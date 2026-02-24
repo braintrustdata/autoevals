@@ -207,119 +207,128 @@ class LLMClient:
             chat_complete = self.openai.chat.completions.create
             responses_create = self.openai.responses.create
 
-            def complete_wrapper(**kwargs: Any) -> Any:
-                model = kwargs.get("model", "")
-                if is_gpt5_model(model):
-                    responses_params = {
-                        "model": kwargs["model"],
-                        "input": kwargs["messages"],
+            def convert_responses_to_chat_completion(response: Any) -> dict[str, Any]:
+                """Convert Responses API response to Chat Completions format."""
+                # Handle both object and dict responses
+                has_output = False
+                if isinstance(response, dict):
+                    has_output = "output" in response
+                    resp_dict = response
+                elif hasattr(response, "output"):
+                    has_output = True
+                    # Convert response object to dict if needed
+                    if hasattr(response, "model_dump"):
+                        resp_dict = response.model_dump()
+                    elif hasattr(response, "dict"):
+                        resp_dict = response.dict()
+                    else:
+                        resp_dict = response
+                else:
+                    return response  # Return raw response if no output
+
+                # Extract text content and tool calls from output array
+                content = None
+                tool_calls = []
+
+                if has_output:
+                    for item in resp_dict.get("output", []):
+                        item_type = item.get("type")
+                        if item_type in ("output_text", "text"):
+                            content = item.get("content") or item.get("text")
+                        elif item_type in ("function_call", "custom_tool_call"):
+                            # Convert Responses API tool call format to Chat Completions format
+                            tool_calls.append(
+                                {
+                                    "id": item.get("call_id"),
+                                    "type": "function",
+                                    "function": {
+                                        "name": item.get("name"),
+                                        "arguments": item.get("arguments"),
+                                    },
+                                }
+                            )
+
+                    # Transform to Chat Completions format
+                    return {
+                        "id": resp_dict.get("id"),
+                        "object": "chat.completion",
+                        "created": resp_dict.get("created", int(time.time())),
+                        "model": resp_dict.get("model"),
+                        "choices": [
+                            {
+                                "index": 0,
+                                "message": {
+                                    "role": "assistant",
+                                    "content": content,
+                                    "tool_calls": tool_calls if tool_calls else None,
+                                },
+                                "finish_reason": resp_dict.get("stop_reason", "stop"),
+                            }
+                        ],
                     }
 
-                    # Transform tools from Chat Completions format to Responses API format
-                    # Chat Completions: { type: "function", function: { name, description, parameters } }
-                    # Responses API: { type: "function", name, description, parameters } (flattened)
-                    if "tools" in kwargs:
-                        tools = []
-                        for tool in kwargs["tools"]:
-                            if isinstance(tool, dict) and tool.get("type") == "function":
-                                tools.append(
-                                    {
-                                        "type": "function",
-                                        "name": tool["function"]["name"],
-                                        "description": tool["function"].get("description"),
-                                        "parameters": tool["function"].get("parameters"),
-                                    }
-                                )
-                            else:
-                                tools.append(tool)
-                        responses_params["tools"] = tools
+                return response  # Fallback to raw response
 
-                    # Transform tool_choice format
-                    # Chat Completions API: { type: "function", function: { name: "..." } }
-                    # Responses API only accepts: "none", "auto", or "required"
-                    if "tool_choice" in kwargs:
-                        tool_choice = kwargs["tool_choice"]
-                        if isinstance(tool_choice, dict) and tool_choice.get("type") == "function":
-                            # Force the model to call a tool (equivalent to specifying a specific function)
-                            responses_params["tool_choice"] = "required"
-                        elif tool_choice in ["auto", "none"]:
-                            responses_params["tool_choice"] = tool_choice
-                        else:
-                            # Default to required for other cases
-                            responses_params["tool_choice"] = "required"
+            def prepare_responses_params(kwargs: dict[str, Any]) -> dict[str, Any]:
+                """Prepare parameters for Responses API from Chat Completions params."""
+                responses_params = {
+                    "model": kwargs["model"],
+                    "input": kwargs["messages"],
+                }
 
-                    # Copy supported parameters (note: max_tokens is not supported)
-                    for key in ["temperature", "reasoning_effort", "span_info"]:
-                        if key in kwargs:
-                            responses_params[key] = kwargs[key]
-
-                    response = responses_create(**responses_params)
-
-                    # Convert Responses API response to Chat Completions format
-                    # Responses API returns { output: [...], ... } with separate items for text and tool calls
-                    # Handle both object and dict responses
-                    has_output = False
-                    if isinstance(response, dict):
-                        has_output = "output" in response
-                        resp_dict = response
-                    elif hasattr(response, "output"):
-                        has_output = True
-                        # Convert response object to dict if needed
-                        if hasattr(response, "model_dump"):
-                            resp_dict = response.model_dump()
-                        elif hasattr(response, "dict"):
-                            resp_dict = response.dict()
-                        else:
-                            resp_dict = response
-                    else:
-                        resp_dict = {}
-
-                    # Extract text content and tool calls from output array
-                    content = None
-                    tool_calls = []
-
-                    if has_output:
-                        for item in resp_dict.get("output", []):
-                            item_type = item.get("type")
-                            if item_type in ("output_text", "text"):
-                                content = item.get("content") or item.get("text")
-                            elif item_type in ("function_call", "custom_tool_call"):
-                                # Convert Responses API tool call format to Chat Completions format
-                                # Responses API uses 'arguments' directly, not 'input'
-                                tool_calls.append(
-                                    {
-                                        "id": item.get("call_id"),
-                                        "type": "function",
-                                        "function": {
-                                            "name": item.get("name"),
-                                            "arguments": item.get("arguments"),
-                                        },
-                                    }
-                                )
-
-                        # Transform to Chat Completions format
-                        chat_completion = {
-                            "id": resp_dict.get("id"),
-                            "object": "chat.completion",
-                            "created": resp_dict.get("created", int(time.time())),
-                            "model": resp_dict.get("model"),
-                            "choices": [
+                # Transform tools from Chat Completions format to Responses API format
+                if "tools" in kwargs:
+                    tools = []
+                    for tool in kwargs["tools"]:
+                        if isinstance(tool, dict) and tool.get("type") == "function":
+                            tools.append(
                                 {
-                                    "index": 0,
-                                    "message": {
-                                        "role": "assistant",
-                                        "content": content,
-                                        "tool_calls": tool_calls if tool_calls else None,
-                                    },
-                                    "finish_reason": resp_dict.get("stop_reason", "stop"),
+                                    "type": "function",
+                                    "name": tool["function"]["name"],
+                                    "description": tool["function"].get("description"),
+                                    "parameters": tool["function"].get("parameters"),
                                 }
-                            ],
-                        }
-                        return chat_completion
+                            )
+                        else:
+                            tools.append(tool)
+                    responses_params["tools"] = tools
 
-                    # If no output field, return raw response (let caller handle it)
-                    return response
-                return chat_complete(**kwargs)
+                # Transform tool_choice format
+                if "tool_choice" in kwargs:
+                    tool_choice = kwargs["tool_choice"]
+                    if isinstance(tool_choice, dict) and tool_choice.get("type") == "function":
+                        responses_params["tool_choice"] = "required"
+                    elif tool_choice in ["auto", "none"]:
+                        responses_params["tool_choice"] = tool_choice
+                    else:
+                        responses_params["tool_choice"] = "required"
+
+                # Copy supported parameters
+                for key in ["temperature", "reasoning_effort", "span_info"]:
+                    if key in kwargs:
+                        responses_params[key] = kwargs[key]
+
+                return responses_params
+
+            if self.is_async:
+
+                async def complete_wrapper(**kwargs: Any) -> Any:
+                    model = kwargs.get("model", "")
+                    if is_gpt5_model(model):
+                        responses_params = prepare_responses_params(kwargs)
+                        response = await responses_create(**responses_params)
+                        return convert_responses_to_chat_completion(response)
+                    return await chat_complete(**kwargs)
+
+            else:
+
+                def complete_wrapper(**kwargs: Any) -> Any:
+                    model = kwargs.get("model", "")
+                    if is_gpt5_model(model):
+                        responses_params = prepare_responses_params(kwargs)
+                        response = responses_create(**responses_params)
+                        return convert_responses_to_chat_completion(response)
+                    return chat_complete(**kwargs)
 
             self.complete = complete_wrapper
             self.embed = self.openai.embeddings.create

@@ -347,7 +347,10 @@ export async function cachedChatCompletion(
       ) {
         // Force the model to call a tool (equivalent to specifying a specific function)
         responsesParams.tool_choice = "required";
-      } else if (fullParams.tool_choice === "auto" || fullParams.tool_choice === "none") {
+      } else if (
+        fullParams.tool_choice === "auto" ||
+        fullParams.tool_choice === "none"
+      ) {
         responsesParams.tool_choice = fullParams.tool_choice;
       } else {
         // Default to required for other cases
@@ -377,7 +380,10 @@ export async function cachedChatCompletion(
       for (const item of response.output) {
         if (item.type === "output_text" || item.type === "text") {
           content = item.content || item.text;
-        } else if (item.type === "function_call" || item.type === "custom_tool_call") {
+        } else if (
+          item.type === "function_call" ||
+          item.type === "custom_tool_call"
+        ) {
           // Convert Responses API tool call format to Chat Completions format
           // Responses API uses 'arguments' directly, not 'input'
           tool_calls.push({
@@ -397,17 +403,19 @@ export async function cachedChatCompletion(
       object: "chat.completion",
       created: response.created || Math.floor(Date.now() / 1000),
       model: response.model,
-      choices: [{
-        index: 0,
-        message: {
-          role: "assistant",
-          content,
-          tool_calls: tool_calls.length > 0 ? tool_calls : undefined,
-          refusal: null,
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content,
+            tool_calls: tool_calls.length > 0 ? tool_calls : undefined,
+            refusal: null,
+          },
+          finish_reason: response.stop_reason || "stop",
+          logprobs: null,
         },
-        finish_reason: response.stop_reason || "stop",
-        logprobs: null,
-      }],
+      ],
     };
 
     return chatCompletion;

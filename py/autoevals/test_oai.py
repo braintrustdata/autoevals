@@ -95,7 +95,8 @@ def test_prepare_openai_defaults():
     assert prepared_client.is_wrapped
     openai_obj = unwrap_named_wrapper(prepared_client.openai)
     assert isinstance(openai_obj, openai.OpenAI)
-    assert isinstance(getattr(prepared_client.complete, "__self__", None), CompletionsV1Wrapper)
+    assert callable(prepared_client.complete)
+    assert prepared_client.complete.__name__ == "complete_wrapper"
     assert openai_obj.api_key == "test-key"
     assert openai_obj.base_url == "http://test-url"
 
@@ -115,9 +116,9 @@ def test_prepare_openai_async():
     assert prepared_client.is_wrapped
     assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
 
-    openai_obj = getattr(prepared_client.complete, "__self__", None)
-    assert isinstance(openai_obj, NamedWrapper)
-    assert isinstance(unwrap_named_wrapper(openai_obj), AsyncCompletions)
+    assert callable(prepared_client.complete)
+    assert prepared_client.complete.__name__ == "complete_wrapper"
+    assert prepared_client.is_async
 
 
 def test_prepare_openai_wraps_once():

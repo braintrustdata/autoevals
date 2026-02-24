@@ -168,6 +168,7 @@ Issue Description: {{page_content}}
 2: {{expected}}`,
         choiceScores: { "1": 1, "2": 0 },
         useCoT,
+        model: "gpt-4o-mini",
       });
 
       let response = await classifier({
@@ -218,6 +219,7 @@ Issue Description: {{page_content}}
         output: "600",
         expected: "6",
         client,
+        model: "gpt-4o-mini",
       });
 
       expect(response.error).toBeUndefined();
@@ -228,12 +230,14 @@ Issue Description: {{page_content}}
         output: "6",
         expected: "600",
         client,
+        model: "gpt-4o-mini",
       });
 
       expect(response.error).toBeUndefined();
 
       response = await Battle({
         useCoT,
+        model: "gpt-4o-mini",
         instructions: "Add the following numbers: 1, 2, 3",
         output: "6",
         expected: "6",
@@ -329,9 +333,9 @@ Issue Description: {{page_content}}
 
     await classifier({ output: "test output", expected: "test expected" });
 
-    // Verify that max_tokens and temperature ARE in the request with correct values
-    expect(capturedRequestBody.max_tokens).toBe(256);
+    // Verify that temperature is in the request (max_tokens not supported by Responses API)
     expect(capturedRequestBody.temperature).toBe(0.5);
+    expect(capturedRequestBody.max_tokens).toBeUndefined();
   });
 
   test("LLMClassifierFromTemplate uses configured default model", async () => {

@@ -5,11 +5,11 @@ import respx
 from httpx import Response
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def mock_responses_api():
-    """Automatically mock the OpenAI Responses API for all tests."""
-    # Add a default mock for the Responses API endpoint
-    # Individual tests can override this with more specific mocks
+    """Mock the OpenAI Responses API with a default handler."""
+    # Provides a default mock for the Responses API endpoint
+    # Tests can use this fixture or define their own mocks
     route = respx.route(method="POST", path__regex=r".*/responses$")
 
     def responses_handler(request):

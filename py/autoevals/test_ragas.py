@@ -183,7 +183,27 @@ def test_answer_correctness_uses_custom_embedding_model():
             },
         )
 
+    def mock_responses_api(request):
+        return Response(
+            200,
+            json={
+                "id": "test-id",
+                "object": "response",
+                "created": 1234567890,
+                "model": "gpt-5-mini",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "classify_statements",
+                        "arguments": '{"TP": ["Paris is the capital"], "FP": [], "FN": []}',
+                    }
+                ],
+            },
+        )
+
     respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=mock_chat_completions)
+    respx.post("https://api.openai.com/v1/responses").mock(side_effect=mock_responses_api)
     respx.post("https://api.openai.com/v1/embeddings").mock(side_effect=capture_embedding_model)
 
     init(OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1"))

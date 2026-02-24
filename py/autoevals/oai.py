@@ -274,17 +274,16 @@ class LLMClient:
                             item_type = item.get("type")
                             if item_type in ("output_text", "text"):
                                 content = item.get("content") or item.get("text")
-                            elif item_type == "custom_tool_call":
+                            elif item_type in ("function_call", "custom_tool_call"):
                                 # Convert Responses API tool call format to Chat Completions format
+                                # Responses API uses 'arguments' directly, not 'input'
                                 tool_calls.append(
                                     {
                                         "id": item.get("call_id"),
                                         "type": "function",
                                         "function": {
                                             "name": item.get("name"),
-                                            "arguments": item.get(
-                                                "input"
-                                            ),  # Responses API uses 'input', Chat Completions uses 'arguments'
+                                            "arguments": item.get("arguments"),
                                         },
                                     }
                                 )
@@ -557,7 +556,10 @@ def prepare_openai(
 
 def post_process_response(resp: Any) -> dict[str, Any]:
     # This normalizes against craziness in OpenAI v0 vs. v1
-    if hasattr(resp, "to_dict"):
+    if isinstance(resp, dict):
+        # Already a dict (from Responses API transformation)
+        return resp
+    elif hasattr(resp, "to_dict"):
         # v0
         return resp.to_dict()
     else:

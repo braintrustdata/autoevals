@@ -212,7 +212,7 @@ class LLMClient:
                 # Handle both object and dict responses
                 has_output = False
                 if isinstance(response, dict):
-                    has_output = "output" in response
+                    has_output = "output" in response and response["output"] is not None
                     resp_dict = response
                 elif hasattr(response, "output"):
                     has_output = True
@@ -231,7 +231,10 @@ class LLMClient:
                 tool_calls = []
 
                 if has_output:
-                    for item in resp_dict.get("output", []):
+                    output_list = resp_dict.get("output", [])
+                    if output_list is None:
+                        output_list = []
+                    for item in output_list:
                         item_type = item.get("type")
                         if item_type in ("output_text", "text"):
                             content = item.get("content") or item.get("text")

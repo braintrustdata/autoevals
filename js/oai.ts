@@ -367,15 +367,6 @@ export async function cachedChatCompletion(
 
     const response: any = await openai.responses.create(responsesParams);
 
-    // Debug: Log response structure
-    console.error("[DEBUG GPT5] Response structure:", {
-      keys: Object.keys(response),
-      hasOutput: 'output' in response,
-      hasChoices: 'choices' in response,
-      outputType: response.output ? typeof response.output : 'undefined',
-      outputLength: Array.isArray(response.output) ? response.output.length : 'not array'
-    });
-
     // Convert Responses API response to Chat Completions format for compatibility
     // Responses API returns { output: [...], ... } with separate items for text and tool calls
     // Extract text content and tool calls from output array
@@ -384,24 +375,22 @@ export async function cachedChatCompletion(
 
     if (response.output && Array.isArray(response.output)) {
       for (const item of response.output) {
-        console.error("[DEBUG GPT5] Processing item:", { type: item.type, keys: Object.keys(item) });
         if (item.type === "output_text" || item.type === "text") {
           content = item.content || item.text;
-        } else if (item.type === "custom_tool_call") {
+        } else if (item.type === "function_call" || item.type === "custom_tool_call") {
           // Convert Responses API tool call format to Chat Completions format
+          // Responses API uses 'arguments' directly, not 'input'
           tool_calls.push({
             id: item.call_id,
             type: "function",
             function: {
               name: item.name,
-              arguments: item.input, // Responses API uses 'input', Chat Completions uses 'arguments'
+              arguments: item.arguments,
             },
           });
         }
       }
     }
-
-    console.error("[DEBUG GPT5] Final conversion:", { content, tool_calls_count: tool_calls.length });
 
     const chatCompletion: ChatCompletion = {
       id: response.id,

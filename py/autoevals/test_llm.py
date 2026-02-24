@@ -149,48 +149,21 @@ def test_nested_async():
 
 @respx.mock
 def test_factuality():
-    # something is wrong with respx that it couldn't match the url from openai
-    respx.route().respond(
+    # Mock the Responses API endpoint for GPT-5
+    respx.route(method="POST", path__regex=r".*/responses$").respond(
         json={
-            "id": "chatcmpl-AdiS4bHWjqSclA5rx7OkuZ6EA9QIp",
-            "choices": [
+            "id": "resp-test",
+            "object": "response",
+            "created": 1734029028,
+            "model": "gpt-5-mini",
+            "output": [
                 {
-                    "finish_reason": "stop",
-                    "index": 0,
-                    "logprobs": None,
-                    "message": {
-                        "content": None,
-                        "refusal": None,
-                        "role": "assistant",
-                        "tool_calls": [
-                            {
-                                "id": "call_JKoeGAX2zGPJAmF2muDgjpHp",
-                                "function": {
-                                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
-                                    "name": "select_choice",
-                                },
-                                "type": "function",
-                            }
-                        ],
-                    },
+                    "type": "function_call",
+                    "call_id": "call_test",
+                    "name": "select_choice",
+                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
                 }
             ],
-            "created": 1734029028,
-            "model": "gpt-5-mini-2025-08-07",
-            "object": "chat.completion",
-            "system_fingerprint": "fp_cc5cf1c6e3",
-            "usage": {
-                "completion_tokens": 149,
-                "prompt_tokens": 404,
-                "total_tokens": 553,
-                "completion_tokens_details": {
-                    "accepted_prediction_tokens": 0,
-                    "audio_tokens": 0,
-                    "reasoning_tokens": 0,
-                    "rejected_prediction_tokens": 0,
-                },
-                "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
-            },
         }
     )
 

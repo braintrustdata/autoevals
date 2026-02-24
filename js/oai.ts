@@ -403,8 +403,10 @@ export async function cachedChatCompletion(
           role: "assistant",
           content,
           tool_calls: tool_calls.length > 0 ? tool_calls : undefined,
+          refusal: null,
         },
         finish_reason: response.stop_reason || "stop",
+        logprobs: null,
       }],
     };
 

@@ -25,6 +25,27 @@ beforeAll(() => {
     },
   });
 
+  // Add default handler for Responses API (GPT-5 models)
+  server.use(
+    http.post("https://api.openai.com/v1/responses", async ({ request }) => {
+      const body = (await request.json()) as any;
+
+      // Convert to Responses API format
+      return HttpResponse.json({
+        id: "resp-test",
+        object: "response",
+        created: Math.floor(Date.now() / 1000),
+        model: body.model,
+        output: [
+          {
+            type: "output_text",
+            content: "Test response",
+          },
+        ],
+      });
+    }),
+  );
+
   init({
     client: new OpenAI({
       apiKey: "test-api-key",
@@ -227,38 +248,24 @@ Issue Description: {{page_content}}
     let capturedRequestBody: any;
 
     server.use(
-      http.post(
-        "https://api.openai.com/v1/chat/completions",
-        async ({ request }) => {
-          capturedRequestBody = await request.json();
+      http.post("https://api.openai.com/v1/responses", async ({ request }) => {
+        capturedRequestBody = await request.json();
 
-          return HttpResponse.json({
-            id: "chatcmpl-test",
-            object: "chat.completion",
-            created: 1234567890,
-            model: "gpt-5-mini",
-            choices: [
-              {
-                index: 0,
-                message: {
-                  role: "assistant",
-                  tool_calls: [
-                    {
-                      id: "call_test",
-                      type: "function",
-                      function: {
-                        name: "select_choice",
-                        arguments: JSON.stringify({ choice: "1" }),
-                      },
-                    },
-                  ],
-                },
-                finish_reason: "tool_calls",
-              },
-            ],
-          });
-        },
-      ),
+        return HttpResponse.json({
+          id: "resp-test",
+          object: "response",
+          created: 1234567890,
+          model: "gpt-5-mini",
+          output: [
+            {
+              type: "function_call",
+              call_id: "call_test",
+              name: "select_choice",
+              arguments: JSON.stringify({ choice: "1" }),
+            },
+          ],
+        });
+      }),
     );
 
     init({
@@ -285,38 +292,24 @@ Issue Description: {{page_content}}
     let capturedRequestBody: any;
 
     server.use(
-      http.post(
-        "https://api.openai.com/v1/chat/completions",
-        async ({ request }) => {
-          capturedRequestBody = await request.json();
+      http.post("https://api.openai.com/v1/responses", async ({ request }) => {
+        capturedRequestBody = await request.json();
 
-          return HttpResponse.json({
-            id: "chatcmpl-test",
-            object: "chat.completion",
-            created: 1234567890,
-            model: "gpt-5-mini",
-            choices: [
-              {
-                index: 0,
-                message: {
-                  role: "assistant",
-                  tool_calls: [
-                    {
-                      id: "call_test",
-                      type: "function",
-                      function: {
-                        name: "select_choice",
-                        arguments: JSON.stringify({ choice: "1" }),
-                      },
-                    },
-                  ],
-                },
-                finish_reason: "tool_calls",
-              },
-            ],
-          });
-        },
-      ),
+        return HttpResponse.json({
+          id: "resp-test",
+          object: "response",
+          created: 1234567890,
+          model: "gpt-5-mini",
+          output: [
+            {
+              type: "function_call",
+              call_id: "call_test",
+              name: "select_choice",
+              arguments: JSON.stringify({ choice: "1" }),
+            },
+          ],
+        });
+      }),
     );
 
     init({

@@ -45,10 +45,13 @@ print(result.score)  # 1 if correct, 0 if incorrect
 ```
 """
 
+import asyncio
+import inspect
 import json
 import os
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import chevron
@@ -58,6 +61,11 @@ from autoevals.partial import ScorerWithPartial
 
 from .oai import Client, arun_cached_request, get_default_model, run_cached_request
 from .score import Score
+from .thread_utils import (
+    THREAD_VARIABLE_NAMES,
+    compute_thread_template_vars,
+    template_uses_thread_variables,
+)
 
 # Disable HTML escaping in chevron.
 chevron.renderer._html_escape = lambda x: x  # type: ignore[attr-defined]
@@ -243,6 +251,9 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
         return ret
 
+    async def _request_args_async(self, output, expected, **kwargs):
+        return self._request_args(output, expected, **kwargs)
+
     def _process_response(self, resp):
         metadata = {}
         if "tool_calls" not in resp:
@@ -268,7 +279,9 @@ class OpenAILLMClassifier(OpenAILLMScorer):
             raise ValueError("Empty response from OpenAI")
 
     async def _run_eval_async(self, output, expected, **kwargs):
-        return self._postprocess_response(await arun_cached_request(**self._request_args(output, expected, **kwargs)))
+        return self._postprocess_response(
+            await arun_cached_request(**(await self._request_args_async(output, expected, **kwargs)))
+        )
 
     def _run_eval_sync(self, output, expected, **kwargs):
         return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
@@ -330,10 +343,15 @@ class LLMClassifier(OpenAILLMClassifier):
         api_key: Deprecated. Use client instead.
         base_url: Deprecated. Use client instead.
         client: OpenAI client. If not provided, uses global client from init().
+        trace: Optional trace object for multi-turn scoring. When provided at
+            evaluation time and the template references thread variables
+            (`{{thread}}`, `{{thread_count}}`, etc.), thread variables are
+            derived from `trace.get_thread()` / `trace.getThread()`.
         **extra_render_args: Additional template variables
     """
 
     _SPEC_FILE_CONTENTS: dict[str, str] = defaultdict(str)
+    _thread_variable_names = THREAD_VARIABLE_NAMES
 
     def __init__(
         self,
@@ -353,6 +371,7 @@ class LLMClassifier(OpenAILLMClassifier):
         client: Client | None = None,
         **extra_render_args,
     ):
+        self._template_uses_thread_variables = template_uses_thread_variables(prompt_template)
         choice_strings = list(choice_scores.keys())
         # Use configured default model if not specified
         if model is None:
@@ -383,6 +402,67 @@ class LLMClassifier(OpenAILLMClassifier):
             render_args={"__choices": choice_strings, **extra_render_args},
             client=client,
         )
+
+    @staticmethod
+    def _get_trace_thread_method(trace) -> Callable[..., object] | None:
+        if hasattr(trace, "get_thread") and callable(trace.get_thread):
+            return trace.get_thread
+        return None
+
+    def _compute_thread_vars_sync(self, trace) -> dict[str, object]:
+        method = self._get_trace_thread_method(trace)
+        if method is None:
+            raise TypeError("trace must implement async get_thread(options=None)")
+
+        thread_awaitable = method()
+        if not inspect.isawaitable(thread_awaitable):
+            raise TypeError("trace.get_thread() must return an awaitable")
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            thread = asyncio.run(thread_awaitable)
+        else:
+            raise RuntimeError("trace.get_thread() is async; use eval_async() when already inside an event loop")
+
+        if not isinstance(thread, list):
+            thread = list(thread)
+
+        computed = compute_thread_template_vars(thread)
+        return {name: computed[name] for name in self._thread_variable_names}
+
+    async def _compute_thread_vars_async(self, trace) -> dict[str, object]:
+        method = self._get_trace_thread_method(trace)
+        if method is None:
+            raise TypeError("trace must implement async get_thread(options=None)")
+
+        thread_awaitable = method()
+        if not inspect.isawaitable(thread_awaitable):
+            raise TypeError("trace.get_thread() must return an awaitable")
+        thread = await thread_awaitable
+
+        if not isinstance(thread, list):
+            thread = list(thread)
+
+        computed = compute_thread_template_vars(thread)
+        return {name: computed[name] for name in self._thread_variable_names}
+
+    def _request_args(self, output, expected, **kwargs):
+        trace = kwargs.get("trace")
+        thread_vars: dict[str, object] = {}
+        if trace is not None and self._template_uses_thread_variables:
+            thread_vars = self._compute_thread_vars_sync(trace)
+
+        # Thread vars come first so explicit render args can override.
+        return super()._request_args(output, expected, **thread_vars, **kwargs)
+
+    async def _request_args_async(self, output, expected, **kwargs):
+        trace = kwargs.get("trace")
+        thread_vars: dict[str, object] = {}
+        if trace is not None and self._template_uses_thread_variables:
+            thread_vars = await self._compute_thread_vars_async(trace)
+
+        # Thread vars come first so explicit render args can override.
+        return super()._request_args(output, expected, **thread_vars, **kwargs)
 
     @classmethod
     def from_spec(cls, name: str, spec: ModelGradedSpec, client: Client | None = None, **kwargs):

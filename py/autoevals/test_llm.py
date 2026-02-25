@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from autoevals import init
 from autoevals.llm import Battle, Factuality, LLMClassifier, OpenAILLMClassifier, build_classification_tools
 from autoevals.oai import OpenAIV1Module, get_default_model
+from autoevals.thread_utils import compute_thread_template_vars
 
 
 class TestModel(BaseModel):
@@ -52,6 +53,47 @@ def test_render_messages():
 
     # Test empty content.
     assert rendered[5]["content"] == ""
+
+
+def test_render_messages_with_thread_variables():
+    classifier = OpenAILLMClassifier(
+        "test",
+        messages=[
+            {"role": "user", "content": "{{thread}}"},
+            {"role": "user", "content": "First message: {{thread.0}}"},
+            {"role": "user", "content": "Count: {{thread_count}}"},
+            {"role": "user", "content": "First: {{first_message}}"},
+            {"role": "user", "content": "Users: {{user_messages}}"},
+            {"role": "user", "content": "Pairs: {{human_ai_pairs}}"},
+            {
+                "role": "user",
+                "content": "Messages:{{#thread}}\n- {{role}}: {{content}}{{/thread}}",
+            },
+        ],
+        model="gpt-4",
+        choice_scores={"A": 1},
+        classification_tools=[],
+    )
+
+    sample_thread = [
+        {"role": "user", "content": "Hello, how are you?"},
+        {"role": "assistant", "content": "I am doing well, thank you!"},
+        {"role": "user", "content": "What is the weather like?"},
+        {"role": "assistant", "content": "It is sunny and warm today."},
+    ]
+    thread_vars = compute_thread_template_vars(sample_thread)
+    rendered = classifier._render_messages(**thread_vars)
+
+    assert "User:" in rendered[0]["content"]
+    assert "Hello, how are you?" in rendered[0]["content"]
+    assert "Assistant:" in rendered[0]["content"]
+    assert rendered[1]["content"] == "First message: user: Hello, how are you?"
+    assert rendered[2]["content"] == "Count: 4"
+    assert rendered[3]["content"] == "First: user: Hello, how are you?"
+    assert "Users: User:" in rendered[4]["content"]
+    assert "Pairs:" in rendered[5]["content"]
+    assert "human" in rendered[5]["content"]
+    assert rendered[6]["content"].startswith("Messages:\n- user: Hello, how are you?")
 
 
 def test_openai():
@@ -547,3 +589,130 @@ def test_llm_classifier_uses_configured_default_model():
 
     # Reset for other tests
     init(None)
+
+
+@respx.mock
+def test_llm_classifier_injects_thread_vars_from_trace():
+    captured_request_body = None
+
+    class TraceStub:
+        def __init__(self, thread):
+            self.thread = thread
+            self.calls = 0
+
+        async def get_thread(self):
+            self.calls += 1
+            return self.thread
+
+    thread = [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there"},
+        {"role": "user", "content": "Can you help me?"},
+    ]
+    trace = TraceStub(thread)
+
+    def capture_request(request):
+        nonlocal captured_request_body
+        captured_request_body = json.loads(request.content.decode("utf-8"))
+        return Response(
+            200,
+            json={
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 1234567890,
+                "model": "gpt-4o",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "call_test",
+                                    "type": "function",
+                                    "function": {"name": "select_choice", "arguments": '{"choice": "1"}'},
+                                }
+                            ],
+                        },
+                        "finish_reason": "tool_calls",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+            },
+        )
+
+    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=capture_request)
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    classifier = LLMClassifier(
+        "thread_test",
+        "Thread:\n{{thread}}\nCount: {{thread_count}}\nFirst: {{first_message}}\nUsers:\n{{user_messages}}",
+        {"1": 1, "2": 0},
+    )
+    classifier.eval(output="irrelevant", expected="irrelevant", trace=trace)
+
+    content = captured_request_body["messages"][0]["content"]
+    assert trace.calls == 1
+    assert "Thread:" in content
+    assert "User:" in content
+    assert "Assistant:" in content
+    assert "Count: 3" in content
+    assert "First: user: Hello" in content
+    assert "Users:" in content
+
+
+@respx.mock
+def test_llm_classifier_does_not_fetch_thread_when_template_does_not_use_it():
+    class TraceStub:
+        def __init__(self):
+            self.calls = 0
+
+        async def get_thread(self):
+            self.calls += 1
+            return [{"role": "user", "content": "unused"}]
+
+    trace = TraceStub()
+
+    respx.post("https://api.openai.com/v1/chat/completions").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 1234567890,
+                "model": "gpt-4o",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "call_test",
+                                    "type": "function",
+                                    "function": {"name": "select_choice", "arguments": '{"choice": "1"}'},
+                                }
+                            ],
+                        },
+                        "finish_reason": "tool_calls",
+                    }
+                ],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+            },
+        )
+    )
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    classifier = LLMClassifier(
+        "thread_unused_test",
+        "Output: {{output}}",
+        {"1": 1, "2": 0},
+    )
+    classifier.eval(output="x", expected="y", trace=trace)
+
+    assert trace.calls == 0

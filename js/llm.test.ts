@@ -25,6 +25,27 @@ beforeAll(() => {
     },
   });
 
+  // Add default handler for Responses API (GPT-5 models)
+  server.use(
+    http.post("https://api.openai.com/v1/responses", async ({ request }) => {
+      const body = (await request.json()) as any;
+
+      // Convert to Responses API format
+      return HttpResponse.json({
+        id: "resp-test",
+        object: "response",
+        created: Math.floor(Date.now() / 1000),
+        model: body.model,
+        output: [
+          {
+            type: "output_text",
+            content: "Test response",
+          },
+        ],
+      });
+    }),
+  );
+
   init({
     client: new OpenAI({
       apiKey: "test-api-key",
@@ -147,6 +168,7 @@ Issue Description: {{page_content}}
 2: {{expected}}`,
         choiceScores: { "1": 1, "2": 0 },
         useCoT,
+        model: "gpt-4o-mini",
       });
 
       let response = await classifier({
@@ -197,6 +219,7 @@ Issue Description: {{page_content}}
         output: "600",
         expected: "6",
         client,
+        model: "gpt-4o-mini",
       });
 
       expect(response.error).toBeUndefined();
@@ -207,12 +230,14 @@ Issue Description: {{page_content}}
         output: "6",
         expected: "600",
         client,
+        model: "gpt-4o-mini",
       });
 
       expect(response.error).toBeUndefined();
 
       response = await Battle({
         useCoT,
+        model: "gpt-4o-mini",
         instructions: "Add the following numbers: 1, 2, 3",
         output: "6",
         expected: "6",
@@ -227,38 +252,24 @@ Issue Description: {{page_content}}
     let capturedRequestBody: any;
 
     server.use(
-      http.post(
-        "https://api.openai.com/v1/chat/completions",
-        async ({ request }) => {
-          capturedRequestBody = await request.json();
+      http.post("https://api.openai.com/v1/responses", async ({ request }) => {
+        capturedRequestBody = await request.json();
 
-          return HttpResponse.json({
-            id: "chatcmpl-test",
-            object: "chat.completion",
-            created: 1234567890,
-            model: "gpt-4o",
-            choices: [
-              {
-                index: 0,
-                message: {
-                  role: "assistant",
-                  tool_calls: [
-                    {
-                      id: "call_test",
-                      type: "function",
-                      function: {
-                        name: "select_choice",
-                        arguments: JSON.stringify({ choice: "1" }),
-                      },
-                    },
-                  ],
-                },
-                finish_reason: "tool_calls",
-              },
-            ],
-          });
-        },
-      ),
+        return HttpResponse.json({
+          id: "resp-test",
+          object: "response",
+          created: 1234567890,
+          model: "gpt-5-mini",
+          output: [
+            {
+              type: "function_call",
+              call_id: "call_test",
+              name: "select_choice",
+              arguments: JSON.stringify({ choice: "1" }),
+            },
+          ],
+        });
+      }),
     );
 
     init({
@@ -285,38 +296,24 @@ Issue Description: {{page_content}}
     let capturedRequestBody: any;
 
     server.use(
-      http.post(
-        "https://api.openai.com/v1/chat/completions",
-        async ({ request }) => {
-          capturedRequestBody = await request.json();
+      http.post("https://api.openai.com/v1/responses", async ({ request }) => {
+        capturedRequestBody = await request.json();
 
-          return HttpResponse.json({
-            id: "chatcmpl-test",
-            object: "chat.completion",
-            created: 1234567890,
-            model: "gpt-4o",
-            choices: [
-              {
-                index: 0,
-                message: {
-                  role: "assistant",
-                  tool_calls: [
-                    {
-                      id: "call_test",
-                      type: "function",
-                      function: {
-                        name: "select_choice",
-                        arguments: JSON.stringify({ choice: "1" }),
-                      },
-                    },
-                  ],
-                },
-                finish_reason: "tool_calls",
-              },
-            ],
-          });
-        },
-      ),
+        return HttpResponse.json({
+          id: "resp-test",
+          object: "response",
+          created: 1234567890,
+          model: "gpt-5-mini",
+          output: [
+            {
+              type: "function_call",
+              call_id: "call_test",
+              name: "select_choice",
+              arguments: JSON.stringify({ choice: "1" }),
+            },
+          ],
+        });
+      }),
     );
 
     init({
@@ -336,9 +333,9 @@ Issue Description: {{page_content}}
 
     await classifier({ output: "test output", expected: "test expected" });
 
-    // Verify that max_tokens and temperature ARE in the request with correct values
-    expect(capturedRequestBody.max_tokens).toBe(256);
+    // Verify that temperature is in the request (max_tokens not supported by Responses API)
     expect(capturedRequestBody.temperature).toBe(0.5);
+    expect(capturedRequestBody.max_tokens).toBeUndefined();
   });
 
   test("LLMClassifierFromTemplate uses configured default model", async () => {

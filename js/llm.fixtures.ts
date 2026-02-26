@@ -52,7 +52,7 @@ export const openaiClassifierShouldEvaluateTitlesWithCoT = [
     id: "chatcmpl-B7XFw0OCpCbMVwLizRts3Cl72Obg0",
     object: "chat.completion",
     created: 1741135832,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,
@@ -98,7 +98,7 @@ export const openaiClassifierShouldEvaluateTitlesWithCoT = [
     id: "chatcmpl-B7YPU81s7cb2uzlwJ8w9aS5qhfhtJ",
     object: "chat.completion",
     created: 1741140268,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,
@@ -141,7 +141,7 @@ export const openaiClassifierShouldEvaluateTitlesWithCoT = [
     id: "chatcmpl-B7YQ9ILZ9DJR2AjY2s4qU15Rc6qII",
     object: "chat.completion",
     created: 1741140309,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,
@@ -180,7 +180,7 @@ export const openaiClassifierShouldEvaluateTitlesWithCoT = [
     id: "chatcmpl-B7YQa80DGu61zUWpdPtXRaJdRQz6l",
     object: "chat.completion",
     created: 1741140336,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,
@@ -222,7 +222,7 @@ export const openaiClassifierShouldEvaluateArithmeticExpressions = [
     id: "chatcmpl-B7YSMVJ7qaQTJ9OtR6zPUEdHxrNbT",
     object: "chat.completion",
     created: 1741140446,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,
@@ -265,7 +265,7 @@ export const openaiClassifierShouldEvaluateArithmeticExpressions = [
     id: "chatcmpl-B7YTPWIPOFpRcVOjEnU6s0kZXgPdB",
     object: "chat.completion",
     created: 1741140511,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,
@@ -308,7 +308,7 @@ export const openaiClassifierShouldEvaluateArithmeticExpressions = [
     id: "chatcmpl-B7YU2qluNL0SenvL1zBiSzrka236n",
     object: "chat.completion",
     created: 1741140550,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,
@@ -351,7 +351,7 @@ export const openaiClassifierShouldEvaluateArithmeticExpressions = [
     id: "chatcmpl-B7YUTk3771FhLlXQNZPaobEC0d8R6",
     object: "chat.completion",
     created: 1741140577,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,
@@ -390,7 +390,7 @@ export const openaiClassifierShouldEvaluateArithmeticExpressions = [
     id: "chatcmpl-B7YUtrpit4RvQCeqfOcZme9L6pMAP",
     object: "chat.completion",
     created: 1741140603,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,
@@ -432,7 +432,7 @@ export const openaiClassifierShouldEvaluateArithmeticExpressions = [
     id: "chatcmpl-B7YV8HHTm4hZU58Zp9gcjwp3MigEl",
     object: "chat.completion",
     created: 1741140618,
-    model: "gpt-4o-2024-08-06",
+    model: "gpt-5-mini-2025-08-07",
     choices: [
       {
         index: 0,

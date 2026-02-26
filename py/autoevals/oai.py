@@ -48,6 +48,11 @@ class Moderations(Protocol):
 
 
 @runtime_checkable
+class Responses(Protocol):
+    create: Callable[..., Any]
+
+
+@runtime_checkable
 class OpenAIV1Module(Protocol):
     class OpenAI(Protocol):
         # Core API resources
@@ -59,6 +64,9 @@ class OpenAIV1Module(Protocol):
 
         @property
         def moderations(self) -> Moderations: ...
+
+        @property
+        def responses(self) -> Responses: ...
 
         # Configuration
         @property
@@ -111,6 +119,11 @@ def get_openai_module() -> OpenAIV1Module | OpenAIV0Module:
 
     _openai_module = cast(Union[OpenAIV1Module, OpenAIV0Module], openai)
     return _openai_module
+
+
+def is_gpt5_model(model: str) -> bool:
+    """Check if a model name indicates a GPT-5 class model."""
+    return model.startswith("gpt-5")
 
 
 @dataclass
@@ -191,7 +204,139 @@ class LLMClient:
             self.openai = cast(OpenAIV1Module.OpenAI, self.openai)
 
             # v1
-            self.complete = self.openai.chat.completions.create
+            chat_complete = self.openai.chat.completions.create
+            responses_create = self.openai.responses.create
+
+            def convert_responses_to_chat_completion(response: Any) -> dict[str, Any]:
+                """Convert Responses API response to Chat Completions format."""
+                # Handle both object and dict responses
+                has_output = False
+                if isinstance(response, dict):
+                    has_output = "output" in response and response["output"] is not None
+                    resp_dict = response
+                elif hasattr(response, "output"):
+                    has_output = True
+                    # Convert response object to dict if needed
+                    if hasattr(response, "model_dump"):
+                        resp_dict = response.model_dump()
+                    elif hasattr(response, "dict"):
+                        resp_dict = response.dict()
+                    else:
+                        resp_dict = response
+                else:
+                    return response  # Return raw response if no output
+
+                # Extract text content and tool calls from output array
+                content = None
+                tool_calls = []
+
+                if has_output:
+                    output_list = resp_dict.get("output", [])
+                    if output_list is None:
+                        output_list = []
+                    for item in output_list:
+                        item_type = item.get("type")
+                        if item_type in ("output_text", "text"):
+                            content = item.get("content") or item.get("text")
+                        elif item_type in ("function_call", "custom_tool_call"):
+                            # Convert Responses API tool call format to Chat Completions format
+                            tool_calls.append(
+                                {
+                                    "id": item.get("call_id"),
+                                    "type": "function",
+                                    "function": {
+                                        "name": item.get("name"),
+                                        "arguments": item.get("arguments"),
+                                    },
+                                }
+                            )
+
+                    # Transform to Chat Completions format
+                    message = {
+                        "role": "assistant",
+                        "content": content,
+                    }
+                    if tool_calls:
+                        message["tool_calls"] = tool_calls
+
+                    return {
+                        "id": resp_dict.get("id"),
+                        "object": "chat.completion",
+                        "created": resp_dict.get("created", int(time.time())),
+                        "model": resp_dict.get("model"),
+                        "choices": [
+                            {
+                                "index": 0,
+                                "message": message,
+                                "finish_reason": resp_dict.get("stop_reason", "stop"),
+                            }
+                        ],
+                    }
+
+                return response  # Fallback to raw response
+
+            def prepare_responses_params(kwargs: dict[str, Any]) -> dict[str, Any]:
+                """Prepare parameters for Responses API from Chat Completions params."""
+                responses_params = {
+                    "model": kwargs["model"],
+                    "input": kwargs["messages"],
+                }
+
+                # Transform tools from Chat Completions format to Responses API format
+                if "tools" in kwargs:
+                    tools = []
+                    for tool in kwargs["tools"]:
+                        if isinstance(tool, dict) and tool.get("type") == "function":
+                            tools.append(
+                                {
+                                    "type": "function",
+                                    "name": tool["function"]["name"],
+                                    "description": tool["function"].get("description"),
+                                    "parameters": tool["function"].get("parameters"),
+                                }
+                            )
+                        else:
+                            tools.append(tool)
+                    responses_params["tools"] = tools
+
+                # Transform tool_choice format
+                if "tool_choice" in kwargs:
+                    tool_choice = kwargs["tool_choice"]
+                    if isinstance(tool_choice, dict) and tool_choice.get("type") == "function":
+                        responses_params["tool_choice"] = "required"
+                    elif tool_choice in ["auto", "none"]:
+                        responses_params["tool_choice"] = tool_choice
+                    else:
+                        responses_params["tool_choice"] = "required"
+
+                # Copy supported parameters
+                for key in ["temperature", "reasoning_effort", "span_info"]:
+                    if key in kwargs:
+                        responses_params[key] = kwargs[key]
+
+                return responses_params
+
+            if self.is_async:
+
+                async def complete_wrapper(**kwargs: Any) -> Any:
+                    model = kwargs.get("model", "")
+                    if is_gpt5_model(model):
+                        responses_params = prepare_responses_params(kwargs)
+                        response = await responses_create(**responses_params)
+                        return convert_responses_to_chat_completion(response)
+                    return await chat_complete(**kwargs)
+
+            else:
+
+                def complete_wrapper(**kwargs: Any) -> Any:
+                    model = kwargs.get("model", "")
+                    if is_gpt5_model(model):
+                        responses_params = prepare_responses_params(kwargs)
+                        response = responses_create(**responses_params)
+                        return convert_responses_to_chat_completion(response)
+                    return chat_complete(**kwargs)
+
+            self.complete = complete_wrapper
             self.embed = self.openai.embeddings.create
             self.moderation = self.openai.moderations.create
             self.RateLimitError = openai_module.RateLimitError
@@ -275,7 +420,7 @@ def init(
         default_model: The default model(s) to use for evaluations when not specified per-call.
             Can be either:
             - A string (for backward compatibility): Sets the default completion model only.
-              Defaults to "gpt-4o" if not set.
+              Defaults to "gpt-5-mini" if not set.
             - A dictionary with "completion" and/or "embedding" keys: Allows setting default
               models for different evaluation types. Only the specified models are updated;
               others remain unchanged.
@@ -332,8 +477,8 @@ def init(
 
 
 def get_default_model() -> str:
-    """Get the configured default completion model, or "gpt-4o" if not set."""
-    return _default_model_var.get(None) or "gpt-4o"
+    """Get the configured default completion model, or "gpt-5-mini" if not set."""
+    return _default_model_var.get(None) or "gpt-5-mini"
 
 
 def get_default_embedding_model() -> str:
@@ -436,7 +581,10 @@ def prepare_openai(
 
 def post_process_response(resp: Any) -> dict[str, Any]:
     # This normalizes against craziness in OpenAI v0 vs. v1
-    if hasattr(resp, "to_dict"):
+    if isinstance(resp, dict):
+        # Already a dict (from Responses API transformation)
+        return resp
+    elif hasattr(resp, "to_dict"):
         # v0
         return resp.to_dict()
     else:

@@ -3,7 +3,7 @@
 This module provides a collection of pre-built LLM scorers for common evaluation tasks.
 
 All evaluators accept the following common arguments:
-- model: Model to use (defaults to gpt-4o)
+- model: Model to use (defaults to gpt-5-mini)
 - temperature: Controls randomness (0-1). If not specified, uses the model's default.
 - max_tokens: Maximum tokens to generate. If not specified, uses the model's default.
 - client: OpenAI client (defaults to global client from init())
@@ -87,7 +87,7 @@ single choice by setting the `choice` parameter to a single choice from {{__choi
 )
 
 # Deprecated: Use init(default_model="...") to configure the default model instead.
-DEFAULT_MODEL = "gpt-4o"
+DEFAULT_MODEL = "gpt-5-mini"
 
 PLAIN_RESPONSE_SCHEMA = {
     "properties": {"choice": {"description": "The choice", "title": "Choice", "type": "string"}},

@@ -390,10 +390,12 @@ export const ContextRecall: ScorerWithPartial<string, RagasArgs> = makePartial(
     return {
       name: "ContextRecall",
       score:
-        statements.statements.reduce(
-          (acc, { attributed }) => acc + attributed,
-          0,
-        ) / statements.statements.length,
+        statements.statements.length > 0
+          ? statements.statements.reduce(
+              (acc, { attributed }) => acc + attributed,
+              0,
+            ) / statements.statements.length
+          : 0,
       metadata: {
         statements: statements.statements,
       },
@@ -983,8 +985,10 @@ function parseArgs(args: ScorerArgs<string, RagasArgs>): {
     "messages"
   > = {
     model: args.model ?? getDefaultModel(),
-    temperature: args.temperature ?? 0,
   };
+  if (args.temperature !== undefined) {
+    chatArgs.temperature = args.temperature;
+  }
   if (args.maxTokens) {
     chatArgs.max_tokens = args.maxTokens;
   }

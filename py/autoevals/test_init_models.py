@@ -35,7 +35,7 @@ def test_object_form_can_set_embedding_model_only():
 
     assert get_default_embedding_model() == "text-embedding-3-large"
     # Completion model should remain at default since we didn't update it
-    assert get_default_model() == "gpt-4o"
+    assert get_default_model() == "gpt-5-mini"
 
 
 def test_object_form_can_set_both_models():
@@ -70,7 +70,7 @@ def test_falls_back_to_defaults_when_not_set():
     """Test that defaults are used when default_model is not provided."""
     init()
 
-    assert get_default_model() == "gpt-4o"
+    assert get_default_model() == "gpt-5-mini"
     assert get_default_embedding_model() == "text-embedding-ada-002"
 
 

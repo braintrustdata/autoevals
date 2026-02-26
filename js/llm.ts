@@ -69,7 +69,7 @@ export type LLMArgs = {
  * The default model to use for LLM-based evaluations.
  * @deprecated Use `init({ defaultModel: "..." })` to configure the default model instead.
  */
-export const DEFAULT_MODEL = "gpt-4o";
+export const DEFAULT_MODEL = "gpt-5-mini";
 
 const PLAIN_RESPONSE_SCHEMA = {
   properties: {

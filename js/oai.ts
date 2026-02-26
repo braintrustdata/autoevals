@@ -181,7 +181,7 @@ export interface InitOptions {
    *
    * Can be either:
    * - A string (for backward compatibility): Sets the default completion model only.
-   *   Defaults to "gpt-4o" if not set.
+   *   Defaults to "gpt-5-mini" if not set.
    * - An object with `completion` and/or `embedding` properties: Allows setting
    *   default models for different evaluation types. Only the specified models
    *   are updated; others remain unchanged.
@@ -215,7 +215,7 @@ export interface InitOptions {
     | {
         /**
          * Default model for LLM-as-a-judge evaluations (completion).
-         * Defaults to "gpt-4o" if not set.
+         * Defaults to "gpt-5-mini" if not set.
          */
         completion?: string;
         /**
@@ -278,10 +278,10 @@ export const init = ({ client, defaultModel }: InitOptions = {}) => {
 };
 
 /**
- * Get the configured default completion model, or "gpt-4o" if not set.
+ * Get the configured default completion model, or "gpt-5-mini" if not set.
  */
 export const getDefaultModel = (): string => {
-  return globalThis.__defaultModel ?? "gpt-4o";
+  return globalThis.__defaultModel ?? "gpt-5-mini";
 };
 
 /**
@@ -290,6 +290,10 @@ export const getDefaultModel = (): string => {
 export const getDefaultEmbeddingModel = (): string => {
   return globalThis.__defaultEmbeddingModel ?? "text-embedding-ada-002";
 };
+
+function isGPT5Model(model: string): boolean {
+  return model.startsWith("gpt-5");
+}
 
 export async function cachedChatCompletion(
   params: CachedLLMParams,
@@ -308,6 +312,114 @@ export async function cachedChatCompletion(
         },
       }
     : params;
+
+  // GPT-5 models require the Responses API
+  if (isGPT5Model(params.model)) {
+    // Convert Chat Completions API params to Responses API params
+    const responsesParams: any = {
+      model: fullParams.model,
+      input: fullParams.messages,
+    };
+
+    if (fullParams.tools) {
+      // Transform tools from Chat Completions format to Responses API format
+      // Chat Completions: { type: "function", function: { name, description, parameters } }
+      // Responses API: { type: "function", name, description, parameters } (flattened)
+      responsesParams.tools = fullParams.tools.map((tool) => {
+        if (tool.type === "function") {
+          return {
+            type: "function",
+            name: tool.function.name,
+            description: tool.function.description,
+            parameters: tool.function.parameters,
+          };
+        }
+        return tool;
+      });
+    }
+    if (fullParams.tool_choice) {
+      // Transform tool_choice format
+      // Chat Completions API: { type: "function", function: { name: "..." } }
+      // Responses API only accepts: "none", "auto", or "required"
+      if (
+        typeof fullParams.tool_choice === "object" &&
+        fullParams.tool_choice.type === "function"
+      ) {
+        // Force the model to call a tool (equivalent to specifying a specific function)
+        responsesParams.tool_choice = "required";
+      } else if (
+        fullParams.tool_choice === "auto" ||
+        fullParams.tool_choice === "none"
+      ) {
+        responsesParams.tool_choice = fullParams.tool_choice;
+      } else {
+        // Default to required for other cases
+        responsesParams.tool_choice = "required";
+      }
+    }
+    if (fullParams.temperature !== undefined) {
+      responsesParams.temperature = fullParams.temperature;
+    }
+    // Note: max_tokens is not supported by Responses API
+    if (fullParams.reasoning_effort) {
+      responsesParams.reasoning_effort = fullParams.reasoning_effort;
+    }
+    if (fullParams.span_info) {
+      responsesParams.span_info = fullParams.span_info;
+    }
+
+    const response: any = await openai.responses.create(responsesParams);
+
+    // Convert Responses API response to Chat Completions format for compatibility
+    // Responses API returns { output: [...], ... } with separate items for text and tool calls
+    // Extract text content and tool calls from output array
+    let content = null;
+    const tool_calls: any[] = [];
+
+    if (response.output && Array.isArray(response.output)) {
+      for (const item of response.output) {
+        if (item.type === "output_text" || item.type === "text") {
+          content = item.content || item.text;
+        } else if (
+          item.type === "function_call" ||
+          item.type === "custom_tool_call"
+        ) {
+          // Convert Responses API tool call format to Chat Completions format
+          // Responses API uses 'arguments' directly, not 'input'
+          tool_calls.push({
+            id: item.call_id,
+            type: "function",
+            function: {
+              name: item.name,
+              arguments: item.arguments,
+            },
+          });
+        }
+      }
+    }
+
+    const chatCompletion: ChatCompletion = {
+      id: response.id,
+      object: "chat.completion",
+      created: response.created || Math.floor(Date.now() / 1000),
+      model: response.model,
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content,
+            tool_calls: tool_calls.length > 0 ? tool_calls : undefined,
+            refusal: null,
+          },
+          finish_reason: response.stop_reason || "stop",
+          logprobs: null,
+        },
+      ],
+    };
+
+    return chatCompletion;
+  }
 
   return await openai.chat.completions.create(fullParams);
 }

@@ -95,7 +95,8 @@ def test_prepare_openai_defaults():
     assert prepared_client.is_wrapped
     openai_obj = unwrap_named_wrapper(prepared_client.openai)
     assert isinstance(openai_obj, openai.OpenAI)
-    assert isinstance(getattr(prepared_client.complete, "__self__", None), CompletionsV1Wrapper)
+    assert callable(prepared_client.complete)
+    assert prepared_client.complete.__name__ == "complete_wrapper"
     assert openai_obj.api_key == "test-key"
     assert openai_obj.base_url == "http://test-url"
 
@@ -115,9 +116,9 @@ def test_prepare_openai_async():
     assert prepared_client.is_wrapped
     assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
 
-    openai_obj = getattr(prepared_client.complete, "__self__", None)
-    assert isinstance(openai_obj, NamedWrapper)
-    assert isinstance(unwrap_named_wrapper(openai_obj), AsyncCompletions)
+    assert callable(prepared_client.complete)
+    assert prepared_client.complete.__name__ == "complete_wrapper"
+    assert prepared_client.is_async
 
 
 def test_prepare_openai_wraps_once():
@@ -253,10 +254,10 @@ def test_prepare_openai_v0_with_client(mock_openai_v0: OpenAIV0Module):
 
 
 def test_get_default_model_returns_gpt_4o_by_default():
-    """Test that get_default_model returns gpt-4o when no default is configured."""
+    """Test that get_default_model returns gpt-5-mini when no default is configured."""
     # Reset init to clear any previous default model
     init(None)
-    assert get_default_model() == "gpt-4o"
+    assert get_default_model() == "gpt-5-mini"
 
 
 def test_init_sets_default_model():
@@ -269,12 +270,12 @@ def test_init_sets_default_model():
 
 
 def test_init_can_reset_default_model():
-    """Test that init can reset the default model to gpt-4o."""
+    """Test that init can reset the default model to gpt-5-mini."""
     init(None, default_model="claude-3-5-sonnet-20241022")
     assert get_default_model() == "claude-3-5-sonnet-20241022"
 
     init(None, default_model=None)
-    assert get_default_model() == "gpt-4o"
+    assert get_default_model() == "gpt-5-mini"
 
 
 def test_init_can_set_both_client_and_default_model():

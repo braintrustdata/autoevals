@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [yaml()],
   test: {
     environment: "node",
-    testTimeout: 15_000,
+    testTimeout: 30_000,
   },
 });

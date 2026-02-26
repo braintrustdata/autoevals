@@ -59,7 +59,6 @@ test("Ragas generation test", async () => {
       output: data.output,
       expected: data.expected,
       context: data.context,
-      temperature: 0,
     });
 
     if (score === 1) {
@@ -119,7 +118,7 @@ describe("ContextRelevancy score clamping", () => {
           id: "chatcmpl-test",
           object: "chat.completion",
           created: Date.now(),
-          model: "gpt-4o",
+          model: "gpt-5-mini",
           choices: [
             {
               index: 0,
@@ -184,7 +183,7 @@ describe("ContextRelevancy score clamping", () => {
           id: "chatcmpl-test",
           object: "chat.completion",
           created: Date.now(),
-          model: "gpt-4o",
+          model: "gpt-5-mini",
           choices: [
             {
               index: 0,
@@ -264,7 +263,7 @@ describe("AnswerCorrectness custom embedding model", () => {
           id: "test-id",
           object: "chat.completion",
           created: Date.now(),
-          model: "gpt-4o",
+          model: "gpt-5-mini",
           choices: [
             {
               index: 0,

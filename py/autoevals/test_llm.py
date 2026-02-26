@@ -191,48 +191,21 @@ def test_nested_async():
 
 @respx.mock
 def test_factuality():
-    # something is wrong with respx that it couldn't match the url from openai
-    respx.route().respond(
+    # Mock the Responses API endpoint for GPT-5
+    respx.route(method="POST", path__regex=r".*/responses$").respond(
         json={
-            "id": "chatcmpl-AdiS4bHWjqSclA5rx7OkuZ6EA9QIp",
-            "choices": [
+            "id": "resp-test",
+            "object": "response",
+            "created": 1734029028,
+            "model": "gpt-5-mini",
+            "output": [
                 {
-                    "finish_reason": "stop",
-                    "index": 0,
-                    "logprobs": None,
-                    "message": {
-                        "content": None,
-                        "refusal": None,
-                        "role": "assistant",
-                        "tool_calls": [
-                            {
-                                "id": "call_JKoeGAX2zGPJAmF2muDgjpHp",
-                                "function": {
-                                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
-                                    "name": "select_choice",
-                                },
-                                "type": "function",
-                            }
-                        ],
-                    },
+                    "type": "function_call",
+                    "call_id": "call_test",
+                    "name": "select_choice",
+                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
                 }
             ],
-            "created": 1734029028,
-            "model": "gpt-4o-2024-08-06",
-            "object": "chat.completion",
-            "system_fingerprint": "fp_cc5cf1c6e3",
-            "usage": {
-                "completion_tokens": 149,
-                "prompt_tokens": 404,
-                "total_tokens": 553,
-                "completion_tokens_details": {
-                    "accepted_prediction_tokens": 0,
-                    "audio_tokens": 0,
-                    "reasoning_tokens": 0,
-                    "rejected_prediction_tokens": 0,
-                },
-                "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
-            },
         }
     )
 
@@ -248,47 +221,20 @@ def test_factuality():
 
 @respx.mock
 def test_factuality_client():
-    respx.route().respond(
+    respx.route(method="POST", path__regex=r".*/responses$").respond(
         json={
-            "id": "chatcmpl-AdiS4bHWjqSclA5rx7OkuZ6EA9QIp",
-            "choices": [
+            "id": "resp-test",
+            "object": "response",
+            "created": 1734029028,
+            "model": "gpt-5-mini",
+            "output": [
                 {
-                    "finish_reason": "stop",
-                    "index": 0,
-                    "logprobs": None,
-                    "message": {
-                        "content": None,
-                        "refusal": None,
-                        "role": "assistant",
-                        "tool_calls": [
-                            {
-                                "id": "call_JKoeGAX2zGPJAmF2muDgjpHp",
-                                "function": {
-                                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
-                                    "name": "select_choice",
-                                },
-                                "type": "function",
-                            }
-                        ],
-                    },
+                    "type": "function_call",
+                    "call_id": "call_test",
+                    "name": "select_choice",
+                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
                 }
             ],
-            "created": 1734029028,
-            "model": "gpt-4o-2024-08-06",
-            "object": "chat.completion",
-            "system_fingerprint": "fp_cc5cf1c6e3",
-            "usage": {
-                "completion_tokens": 149,
-                "prompt_tokens": 404,
-                "total_tokens": 553,
-                "completion_tokens_details": {
-                    "accepted_prediction_tokens": 0,
-                    "audio_tokens": 0,
-                    "reasoning_tokens": 0,
-                    "rejected_prediction_tokens": 0,
-                },
-                "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
-            },
         }
     )
 
@@ -313,47 +259,20 @@ def reset_client():
 def test_init_client():
     client = cast(OpenAIV1Module.OpenAI, OpenAI(api_key="test"))
 
-    respx.route().respond(
+    respx.route(method="POST", path__regex=r".*/responses$").respond(
         json={
-            "id": "chatcmpl-AdiS4bHWjqSclA5rx7OkuZ6EA9QIp",
-            "choices": [
+            "id": "resp-test",
+            "object": "response",
+            "created": 1734029028,
+            "model": "gpt-5-mini",
+            "output": [
                 {
-                    "finish_reason": "stop",
-                    "index": 0,
-                    "logprobs": None,
-                    "message": {
-                        "content": None,
-                        "refusal": None,
-                        "role": "assistant",
-                        "tool_calls": [
-                            {
-                                "id": "call_JKoeGAX2zGPJAmF2muDgjpHp",
-                                "function": {
-                                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
-                                    "name": "select_choice",
-                                },
-                                "type": "function",
-                            }
-                        ],
-                    },
+                    "type": "function_call",
+                    "call_id": "call_test",
+                    "name": "select_choice",
+                    "arguments": '{"reasons":"1. The question asks to add the numbers 1, 2, and 3.\\n2. The expert answer provides the sum of these numbers as 6.\\n3. The submitted answer also provides the sum as 6.\\n4. Both the expert and submitted answers provide the same numerical result, which is 6.\\n5. Since both answers provide the same factual content, the submitted answer contains all the same details as the expert answer.\\n6. There is no additional information or discrepancy between the two answers.\\n7. Therefore, the submitted answer is neither a subset nor a superset; it is exactly the same as the expert answer in terms of factual content.","choice":"C"}',
                 }
             ],
-            "created": 1734029028,
-            "model": "gpt-4o-2024-08-06",
-            "object": "chat.completion",
-            "system_fingerprint": "fp_cc5cf1c6e3",
-            "usage": {
-                "completion_tokens": 149,
-                "prompt_tokens": 404,
-                "total_tokens": 553,
-                "completion_tokens_details": {
-                    "accepted_prediction_tokens": 0,
-                    "audio_tokens": 0,
-                    "reasoning_tokens": 0,
-                    "rejected_prediction_tokens": 0,
-                },
-                "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
-            },
         }
     )
 
@@ -402,7 +321,7 @@ def test_battle():
 
 @respx.mock
 def test_llm_classifier_omits_optional_parameters_when_not_specified():
-    """Test that max_tokens and temperature are not included in API request when not specified."""
+    """Test that temperature is not included in API request when not specified."""
     captured_request_body = None
 
     def capture_request(request):
@@ -412,32 +331,22 @@ def test_llm_classifier_omits_optional_parameters_when_not_specified():
         return Response(
             200,
             json={
-                "id": "chatcmpl-test",
-                "object": "chat.completion",
+                "id": "resp-test",
+                "object": "response",
                 "created": 1234567890,
-                "model": "gpt-4o",
-                "choices": [
+                "model": "gpt-5-mini",
+                "output": [
                     {
-                        "index": 0,
-                        "message": {
-                            "role": "assistant",
-                            "content": None,
-                            "tool_calls": [
-                                {
-                                    "id": "call_test",
-                                    "type": "function",
-                                    "function": {"name": "select_choice", "arguments": '{"choice": "1"}'},
-                                }
-                            ],
-                        },
-                        "finish_reason": "tool_calls",
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"choice": "1"}',
                     }
                 ],
-                "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
             },
         )
 
-    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=capture_request)
+    respx.post("https://api.openai.com/v1/responses").mock(side_effect=capture_request)
 
     client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
     init(client)
@@ -451,14 +360,13 @@ def test_llm_classifier_omits_optional_parameters_when_not_specified():
 
     classifier.eval(output="test output", expected="test expected")
 
-    # Verify that max_tokens and temperature are NOT in the request
-    assert "max_tokens" not in captured_request_body
+    # Verify that temperature is NOT in the request (Responses API doesn't support max_tokens)
     assert "temperature" not in captured_request_body
 
 
 @respx.mock
 def test_llm_classifier_includes_parameters_when_specified():
-    """Test that max_tokens and temperature are included in API request when specified."""
+    """Test that temperature is included in API request when specified (max_tokens not supported by Responses API)."""
     captured_request_body = None
 
     def capture_request(request):
@@ -468,32 +376,22 @@ def test_llm_classifier_includes_parameters_when_specified():
         return Response(
             200,
             json={
-                "id": "chatcmpl-test",
-                "object": "chat.completion",
+                "id": "resp-test",
+                "object": "response",
                 "created": 1234567890,
-                "model": "gpt-4o",
-                "choices": [
+                "model": "gpt-5-mini",
+                "output": [
                     {
-                        "index": 0,
-                        "message": {
-                            "role": "assistant",
-                            "content": None,
-                            "tool_calls": [
-                                {
-                                    "id": "call_test",
-                                    "type": "function",
-                                    "function": {"name": "select_choice", "arguments": '{"choice": "1"}'},
-                                }
-                            ],
-                        },
-                        "finish_reason": "tool_calls",
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"choice": "1"}',
                     }
                 ],
-                "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
             },
         )
 
-    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=capture_request)
+    respx.post("https://api.openai.com/v1/responses").mock(side_effect=capture_request)
 
     client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
     init(client)
@@ -509,9 +407,9 @@ def test_llm_classifier_includes_parameters_when_specified():
 
     classifier.eval(output="test output", expected="test expected")
 
-    # Verify that max_tokens and temperature ARE in the request with correct values
-    assert captured_request_body["max_tokens"] == 256
+    # Verify that temperature is in the request with correct value (max_tokens not supported by Responses API)
     assert captured_request_body["temperature"] == 0.5
+    assert "max_tokens" not in captured_request_body
 
 
 @respx.mock

@@ -7,9 +7,23 @@ import warnings
 from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, Optional, Protocol, TypeVar, Union, cast, runtime_checkable
+from typing import Any, Optional, Protocol, TypedDict, TypeVar, Union, cast, runtime_checkable
 
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
+
+
+class DefaultModelConfig(TypedDict, total=False):
+    """Configuration for default models used by Autoevals.
+
+    This is used when passing the object form of `default_model` to `init()`.
+
+    Attributes:
+        completion: Default model for LLM-as-a-judge evaluations.
+        embedding: Default model for embedding-based evaluations.
+    """
+
+    completion: str
+    embedding: str
 
 
 @runtime_checkable
@@ -198,6 +212,7 @@ class LLMClient:
 
 _client_var = ContextVar[Optional[LLMClient]]("client")
 _default_model_var = ContextVar[Optional[str]]("default_model")
+_default_embedding_model_var = ContextVar[Optional[str]]("default_embedding_model")
 
 T = TypeVar("T")
 
@@ -239,8 +254,12 @@ def resolve_client(client: Client, is_async: bool = False) -> LLMClient:
     return LLMClient(openai=client, is_async=is_async)
 
 
-def init(client: Client | None = None, is_async: bool = False, default_model: str | None = None):
-    """Initialize Autoevals with an optional custom LLM client and default model.
+def init(
+    client: Client | None = None,
+    is_async: bool = False,
+    default_model: str | DefaultModelConfig | None = None,
+):
+    """Initialize Autoevals with an optional custom LLM client and default models.
 
     This function sets up the global client context for Autoevals to use. If no client is provided,
     the default OpenAI client will be used.
@@ -253,21 +272,25 @@ def init(client: Client | None = None, is_async: bool = False, default_model: st
             - OpenAIV1: Wrapped in a new LLMClient instance (OpenAI SDK v1)
         is_async: Whether to create a client with async operations. Defaults to False.
             Deprecated: Use the `client` argument directly with your desired async/sync configuration.
-        default_model: The default model to use for evaluations when not specified per-call.
-            Defaults to "gpt-4o" if not set. When using non-OpenAI providers via the Braintrust
-            proxy, set this to the appropriate model string (e.g., "claude-3-5-sonnet-20241022").
+        default_model: The default model(s) to use for evaluations when not specified per-call.
+            Can be either:
+            - A string (for backward compatibility): Sets the default completion model only.
+              Defaults to "gpt-4o" if not set.
+            - A dictionary with "completion" and/or "embedding" keys: Allows setting default
+              models for different evaluation types. Only the specified models are updated;
+              others remain unchanged.
+
+            When using non-OpenAI providers via the Braintrust proxy, set this to the
+            appropriate model string (e.g., "claude-3-5-sonnet-20241022").
 
     Example:
-        Using with OpenAI (default)::
+        String form (backward compatible)::
 
-            from openai import OpenAI
             from autoevals import init
+            init(default_model="gpt-4-turbo")
 
-            init(client=OpenAI())
+        Object form - set both models::
 
-        Using with Anthropic via Braintrust proxy::
-
-            import os
             from openai import OpenAI
             from autoevals import init
 
@@ -276,16 +299,46 @@ def init(client: Client | None = None, is_async: bool = False, default_model: st
                     api_key=os.environ["BRAINTRUST_API_KEY"],
                     base_url="https://api.braintrust.dev/v1/proxy",
                 ),
-                default_model="claude-3-5-sonnet-20241022",
+                default_model={
+                    "completion": "claude-3-5-sonnet-20241022",
+                    "embedding": "text-embedding-3-large",
+                },
+            )
+
+        Object form - set only embedding model::
+
+            init(
+                default_model={
+                    "embedding": "text-embedding-3-large",
+                }
             )
     """
     _client_var.set(resolve_client(client, is_async=is_async) if client else None)
-    _default_model_var.set(default_model)
+
+    if isinstance(default_model, str):
+        # String form: sets completion model only, resets embedding to default
+        _default_model_var.set(default_model)
+        _default_embedding_model_var.set(None)
+    elif default_model:
+        # Object form: only update models that are explicitly provided
+        if "completion" in default_model:
+            _default_model_var.set(default_model["completion"])
+        if "embedding" in default_model:
+            _default_embedding_model_var.set(default_model["embedding"])
+    else:
+        # No default_model: reset both to defaults
+        _default_model_var.set(None)
+        _default_embedding_model_var.set(None)
 
 
 def get_default_model() -> str:
-    """Get the configured default model, or "gpt-4o" if not set."""
+    """Get the configured default completion model, or "gpt-4o" if not set."""
     return _default_model_var.get(None) or "gpt-4o"
+
+
+def get_default_embedding_model() -> str:
+    """Get the configured default embedding model, or "text-embedding-ada-002" if not set."""
+    return _default_embedding_model_var.get(None) or "text-embedding-ada-002"
 
 
 warned_deprecated_api_key_base_url = False

@@ -103,7 +103,7 @@ import mustache from "mustache";
 
 import { Scorer, ScorerArgs } from "./score";
 import { LLMArgs } from "./llm";
-import { getDefaultModel } from "./oai";
+import { getDefaultModel, getDefaultEmbeddingModel } from "./oai";
 import { buildOpenAIClient, extractOpenAIArgs } from "./oai";
 import OpenAI from "openai";
 import { ListContains } from "./list";
@@ -767,7 +767,7 @@ export const AnswerRelevancy: ScorerWithPartial<
         ...extractOpenAIArgs(args),
         output: question,
         expected: input,
-        model: args.embeddingModel,
+        model: args.embeddingModel ?? getDefaultEmbeddingModel(),
       });
       return { question, score };
     }),

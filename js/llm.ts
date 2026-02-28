@@ -45,7 +45,7 @@ export const THREAD_VARIABLE_PATTERN = new RegExp(
 
 /**
  * Check if a template string might use thread-related template variables.
- * This is a heuristic - looks for variable names after {{ or {% syntax.
+ * This is a heuristic - looks for variable names after `{{` or `{%` syntax.
  */
 export function templateUsesThreadVariables(template: string): boolean {
   return THREAD_VARIABLE_PATTERN.test(template);

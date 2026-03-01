@@ -38,6 +38,10 @@ def is_llm_message_array(value: Any) -> bool:
     return isinstance(value, list) and all(is_role_content_message(item) for item in value)
 
 
+def filter_system_messages_from_thread(thread: list[Any]) -> list[Any]:
+    return [message for message in thread if not (isinstance(message, Mapping) and message.get("role") == "system")]
+
+
 def _indent(text: str, prefix: str = "  ") -> str:
     return "\n".join(prefix + line for line in text.split("\n"))
 

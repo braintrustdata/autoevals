@@ -51,6 +51,16 @@ export function templateUsesThreadVariables(template: string): boolean {
   return THREAD_VARIABLE_PATTERN.test(template);
 }
 
+function filterSystemMessagesFromThread(thread: unknown[]): unknown[] {
+  return thread.filter((message) => {
+    if (!message || typeof message !== "object" || Array.isArray(message)) {
+      return true;
+    }
+    const role = Reflect.get(message, "role");
+    return role !== "system";
+  });
+}
+
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
 
@@ -311,7 +321,8 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     let threadVars: Record<string, unknown> = {};
     if (runtimeArgs.trace && templateUsesThreadVariables(promptTemplate)) {
       const thread = await runtimeArgs.trace.getThread();
-      const computed = computeThreadTemplateVars(thread);
+      const scorerThread = filterSystemMessagesFromThread(thread);
+      const computed = computeThreadTemplateVars(scorerThread);
       // Build threadVars from THREAD_VARIABLE_NAMES to keep in sync with the pattern
       for (const name of THREAD_VARIABLE_NAMES) {
         threadVars[name] = computed[name as keyof ThreadTemplateVars];

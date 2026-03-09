@@ -1,6 +1,55 @@
-import { expect, test } from "vitest";
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
+import { OpenAI } from "openai";
+import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 import { ClosedQA } from "./llm";
+import { init } from "./oai";
 import { Levenshtein } from "./string";
+
+const server = setupServer();
+
+beforeAll(() => {
+  server.listen({
+    onUnhandledRequest: (req) => {
+      throw new Error(`Unhandled request ${req.method}, ${req.url}`);
+    },
+  });
+
+  server.use(
+    http.post("https://api.openai.com/v1/responses", async () => {
+      return HttpResponse.json({
+        id: "resp-test",
+        object: "response",
+        created: Math.floor(Date.now() / 1000),
+        model: "gpt-5-mini",
+        output: [
+          {
+            type: "function_call",
+            call_id: "call_test",
+            name: "select_choice",
+            arguments: JSON.stringify({ choice: "Y" }),
+          },
+        ],
+      });
+    }),
+  );
+
+  init({
+    client: new OpenAI({
+      apiKey: "test-api-key",
+      baseURL: "https://api.openai.com/v1",
+    }),
+  });
+});
+
+afterEach(() => {
+  server.resetHandlers();
+});
+
+afterAll(() => {
+  server.close();
+  init();
+});
 
 test("Partial Test", async () => {
   const levenshteinBasic = await Levenshtein({

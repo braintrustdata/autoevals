@@ -36,7 +36,7 @@ describe("init with defaultModel parameter", () => {
 
     expect(getDefaultEmbeddingModel()).toBe("text-embedding-3-large");
     // Completion model should remain at default since we didn't update it
-    expect(getDefaultModel()).toBe("gpt-4o");
+    expect(getDefaultModel()).toBe("gpt-5-mini");
   });
 
   test("object form can set both models", () => {
@@ -76,7 +76,7 @@ describe("init with defaultModel parameter", () => {
   test("falls back to defaults when not set", () => {
     init();
 
-    expect(getDefaultModel()).toBe("gpt-4o");
+    expect(getDefaultModel()).toBe("gpt-5-mini");
     expect(getDefaultEmbeddingModel()).toBe("text-embedding-ada-002");
   });
 

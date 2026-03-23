@@ -18,17 +18,17 @@ jobs:
     steps:
       - name: Checkout
         id: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
         id: setup-node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
 
       - name: Install Dependencies
         id: install
@@ -39,7 +39,7 @@ jobs:
         run: pnpm build
 
       - name: Run Evals
-        uses: braintrustdata/eval-action@v1
+        uses: braintrustdata/eval-action@c0dd75b29984a0cc63a827d6e8da2f23f2752be4 # v1.0.16
         with:
           api_key: ${{ secrets.BRAINTRUST_API_KEY }}
           runtime: node

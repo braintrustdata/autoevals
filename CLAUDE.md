@@ -11,9 +11,9 @@ Autoevals is a dual-language library (TypeScript + Python) for evaluating AI mod
 ### TypeScript (in root directory)
 
 ```bash
-pnpm install          # Install dependencies
-pnpm run build        # Build JS (outputs to jsdist/)
-pnpm run test         # Run all JS tests with vitest
+pnpm install --frozen-lockfile          # Install dependencies
+pnpm run build                          # Build JS (outputs to jsdist/)
+pnpm run test                           # Run all JS tests with vitest
 pnpm run test -- js/llm.test.ts                    # Run single test file
 pnpm run test -- -t "test name"                    # Run specific test by name
 ```

@@ -41,4 +41,4 @@ test-py:
 	source env.sh && python3 -m pytest
 
 test-js:
-	pnpm install && pnpm run test
+	pnpm install --frozen-lockfile && pnpm run test

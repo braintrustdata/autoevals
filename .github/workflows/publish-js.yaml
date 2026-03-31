@@ -1,0 +1,186 @@
+name: publish-js
+
+concurrency:
+  group: publish-js-${{ inputs.release_type }}-${{ inputs.branch }}
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Release type
+        required: true
+        default: stable
+        type: choice
+        options:
+          - stable
+          - prerelease
+      branch:
+        description: Branch to release from
+        required: true
+        default: main
+        type: string
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.release_metadata.outputs.version }}
+      release_tag: ${{ steps.release_metadata.outputs.release_tag }}
+      branch: ${{ steps.release_metadata.outputs.branch }}
+      commit: ${{ steps.release_metadata.outputs.commit }}
+      release_type: ${{ steps.release_metadata.outputs.release_type }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 1
+          ref: ${{ inputs.branch }}
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Determine release metadata
+        id: release_metadata
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+        run: |
+          set -euo pipefail
+
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          RELEASE_COMMIT=$(git rev-parse HEAD)
+
+          echo "release_type=${RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "branch=${TARGET_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "commit=${RELEASE_COMMIT}" >> "$GITHUB_OUTPUT"
+
+          if [[ "$RELEASE_TYPE" == "stable" ]]; then
+            RELEASE_TAG="js-${CURRENT_VERSION}"
+
+            if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+              echo "Tag ${RELEASE_TAG} already exists on origin" >&2
+              exit 1
+            fi
+
+            echo "version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          else
+            VERSION="${CURRENT_VERSION}-rc.${GITHUB_RUN_NUMBER}"
+
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "release_tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      id-token: write
+    environment: npm-publish
+    env:
+      PACKAGE_NAME: autoevals
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+      RELEASE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
+      RELEASE_TYPE: ${{ needs.prepare-release.outputs.release_type }}
+      TARGET_BRANCH: ${{ needs.prepare-release.outputs.branch }}
+      RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.prepare-release.outputs.branch }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+        with:
+          version: 10.26.2
+
+      - name: Check npm version availability
+        run: |
+          set -euo pipefail
+
+          if npm view "${PACKAGE_NAME}@${VERSION}" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
+            echo "${PACKAGE_NAME}@${VERSION} already exists on npm" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare prerelease package metadata
+        if: ${{ env.RELEASE_TYPE == 'prerelease' }}
+        run: |
+          set -euo pipefail
+
+          node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+          '
+
+      - name: Build package
+        run: pnpm run build
+
+      - name: Publish stable release to npm
+        if: ${{ env.RELEASE_TYPE == 'stable' }}
+        run: npm publish --provenance --access public
+
+      - name: Publish prerelease to npm
+        if: ${{ env.RELEASE_TYPE == 'prerelease' }}
+        run: npm publish --tag rc --provenance --access public
+
+      - name: Create and push stable release tag
+        if: ${{ env.RELEASE_TYPE == 'stable' }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${RELEASE_TAG}" "${RELEASE_COMMIT}"
+          git push origin "${RELEASE_TAG}"
+
+      - name: Create GitHub release
+        if: ${{ env.RELEASE_TYPE == 'stable' }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          VERSION: ${{ env.VERSION }}
+        with:
+          script: |
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: process.env.RELEASE_TAG,
+              name: `autoevals v${process.env.VERSION}`,
+              draft: false,
+              prerelease: false,
+              generate_release_notes: true,
+            });
+
+      - name: Summarize release
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## npm publish complete"
+            echo
+            echo "- Package: \`${PACKAGE_NAME}\`"
+            echo "- Version: \`${VERSION}\`"
+            echo "- Release type: \`${RELEASE_TYPE}\`"
+            if [ "${RELEASE_TYPE}" = "prerelease" ]; then
+              echo "- npm tag: \`rc\`"
+              echo "- Install: \`npm install ${PACKAGE_NAME}@rc\`"
+            else
+              echo "- Git tag: \`${RELEASE_TAG}\`"
+              echo "- Install: \`npm install ${PACKAGE_NAME}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

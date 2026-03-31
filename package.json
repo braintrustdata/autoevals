@@ -26,9 +26,7 @@
     "build": "tsup",
     "watch": "tsup --watch",
     "docs": "npx typedoc --options typedoc.json js/index.ts",
-    "test": "vitest",
-    "prepublishOnly": "../scripts/node_prepublish_autoevals.py",
-    "postpublish": "../scripts/node_postpublish_autoevals.py"
+    "test": "vitest"
   },
   "author": "",
   "license": "MIT",

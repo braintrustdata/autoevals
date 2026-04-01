@@ -1,7 +1,7 @@
-name: publish-js
+name: publish-py
 
 concurrency:
-  group: publish-js-${{ inputs.release_type }}-${{ inputs.branch }}
+  group: publish-py-${{ inputs.release_type }}-${{ inputs.branch }}
   cancel-in-progress: false
 
 on:
@@ -41,12 +41,15 @@ jobs:
         with:
           fetch-depth: 1
           ref: ${{ inputs.branch }}
+
       - name: Check version sync
         run: python3 .github/scripts/check_version_sync.py
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+
+      - name: Set up Python
+        uses: actions/setup-python@3542bca2639a428e1796aaa6a2ffef0c0f575566 # v3.1.4
         with:
-          node-version: 22
+          python-version: "3.12"
+
       - name: Determine release metadata
         id: release_metadata
         env:
@@ -56,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          CURRENT_VERSION=$(python -c 'from pathlib import Path; ns = {}; exec(Path("py/autoevals/version.py").read_text(encoding="utf-8"), ns); print(ns["VERSION"])')
           RELEASE_COMMIT=$(git rev-parse HEAD)
 
           if [[ -z "${PRERELEASE_SUFFIX}" ]]; then
@@ -68,7 +71,7 @@ jobs:
           echo "commit=${RELEASE_COMMIT}" >> "$GITHUB_OUTPUT"
 
           if [[ "$RELEASE_TYPE" == "stable" ]]; then
-            RELEASE_TAG="js-${CURRENT_VERSION}"
+            RELEASE_TAG="py-${CURRENT_VERSION}"
 
             if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
               echo "Tag ${RELEASE_TAG} already exists on origin" >&2
@@ -78,7 +81,7 @@ jobs:
             echo "version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
             echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           else
-            VERSION="${CURRENT_VERSION}-rc.${PRERELEASE_SUFFIX}"
+            VERSION="${CURRENT_VERSION}rc${PRERELEASE_SUFFIX}"
 
             echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
             echo "release_tag=" >> "$GITHUB_OUTPUT"
@@ -90,7 +93,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: write
-      id-token: write
+      id-token: write # Required for PyPI trusted publishing
     env:
       PACKAGE_NAME: autoevals
       VERSION: ${{ needs.prepare-release.outputs.version }}
@@ -107,50 +110,76 @@ jobs:
       - name: Check version sync
         run: python3 .github/scripts/check_version_sync.py
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - name: Set up Python
+        uses: actions/setup-python@3542bca2639a428e1796aaa6a2ffef0c0f575566 # v3.1.4
         with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
+          python-version: "3.12"
 
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
-        with:
-          version: 10.26.2
-
-      - name: Check npm version availability
+      - name: Check PyPI version availability
         run: |
           set -euo pipefail
 
-          if npm view "${PACKAGE_NAME}@${VERSION}" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
-            echo "${PACKAGE_NAME}@${VERSION} already exists on npm" >&2
-            exit 1
-          fi
+          python - <<'PY'
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          package = os.environ["PACKAGE_NAME"]
+          version = os.environ["VERSION"]
+          url = f"https://pypi.org/pypi/{package}/{version}/json"
+
+          try:
+              urllib.request.urlopen(url)
+          except urllib.error.HTTPError as exc:
+              if exc.code == 404:
+                  raise SystemExit(0)
+              raise
+          except urllib.error.URLError as exc:
+              print(f"Failed to query PyPI: {exc}", file=sys.stderr)
+              raise
+          else:
+              print(f"{package}=={version} already exists on PyPI", file=sys.stderr)
+              raise SystemExit(1)
+          PY
+
+      - name: Install build dependencies
+        run: python -m pip install --upgrade pip build twine
 
       - name: Prepare prerelease package metadata
         if: ${{ env.RELEASE_TYPE == 'prerelease' }}
         run: |
           set -euo pipefail
 
-          node -e '
-            const fs = require("fs");
-            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            pkg.version = process.env.VERSION;
-            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
-          '
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("py/autoevals/version.py")
+          text = path.read_text(encoding="utf-8")
+          new_text, count = re.subn(
+              r'^VERSION\s*=\s*["\'][^"\']+["\']\s*$',
+              f'VERSION = "{os.environ["VERSION"]}"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit("Could not update py/autoevals/version.py for prerelease publish")
+          path.write_text(new_text + ("" if new_text.endswith("\n") else "\n"), encoding="utf-8")
+          PY
 
       - name: Build package
-        run: pnpm run build
+        run: python -m build
 
-      - name: Publish stable release to npm
-        if: ${{ env.RELEASE_TYPE == 'stable' }}
-        run: npm publish --provenance --access public
+      - name: Verify package metadata
+        run: python -m twine check dist/*
 
-      - name: Publish prerelease to npm
-        if: ${{ env.RELEASE_TYPE == 'prerelease' }}
-        run: npm publish --tag rc --provenance --access public
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # release/v1
+        with:
+          packages-dir: dist/
 
       - name: Create and push stable release tag
         if: ${{ env.RELEASE_TYPE == 'stable' }}
@@ -174,7 +203,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: process.env.RELEASE_TAG,
-              name: `autoevals JavaScript v${process.env.VERSION}`,
+              name: `autoevals Python v${process.env.VERSION}`,
               draft: false,
               prerelease: false,
               generate_release_notes: true,
@@ -185,16 +214,15 @@ jobs:
           set -euo pipefail
 
           {
-            echo "## npm publish complete"
+            echo "## PyPI publish complete"
             echo
             echo "- Package: \`${PACKAGE_NAME}\`"
             echo "- Version: \`${VERSION}\`"
             echo "- Release type: \`${RELEASE_TYPE}\`"
             if [ "${RELEASE_TYPE}" = "prerelease" ]; then
-              echo "- npm tag: \`rc\`"
-              echo "- Install: \`npm install ${PACKAGE_NAME}@rc\`"
+              echo "- Install: \`pip install --pre ${PACKAGE_NAME}\`"
             else
               echo "- Git tag: \`${RELEASE_TAG}\`"
-              echo "- Install: \`npm install ${PACKAGE_NAME}\`"
+              echo "- Install: \`pip install ${PACKAGE_NAME}\`"
             fi
           } >> "$GITHUB_STEP_SUMMARY"

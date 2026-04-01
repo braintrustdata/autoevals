@@ -55,5 +55,5 @@
     "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.6"
   },
-  "packageManager": "pnpm@10.26.2"
+  "packageManager": "pnpm@10.33.0"
 }

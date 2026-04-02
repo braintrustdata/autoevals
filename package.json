@@ -1,6 +1,6 @@
 {
   "name": "autoevals",
-  "version": "0.0.132",
+  "version": "0.2.0",
   "description": "Universal library for evaluating AI models",
   "repository": {
     "type": "git",

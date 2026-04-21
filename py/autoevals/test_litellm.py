@@ -81,6 +81,60 @@ def test_litellm_moderations_forwards_to_litellm(mocker):
     stub.assert_called_once()
 
 
+def test_litellm_responses_create_translates_input_to_messages(mocker):
+    """autoevals routes GPT-5 models through client.responses.create (see
+    is_gpt5_model / prepare_responses_params in oai.py), which sends input=...
+    instead of messages=.... Our shim must translate back to messages= so
+    litellm.completion doesn't crash."""
+    stub = mocker.patch("litellm.completion", return_value=_fake_completion_response("from-responses"))
+    client = LiteLLMClient(api_key="sk-test")
+
+    resp = client.responses.create(
+        model="gpt-5-mini",
+        input=[{"role": "user", "content": "ping"}],
+        temperature=0.1,
+    )
+
+    assert resp.choices[0].message.content == "from-responses"
+    kwargs = stub.call_args.kwargs
+    assert "messages" in kwargs, "responses.create must translate input=... to messages=..."
+    assert kwargs["messages"] == [{"role": "user", "content": "ping"}]
+    assert "input" not in kwargs, "input=... must not leak through to litellm.completion"
+    assert kwargs["temperature"] == 0.1
+
+
+def test_litellm_responses_create_translates_responses_api_tool_schema(mocker):
+    """autoevals' prepare_responses_params emits flat tool schema {type, name,
+    description, parameters}. LiteLLM (via Chat-Completions) wants nested schema
+    {type, function: {...}}. Our shim translates."""
+    stub = mocker.patch("litellm.completion", return_value=_fake_completion_response("ok"))
+    client = LiteLLMClient(api_key="sk-test")
+
+    responses_tool = {
+        "type": "function",
+        "name": "select_choice",
+        "description": "Select a choice",
+        "parameters": {"type": "object", "properties": {"choice": {"type": "string"}}},
+    }
+    client.responses.create(
+        model="gpt-5-mini",
+        input=[{"role": "user", "content": "pick"}],
+        tools=[responses_tool],
+    )
+
+    kwargs = stub.call_args.kwargs
+    assert kwargs["tools"] == [
+        {
+            "type": "function",
+            "function": {
+                "name": "select_choice",
+                "description": "Select a choice",
+                "parameters": {"type": "object", "properties": {"choice": {"type": "string"}}},
+            },
+        }
+    ]
+
+
 @pytest.mark.asyncio
 async def test_async_litellm_chat_completions_forwards(mocker):
     stub = mocker.patch("litellm.acompletion", new=AsyncMock(return_value=_fake_completion_response("async-pong")))

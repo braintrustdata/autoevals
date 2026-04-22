@@ -30,7 +30,7 @@ extras_require = {
     ],
     "doc": ["pydoc-markdown"],
     "scipy": ["numpy", "scipy"],
-    "litellm": ["litellm"],
+    "litellm": ["litellm>=1.60,<1.85"],
 }
 
 extras_require["all"] = sorted({package for packages in extras_require.values() for package in packages})

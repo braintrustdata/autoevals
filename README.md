@@ -463,7 +463,8 @@ results:
 - `score`: a number between 0 and 1, or `None` / `null` when the evaluation is skipped
 - `metadata`: optional scorer-specific details, such as rationale text or a
   selected choice
-- `error`: deprecated; errors are propagated to the caller in current versions
+- `error`: deprecated and retained for backward compatibility; some scorers may
+  still populate it, but callers should primarily handle thrown exceptions
 
 Inputs, expected values, model prompts, and other runtime context are not part
 of the `Score` object. Keep those separately if your application needs them.

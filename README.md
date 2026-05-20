@@ -462,7 +462,8 @@ results:
 - `name`: the scorer name
 - `score`: a number between 0 and 1, or `None` / `null` when the evaluation is skipped
 - `metadata`: optional scorer-specific details, such as rationale text or a
-  selected choice
+  selected choice. Keys are scorer-specific; consumers should not assume
+  metadata keys are shared across scorer types.
 - `error`: deprecated and retained for backward compatibility; some scorers may
   still populate it, but callers should primarily handle thrown exceptions
 

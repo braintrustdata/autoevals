@@ -380,7 +380,8 @@ export async function cachedChatCompletion(
     }
     // Note: max_tokens is not supported by Responses API
     if (fullParams.reasoning_effort) {
-      responsesParams.reasoning_effort = fullParams.reasoning_effort;
+      // The Responses API nests this under reasoning.effort, unlike Chat Completions.
+      responsesParams.reasoning = { effort: fullParams.reasoning_effort };
     }
     const response: any = await openai.responses.create(responsesParams);
 

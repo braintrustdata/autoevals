@@ -329,6 +329,7 @@ Issue Description: {{page_content}}
       choiceScores: { "1": 1, "2": 0 },
       maxTokens: 256,
       temperature: 0.5,
+      reasoningEffort: "medium",
     });
 
     await classifier({ output: "test output", expected: "test expected" });
@@ -336,6 +337,9 @@ Issue Description: {{page_content}}
     // Verify that temperature is in the request (max_tokens not supported by Responses API)
     expect(capturedRequestBody.temperature).toBe(0.5);
     expect(capturedRequestBody.max_tokens).toBeUndefined();
+    // The Responses API nests reasoning effort under reasoning.effort.
+    expect(capturedRequestBody.reasoning).toEqual({ effort: "medium" });
+    expect(capturedRequestBody.reasoning_effort).toBeUndefined();
   });
 
   test("useResponsesApi forces the Responses API for a non-gpt-5 model", async () => {

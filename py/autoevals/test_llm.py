@@ -396,13 +396,14 @@ def test_llm_classifier_includes_parameters_when_specified():
     client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
     init(client)
 
-    # Create classifier with max_tokens and temperature specified
+    # Create classifier with max_tokens, temperature and reasoning_effort specified
     classifier = LLMClassifier(
         "test",
         "Test prompt: {{output}} vs {{expected}}",
         {"1": 1, "2": 0},
         max_tokens=256,
         temperature=0.5,
+        reasoning_effort="medium",
     )
 
     classifier.eval(output="test output", expected="test expected")
@@ -410,6 +411,9 @@ def test_llm_classifier_includes_parameters_when_specified():
     # Verify that temperature is in the request with correct value (max_tokens not supported by Responses API)
     assert captured_request_body["temperature"] == 0.5
     assert "max_tokens" not in captured_request_body
+    # The Responses API nests reasoning effort under reasoning.effort.
+    assert captured_request_body["reasoning"] == {"effort": "medium"}
+    assert "reasoning_effort" not in captured_request_body
 
 
 @respx.mock

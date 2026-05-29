@@ -310,9 +310,11 @@ class LLMClient:
                         responses_params["tool_choice"] = "required"
 
                 # Copy supported parameters
-                for key in ["temperature", "reasoning_effort"]:
-                    if key in kwargs:
-                        responses_params[key] = kwargs[key]
+                if "temperature" in kwargs:
+                    responses_params["temperature"] = kwargs["temperature"]
+                # The Responses API nests this under reasoning.effort, unlike Chat Completions.
+                if "reasoning_effort" in kwargs:
+                    responses_params["reasoning"] = {"effort": kwargs["reasoning_effort"]}
 
                 return responses_params
 

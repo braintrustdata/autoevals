@@ -539,6 +539,45 @@ def test_use_responses_api_forces_responses_for_non_gpt5_model():
 
 
 @respx.mock
+def test_use_responses_api_on_builtin_scorer():
+    """Built-in named scorers (SpecFileClassifier) should accept use_responses_api."""
+    responses_route = respx.route(method="POST", path__regex=r".*/responses$").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "gpt-4.1",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"reasons": "same", "choice": "C"}',
+                    }
+                ],
+            },
+        )
+    )
+    chat_route = respx.route(method="POST", path__regex=r".*/chat/completions$").mock(
+        return_value=Response(200, json={})
+    )
+
+    init(OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1"))
+
+    result = Factuality(model="gpt-4.1", use_responses_api=True).eval(
+        output="6", expected="6", input="Add the numbers 1, 2, 3"
+    )
+
+    assert result.score == 1
+    assert responses_route.called
+    assert not chat_route.called
+
+    init(None)
+
+
+@respx.mock
 def test_llm_classifier_injects_thread_vars_from_trace():
     captured_request_body = None
 

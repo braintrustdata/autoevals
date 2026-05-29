@@ -504,6 +504,7 @@ class SpecFileClassifier(LLMClassifier):
         use_cot=None,
         max_tokens=None,
         temperature=None,
+        use_responses_api=None,
         api_key=None,
         base_url=None,
         client: Client | None = None,
@@ -519,6 +520,8 @@ class SpecFileClassifier(LLMClassifier):
             kwargs["max_tokens"] = max_tokens
         if temperature is not None:
             kwargs["temperature"] = temperature
+        if use_responses_api is not None:
+            kwargs["use_responses_api"] = use_responses_api
         if api_key is not None:
             kwargs["api_key"] = api_key
         if base_url is not None:

@@ -73,6 +73,12 @@ export type LLMArgs = {
   reasoningEffort?: ReasoningEffort;
   reasoningEnabled?: boolean;
   reasoningBudget?: number;
+  /**
+   * Force the request to use the Responses API, even when the model name does
+   * not start with "gpt-5". Useful for proxy/internal setups that serve a
+   * Responses-only model under a non-matching name.
+   */
+  useResponsesApi?: boolean;
 } & OpenAIAuth;
 
 /**
@@ -166,6 +172,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     reasoningEffort,
     reasoningEnabled,
     reasoningBudget,
+    useResponsesApi,
     cache,
     ...remainingRenderArgs
   } = remaining;
@@ -176,6 +183,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     reasoning_effort?: ReasoningEffort;
     reasoning_enabled?: boolean;
     reasoning_budget?: number;
+    use_responses_api?: boolean;
   } = {};
   if (temperature !== undefined) {
     extraArgs.temperature = temperature;
@@ -191,6 +199,9 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   }
   if (reasoningBudget !== undefined) {
     extraArgs.reasoning_budget = reasoningBudget;
+  }
+  if (useResponsesApi !== undefined) {
+    extraArgs.use_responses_api = useResponsesApi;
   }
 
   const renderArgs = {
@@ -293,6 +304,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   reasoningEffort,
   reasoningEnabled,
   reasoningBudget,
+  useResponsesApi,
 }: {
   name: string;
   promptTemplate: string;
@@ -304,6 +316,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   reasoningEffort?: ReasoningEffort;
   reasoningEnabled?: boolean;
   reasoningBudget?: number;
+  useResponsesApi?: boolean;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
   const ret = async (
@@ -352,6 +365,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       reasoningEffort,
       reasoningEnabled,
       reasoningBudget,
+      useResponsesApi,
       __choices: choiceStrings,
       // Thread template vars come first so explicit args can override
       ...threadVars,

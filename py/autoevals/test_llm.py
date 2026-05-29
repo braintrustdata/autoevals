@@ -490,6 +490,55 @@ def test_llm_classifier_uses_configured_default_model():
 
 
 @respx.mock
+def test_use_responses_api_forces_responses_for_non_gpt5_model():
+    """use_responses_api should route a non-gpt-5 model through the Responses API."""
+    responses_route = respx.route(method="POST", path__regex=r".*/responses$").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "internal-proxy-model",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"choice": "1"}',
+                    }
+                ],
+            },
+        )
+    )
+    chat_route = respx.route(method="POST", path__regex=r".*/chat/completions$").mock(
+        return_value=Response(200, json={})
+    )
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    classifier = LLMClassifier(
+        name="test",
+        prompt_template="Test prompt: {{output}}",
+        choice_scores={"1": 1, "2": 0},
+        model="internal-proxy-model",
+        use_responses_api=True,
+    )
+
+    result = classifier.eval(output="test output", expected="test expected")
+
+    assert result.score == 1
+    assert responses_route.called
+    assert not chat_route.called
+    # use_responses_api must be stripped before reaching the API.
+    body = json.loads(responses_route.calls[0].request.content.decode("utf-8"))
+    assert "use_responses_api" not in body
+
+    init(None)
+
+
+@respx.mock
 def test_llm_classifier_injects_thread_vars_from_trace():
     captured_request_body = None
 

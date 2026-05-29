@@ -180,6 +180,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         reasoning_effort=None,
         reasoning_enabled=None,
         reasoning_budget=None,
+        use_responses_api=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -209,6 +210,9 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
         if reasoning_budget is not None:
             self.extra_args["reasoning_budget"] = reasoning_budget
+
+        if use_responses_api is not None:
+            self.extra_args["use_responses_api"] = use_responses_api
 
         self.render_args = {}
         if render_args:
@@ -366,6 +370,7 @@ class LLMClassifier(OpenAILLMClassifier):
         reasoning_effort=None,
         reasoning_enabled=None,
         reasoning_budget=None,
+        use_responses_api=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -397,6 +402,7 @@ class LLMClassifier(OpenAILLMClassifier):
             reasoning_effort=reasoning_effort,
             reasoning_enabled=reasoning_enabled,
             reasoning_budget=reasoning_budget,
+            use_responses_api=use_responses_api,
             engine=engine,
             api_key=api_key,
             base_url=base_url,

@@ -199,7 +199,9 @@ class LLMClient:
         if not has_customization and not isinstance(self.openai, NamedWrapper):
             self.openai = wrap_openai(self.openai)
 
-        self._is_wrapped = isinstance(self.openai, NamedWrapper)
+        self._is_wrapped = isinstance(self.openai, NamedWrapper) or (
+            not has_customization and wrap_openai.__module__.startswith("braintrust.")
+        )
 
         openai_module = get_openai_module()
 

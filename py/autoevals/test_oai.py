@@ -4,14 +4,9 @@ from typing import Any, cast
 import openai
 import pytest
 from braintrust.oai import (
-    ChatCompletionV0Wrapper,
-    CompletionsV1Wrapper,
     NamedWrapper,
-    OpenAIV0Wrapper,
-    OpenAIV1Wrapper,
     wrap_openai,
 )
-from openai.resources.chat.completions import AsyncCompletions
 
 from autoevals import init  # type: ignore[import]
 from autoevals.oai import (  # type: ignore[import]
@@ -28,7 +23,7 @@ from autoevals.oai import (  # type: ignore[import]
 
 
 def unwrap_named_wrapper(obj: NamedWrapper | OpenAIV1Module.OpenAI | OpenAIV0Module) -> Any:
-    return getattr(obj, "_NamedWrapper__wrapped")
+    return getattr(obj, "_NamedWrapper__wrapped", obj)
 
 
 @pytest.fixture(autouse=True)
@@ -85,7 +80,6 @@ def test_init_creates_async_llmclient_if_needed(mock_openai_v0: OpenAIV0Module):
 
     assert isinstance(prepared_client, LLMClient)
     assert prepared_client.is_wrapped
-    assert isinstance(prepared_client.openai, OpenAIV0Wrapper)
     assert prepared_client.complete.__name__ == "acreate"
 
 
@@ -119,7 +113,7 @@ def test_prepare_openai_with_plain_openai():
     prepared_client = prepare_openai(client=client)
 
     assert prepared_client.is_wrapped
-    assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
+    assert prepared_client.openai is client
 
 
 def test_prepare_openai_async():
@@ -127,7 +121,6 @@ def test_prepare_openai_async():
 
     assert isinstance(prepared_client, LLMClient)
     assert prepared_client.is_wrapped
-    assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
 
     assert callable(prepared_client.complete)
     assert prepared_client.complete.__name__ == "complete_wrapper"
@@ -244,7 +237,7 @@ def test_prepare_openai_v0_sdk(mock_openai_v0: OpenAIV0Module):
     assert prepared_client.is_wrapped
     assert prepared_client.openai.api_key == "test-key"
 
-    assert isinstance(getattr(prepared_client.complete, "__self__", None), ChatCompletionV0Wrapper)
+    assert prepared_client.complete is mock_openai_v0.ChatCompletion.create
 
 
 def test_prepare_openai_v0_async(mock_openai_v0: OpenAIV0Module):

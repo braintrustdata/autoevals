@@ -15,6 +15,7 @@ from openai.resources.chat.completions import AsyncCompletions
 
 from autoevals import init  # type: ignore[import]
 from autoevals.oai import (  # type: ignore[import]
+    GATEWAY_URL,
     LLMClient,
     OpenAIV0Module,
     OpenAIV1Module,
@@ -99,6 +100,18 @@ def test_prepare_openai_defaults():
     assert prepared_client.complete.__name__ == "complete_wrapper"
     assert openai_obj.api_key == "test-key"
     assert openai_obj.base_url == "http://test-url"
+
+
+def test_prepare_openai_defaults_to_gateway(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
+    monkeypatch.setenv("BRAINTRUST_API_KEY", "braintrust-key")
+
+    prepared_client = prepare_openai()
+
+    openai_obj = unwrap_named_wrapper(prepared_client.openai)
+    assert openai_obj.api_key == "braintrust-key"
+    assert str(openai_obj.base_url).rstrip("/") == GATEWAY_URL
 
 
 def test_prepare_openai_with_plain_openai():

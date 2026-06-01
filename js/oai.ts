@@ -82,7 +82,10 @@ export function extractOpenAIArgs<T extends Record<string, unknown>>(
       };
 }
 
-const PROXY_URL = "https://api.braintrust.dev/v1/proxy";
+const GATEWAY_URL = "https://gateway.braintrust.dev";
+
+const isGatewayBaseURL = (baseURL: string): boolean =>
+  baseURL.replace(/\/+$/, "") === GATEWAY_URL;
 
 const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
   const {
@@ -115,13 +118,17 @@ const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
     });
   }
 
+  const baseURL = openAiBaseUrl || process.env.OPENAI_BASE_URL || GATEWAY_URL;
+  const apiKey =
+    openAiApiKey ||
+    (isGatewayBaseURL(baseURL)
+      ? process.env.BRAINTRUST_API_KEY || process.env.OPENAI_API_KEY
+      : process.env.OPENAI_API_KEY || process.env.BRAINTRUST_API_KEY);
+
   return new OpenAI({
-    apiKey:
-      openAiApiKey ||
-      process.env.OPENAI_API_KEY ||
-      process.env.BRAINTRUST_API_KEY,
+    apiKey,
     organization: openAiOrganizationId,
-    baseURL: openAiBaseUrl || process.env.OPENAI_BASE_URL || PROXY_URL,
+    baseURL,
     defaultHeaders: openAiDefaultHeaders,
     dangerouslyAllowBrowser: openAiDangerouslyAllowBrowser,
   });
@@ -173,7 +180,7 @@ export interface InitOptions {
   /**
    * An OpenAI-compatible client to use for all evaluations.
    * This can be an OpenAI client, or any client that implements the OpenAI API
-   * (e.g., configured to use the Braintrust proxy with Anthropic, Gemini, etc.)
+   * (e.g., configured to use the Braintrust Gateway with Anthropic, Gemini, etc.)
    */
   client?: OpenAI;
   /**
@@ -186,7 +193,7 @@ export interface InitOptions {
    *   default models for different evaluation types. Only the specified models
    *   are updated; others remain unchanged.
    *
-   * When using non-OpenAI providers via the Braintrust proxy, set this to
+   * When using non-OpenAI providers via the Braintrust Gateway, set this to
    * the appropriate model string (e.g., "claude-3-5-sonnet-20241022").
    *
    * @example
@@ -237,14 +244,14 @@ export interface InitOptions {
  * init({ client: new OpenAI() });
  *
  * @example
- * // Using with Anthropic via Braintrust proxy
+ * // Using with Anthropic via Braintrust Gateway
  * import { init } from "autoevals";
  * import { OpenAI } from "openai";
  *
  * init({
  *   client: new OpenAI({
  *     apiKey: process.env.BRAINTRUST_API_KEY,
- *     baseURL: "https://api.braintrust.dev/v1/proxy",
+ *     baseURL: "https://gateway.braintrust.dev",
  *   }),
  *   defaultModel: {
  *     completion: "claude-3-5-sonnet-20241022",

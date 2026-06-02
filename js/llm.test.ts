@@ -329,6 +329,7 @@ Issue Description: {{page_content}}
       choiceScores: { "1": 1, "2": 0 },
       maxTokens: 256,
       temperature: 0.5,
+      reasoningEffort: "medium",
     });
 
     await classifier({ output: "test output", expected: "test expected" });
@@ -336,6 +337,164 @@ Issue Description: {{page_content}}
     // Verify that temperature is in the request (max_tokens not supported by Responses API)
     expect(capturedRequestBody.temperature).toBe(0.5);
     expect(capturedRequestBody.max_tokens).toBeUndefined();
+    // The Responses API nests reasoning effort under reasoning.effort.
+    expect(capturedRequestBody.reasoning).toEqual({ effort: "medium" });
+    expect(capturedRequestBody.reasoning_effort).toBeUndefined();
+  });
+
+  test("useResponsesApi forces the Responses API for a non-gpt-5 model", async () => {
+    let responsesHit = false;
+    let chatCompletionsHit = false;
+
+    server.use(
+      http.post("https://api.openai.com/v1/responses", async ({ request }) => {
+        responsesHit = true;
+        const body = (await request.json()) as any;
+        // The control flag must be stripped before reaching the API.
+        expect(body.use_responses_api).toBeUndefined();
+        expect(body.useResponsesApi).toBeUndefined();
+        return HttpResponse.json({
+          id: "resp-test",
+          object: "response",
+          created: 1234567890,
+          model: body.model,
+          output: [
+            {
+              type: "function_call",
+              call_id: "call_test",
+              name: "select_choice",
+              arguments: JSON.stringify({ choice: "1" }),
+            },
+          ],
+        });
+      }),
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          chatCompletionsHit = true;
+          const body = (await request.json()) as any;
+          return HttpResponse.json({
+            id: "chatcmpl-test",
+            object: "chat.completion",
+            created: 1234567890,
+            model: body.model,
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: JSON.stringify({ choice: "1" }),
+                      },
+                    },
+                  ],
+                },
+                finish_reason: "stop",
+              },
+            ],
+          });
+        },
+      ),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    const classifier = LLMClassifierFromTemplate({
+      name: "test",
+      promptTemplate: "Test prompt: {{output}} vs {{expected}}",
+      choiceScores: { "1": 1, "2": 0 },
+    });
+
+    // A proxy-served model that does NOT start with "gpt-5".
+    const result = await classifier({
+      output: "test output",
+      expected: "test expected",
+      model: "internal-proxy-model",
+      useResponsesApi: true,
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(responsesHit).toBe(true);
+    expect(chatCompletionsHit).toBe(false);
+  });
+
+  test("non-gpt-5 model uses Chat Completions when useResponsesApi is not set", async () => {
+    let responsesHit = false;
+    let chatCompletionsHit = false;
+
+    server.use(
+      http.post("https://api.openai.com/v1/responses", async () => {
+        responsesHit = true;
+        return HttpResponse.json({});
+      }),
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          chatCompletionsHit = true;
+          const body = (await request.json()) as any;
+          return HttpResponse.json({
+            id: "chatcmpl-test",
+            object: "chat.completion",
+            created: 1234567890,
+            model: body.model,
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: JSON.stringify({ choice: "1" }),
+                      },
+                    },
+                  ],
+                },
+                finish_reason: "stop",
+              },
+            ],
+          });
+        },
+      ),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    const classifier = LLMClassifierFromTemplate({
+      name: "test",
+      promptTemplate: "Test prompt: {{output}} vs {{expected}}",
+      choiceScores: { "1": 1, "2": 0 },
+    });
+
+    const result = await classifier({
+      output: "test output",
+      expected: "test expected",
+      model: "gpt-4o-mini",
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(chatCompletionsHit).toBe(true);
+    expect(responsesHit).toBe(false);
   });
 
   test("LLMClassifierFromTemplate uses configured default model", async () => {

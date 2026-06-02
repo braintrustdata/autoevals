@@ -19,6 +19,12 @@ export interface CachedLLMParams {
   temperature?: number;
   max_tokens?: number;
   reasoning_effort?: ReasoningEffort;
+  /**
+   * Force the request to use the Responses API, even when the model name does
+   * not start with "gpt-5". Useful for proxy/internal setups that serve a
+   * Responses-only model under a name that doesn't match {@link isGPT5Model}.
+   */
+  use_responses_api?: boolean;
   span_info?: {
     spanAttributes?: Record<string, string>;
   };
@@ -295,26 +301,38 @@ function isGPT5Model(model: string): boolean {
   return model.startsWith("gpt-5");
 }
 
+/**
+ * Whether to route the request through the Responses API. GPT-5 models require
+ * it, and callers can force it via `useResponsesApi` for proxy/internal setups
+ * that serve a Responses-only model under a name that doesn't start with "gpt-5".
+ */
+function isForcedResponsesMode(params: CachedLLMParams): boolean {
+  return isGPT5Model(params.model) || params.use_responses_api === true;
+}
+
 export async function cachedChatCompletion(
   params: CachedLLMParams,
   options: { cache?: ChatCache } & OpenAIAuth,
 ): Promise<ChatCompletion> {
   const openai = buildOpenAIClient(options);
 
+  // Strip use_responses_api so it is never forwarded to either API.
+  const { use_responses_api: _useResponsesApi, ...completionParams } = params;
+
   const fullParams = globalThis.__inherited_braintrust_wrap_openai
     ? {
-        ...params,
+        ...completionParams,
         span_info: {
           spanAttributes: {
-            ...params.span_info?.spanAttributes,
+            ...completionParams.span_info?.spanAttributes,
             purpose: "scorer",
           },
         },
       }
-    : params;
+    : completionParams;
 
-  // GPT-5 models require the Responses API
-  if (isGPT5Model(params.model)) {
+  // GPT-5 models require the Responses API; callers may also force it.
+  if (isForcedResponsesMode(params)) {
     // Convert Chat Completions API params to Responses API params
     const responsesParams: any = {
       model: fullParams.model,
@@ -362,7 +380,8 @@ export async function cachedChatCompletion(
     }
     // Note: max_tokens is not supported by Responses API
     if (fullParams.reasoning_effort) {
-      responsesParams.reasoning_effort = fullParams.reasoning_effort;
+      // The Responses API nests this under reasoning.effort, unlike Chat Completions.
+      responsesParams.reasoning = { effort: fullParams.reasoning_effort };
     }
     const response: any = await openai.responses.create(responsesParams);
 

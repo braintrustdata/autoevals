@@ -396,13 +396,14 @@ def test_llm_classifier_includes_parameters_when_specified():
     client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
     init(client)
 
-    # Create classifier with max_tokens and temperature specified
+    # Create classifier with max_tokens, temperature and reasoning_effort specified
     classifier = LLMClassifier(
         "test",
         "Test prompt: {{output}} vs {{expected}}",
         {"1": 1, "2": 0},
         max_tokens=256,
         temperature=0.5,
+        reasoning_effort="medium",
     )
 
     classifier.eval(output="test output", expected="test expected")
@@ -410,6 +411,9 @@ def test_llm_classifier_includes_parameters_when_specified():
     # Verify that temperature is in the request with correct value (max_tokens not supported by Responses API)
     assert captured_request_body["temperature"] == 0.5
     assert "max_tokens" not in captured_request_body
+    # The Responses API nests reasoning effort under reasoning.effort.
+    assert captured_request_body["reasoning"] == {"effort": "medium"}
+    assert "reasoning_effort" not in captured_request_body
 
 
 @respx.mock
@@ -486,6 +490,94 @@ def test_llm_classifier_uses_configured_default_model():
     assert captured_model == "gpt-4-turbo"
 
     # Reset for other tests
+    init(None)
+
+
+@respx.mock
+def test_use_responses_api_forces_responses_for_non_gpt5_model():
+    """use_responses_api should route a non-gpt-5 model through the Responses API."""
+    responses_route = respx.route(method="POST", path__regex=r".*/responses$").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "internal-proxy-model",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"choice": "1"}',
+                    }
+                ],
+            },
+        )
+    )
+    chat_route = respx.route(method="POST", path__regex=r".*/chat/completions$").mock(
+        return_value=Response(200, json={})
+    )
+
+    client = OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1")
+    init(client)
+
+    classifier = LLMClassifier(
+        name="test",
+        prompt_template="Test prompt: {{output}}",
+        choice_scores={"1": 1, "2": 0},
+        model="internal-proxy-model",
+        use_responses_api=True,
+    )
+
+    result = classifier.eval(output="test output", expected="test expected")
+
+    assert result.score == 1
+    assert responses_route.called
+    assert not chat_route.called
+    # use_responses_api must be stripped before reaching the API.
+    body = json.loads(responses_route.calls[0].request.content.decode("utf-8"))
+    assert "use_responses_api" not in body
+
+    init(None)
+
+
+@respx.mock
+def test_use_responses_api_on_builtin_scorer():
+    """Built-in named scorers (SpecFileClassifier) should accept use_responses_api."""
+    responses_route = respx.route(method="POST", path__regex=r".*/responses$").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": "resp-test",
+                "object": "response",
+                "created": 1234567890,
+                "model": "gpt-4.1",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "select_choice",
+                        "arguments": '{"reasons": "same", "choice": "C"}',
+                    }
+                ],
+            },
+        )
+    )
+    chat_route = respx.route(method="POST", path__regex=r".*/chat/completions$").mock(
+        return_value=Response(200, json={})
+    )
+
+    init(OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1"))
+
+    result = Factuality(model="gpt-4.1", use_responses_api=True).eval(
+        output="6", expected="6", input="Add the numbers 1, 2, 3"
+    )
+
+    assert result.score == 1
+    assert responses_route.called
+    assert not chat_route.called
+
     init(None)
 
 

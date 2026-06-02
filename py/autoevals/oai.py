@@ -310,9 +310,11 @@ class LLMClient:
                         responses_params["tool_choice"] = "required"
 
                 # Copy supported parameters
-                for key in ["temperature", "reasoning_effort"]:
-                    if key in kwargs:
-                        responses_params[key] = kwargs[key]
+                if "temperature" in kwargs:
+                    responses_params["temperature"] = kwargs["temperature"]
+                # The Responses API nests this under reasoning.effort, unlike Chat Completions.
+                if "reasoning_effort" in kwargs:
+                    responses_params["reasoning"] = {"effort": kwargs["reasoning_effort"]}
 
                 return responses_params
 
@@ -320,7 +322,9 @@ class LLMClient:
 
                 async def complete_wrapper(**kwargs: Any) -> Any:
                     model = kwargs.get("model", "")
-                    if is_gpt5_model(model):
+                    # Strip use_responses_api so it is never forwarded to either API.
+                    use_responses_api = kwargs.pop("use_responses_api", False)
+                    if is_gpt5_model(model) or use_responses_api:
                         responses_params = prepare_responses_params(kwargs)
                         response = await responses_create(**responses_params)
                         return convert_responses_to_chat_completion(response)
@@ -330,7 +334,9 @@ class LLMClient:
 
                 def complete_wrapper(**kwargs: Any) -> Any:
                     model = kwargs.get("model", "")
-                    if is_gpt5_model(model):
+                    # Strip use_responses_api so it is never forwarded to either API.
+                    use_responses_api = kwargs.pop("use_responses_api", False)
+                    if is_gpt5_model(model) or use_responses_api:
                         responses_params = prepare_responses_params(kwargs)
                         response = responses_create(**responses_params)
                         return convert_responses_to_chat_completion(response)

@@ -149,7 +149,7 @@ describe("OAI", () => {
     );
   });
 
-  test("uses configured Braintrust AI Gateway URL", async () => {
+  test("uses configured Braintrust Gateway URL", async () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_BASE_URL;
     process.env.BRAINTRUST_API_KEY = "braintrust-test-key";

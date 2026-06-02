@@ -126,7 +126,8 @@ const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
     });
   }
 
-  const baseURL = openAiBaseUrl || process.env.OPENAI_BASE_URL || getGatewayURL();
+  const baseURL =
+    openAiBaseUrl || process.env.OPENAI_BASE_URL || getGatewayURL();
   const apiKey =
     openAiApiKey ||
     (isGatewayBaseURL(baseURL)
@@ -188,7 +189,7 @@ export interface InitOptions {
   /**
    * An OpenAI-compatible client to use for all evaluations.
    * This can be an OpenAI client, or any client that implements the OpenAI API
-   * (e.g., configured to use the Braintrust AI Gateway with Anthropic, Gemini, etc.)
+   * (e.g., configured to use the Braintrust Gateway with Anthropic, Gemini, etc.)
    */
   client?: OpenAI;
   /**
@@ -201,7 +202,7 @@ export interface InitOptions {
    *   default models for different evaluation types. Only the specified models
    *   are updated; others remain unchanged.
    *
-   * When using non-OpenAI providers via the Braintrust AI Gateway, set this to
+   * When using non-OpenAI providers via the Braintrust Gateway, set this to
    * the appropriate model string (e.g., "claude-3-5-sonnet-20241022").
    *
    * @example
@@ -252,7 +253,7 @@ export interface InitOptions {
  * init({ client: new OpenAI() });
  *
  * @example
- * // Using with Anthropic via Braintrust AI Gateway
+ * // Using with Anthropic via Braintrust Gateway
  * import { init } from "autoevals";
  * import { OpenAI } from "openai";
  *

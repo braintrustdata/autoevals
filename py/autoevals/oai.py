@@ -436,7 +436,7 @@ def init(
               models for different evaluation types. Only the specified models are updated;
               others remain unchanged.
 
-            When using non-OpenAI providers via the Braintrust AI Gateway, set this to the
+            When using non-OpenAI providers via the Braintrust Gateway, set this to the
             appropriate model string (e.g., "claude-3-5-sonnet-20241022").
 
     Example:

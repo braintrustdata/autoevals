@@ -9,6 +9,15 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import Any, Optional, Protocol, TypedDict, TypeVar, Union, cast, runtime_checkable
 
+try:
+    # Braintrust (>= 0.13) patches OpenAI resource methods with wrapt wrappers.
+    # wrapt is a Braintrust dependency, so it's present whenever wrapping can occur.
+    from wrapt import BoundFunctionWrapper, FunctionWrapper
+
+    _WRAPT_WRAPPER_TYPES: tuple[type, ...] = (FunctionWrapper, BoundFunctionWrapper)
+except ImportError:
+    _WRAPT_WRAPPER_TYPES = ()
+
 PROXY_URL = "https://api.braintrust.dev/v1/proxy"
 
 
@@ -126,6 +135,33 @@ def is_gpt5_model(model: str) -> bool:
     return model.startswith("gpt-5")
 
 
+def openai_client_is_wrapped(client: Any, named_wrapper: type) -> bool:
+    """Detect whether an OpenAI client has been instrumented by Braintrust.
+
+    Works across Braintrust versions:
+    - < 0.13 wrapped the whole client in a ``NamedWrapper`` proxy.
+    - >= 0.13 patches resource methods in place, replacing ``create`` with a
+      ``wrapt`` function wrapper while leaving the client object unchanged.
+      Note: >= 0.13 only instruments the v1 SDK, so v0 clients are no longer
+      traced. (``create`` exposes ``__wrapped__`` even when unwrapped, so we
+      check the wrapper type rather than that attribute.)
+    """
+    if isinstance(client, named_wrapper):
+        return True
+    if not _WRAPT_WRAPPER_TYPES:
+        return False
+    for path in (("chat", "completions", "create"), ("responses", "create")):
+        obj = client
+        for attr in path:
+            obj = getattr(obj, attr, None)
+            if obj is None:
+                break
+        else:
+            if isinstance(obj, _WRAPT_WRAPPER_TYPES):
+                return True
+    return False
+
+
 @dataclass
 class LLMClient:
     """A client wrapper for LLM operations that supports both OpenAI SDK v0 and v1.
@@ -192,10 +228,12 @@ class LLMClient:
         has_customization = self.complete is not None or self.embed is not None or self.moderation is not None  # type: ignore  # Pyright doesn't understand our design choice
 
         # avoid wrapping if we have custom methods (the user may intend not to wrap)
-        if not has_customization and not isinstance(self.openai, NamedWrapper):
+        # wrap_openai is idempotent (braintrust >= 0.13) / returns a NamedWrapper proxy
+        # (< 0.13), so it's safe to call whenever the client isn't already wrapped.
+        if not has_customization and not openai_client_is_wrapped(self.openai, NamedWrapper):
             self.openai = wrap_openai(self.openai)
 
-        self._is_wrapped = isinstance(self.openai, NamedWrapper)
+        self._is_wrapped = openai_client_is_wrapped(self.openai, NamedWrapper)
 
         openai_module = get_openai_module()
 

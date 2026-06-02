@@ -4,11 +4,7 @@ from typing import Any, cast
 import openai
 import pytest
 from braintrust.oai import (
-    ChatCompletionV0Wrapper,
-    CompletionsV1Wrapper,
     NamedWrapper,
-    OpenAIV0Wrapper,
-    OpenAIV1Wrapper,
     wrap_openai,
 )
 from openai.resources.chat.completions import AsyncCompletions
@@ -27,7 +23,9 @@ from autoevals.oai import (  # type: ignore[import]
 
 
 def unwrap_named_wrapper(obj: NamedWrapper | OpenAIV1Module.OpenAI | OpenAIV0Module) -> Any:
-    return getattr(obj, "_NamedWrapper__wrapped")
+    # braintrust < 0.13 wrapped clients in a NamedWrapper proxy; >= 0.13 patches the
+    # client in place, so there's nothing to unwrap and we return it as-is.
+    return getattr(obj, "_NamedWrapper__wrapped", obj)
 
 
 @pytest.fixture(autouse=True)
@@ -83,8 +81,8 @@ def test_init_creates_async_llmclient_if_needed(mock_openai_v0: OpenAIV0Module):
     prepared_client = prepare_openai()
 
     assert isinstance(prepared_client, LLMClient)
-    assert prepared_client.is_wrapped
-    assert isinstance(prepared_client.openai, OpenAIV0Wrapper)
+    # braintrust >= 0.13 only instruments the v1 SDK, so v0 clients are not wrapped.
+    assert not prepared_client.is_wrapped
     assert prepared_client.complete.__name__ == "acreate"
 
 
@@ -106,7 +104,8 @@ def test_prepare_openai_with_plain_openai():
     prepared_client = prepare_openai(client=client)
 
     assert prepared_client.is_wrapped
-    assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
+    # braintrust >= 0.13 patches the client in place rather than returning a proxy.
+    assert prepared_client.openai is client
 
 
 def test_prepare_openai_async():
@@ -114,7 +113,7 @@ def test_prepare_openai_async():
 
     assert isinstance(prepared_client, LLMClient)
     assert prepared_client.is_wrapped
-    assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
+    assert isinstance(prepared_client.openai, openai.AsyncOpenAI)
 
     assert callable(prepared_client.complete)
     assert prepared_client.complete.__name__ == "complete_wrapper"
@@ -228,16 +227,17 @@ def mock_openai_v0(monkeypatch: pytest.MonkeyPatch):
 def test_prepare_openai_v0_sdk(mock_openai_v0: OpenAIV0Module):
     prepared_client = prepare_openai()
 
-    assert prepared_client.is_wrapped
+    # braintrust >= 0.13 only instruments the v1 SDK, so v0 clients are not wrapped.
+    assert not prepared_client.is_wrapped
     assert prepared_client.openai.api_key == "test-key"
-
-    assert isinstance(getattr(prepared_client.complete, "__self__", None), ChatCompletionV0Wrapper)
+    assert prepared_client.complete.__name__ == "create"
 
 
 def test_prepare_openai_v0_async(mock_openai_v0: OpenAIV0Module):
     prepared_client = prepare_openai(is_async=True)
 
-    assert prepared_client.is_wrapped
+    # braintrust >= 0.13 only instruments the v1 SDK, so v0 clients are not wrapped.
+    assert not prepared_client.is_wrapped
     assert prepared_client.openai.api_key == "test-key"
 
     assert prepared_client.complete.__name__ == "acreate"
@@ -248,7 +248,8 @@ def test_prepare_openai_v0_with_client(mock_openai_v0: OpenAIV0Module):
 
     prepared_client = prepare_openai(client=client)
 
-    assert prepared_client.is_wrapped
+    # braintrust >= 0.13 only instruments the v1 SDK, so v0 clients are not wrapped.
+    assert not prepared_client.is_wrapped
     assert prepared_client.openai.api_key is mock_openai_v0.api_key  # must be set by the user
     assert prepared_client.complete.__name__ == "acreate"
 

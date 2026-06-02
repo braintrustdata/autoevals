@@ -16,7 +16,10 @@ install_requires = ["chevron", "polyleven", "pyyaml", "jsonschema"]
 extras_require = {
     "dev": [
         "black==22.6.0",
-        "braintrust",  # used for testing
+        # 0.13.0 removed the wrapper classes (ChatCompletionV0Wrapper, OpenAIV1Wrapper, ...)
+        # and changed wrap_openai so it no longer returns a NamedWrapper, which breaks
+        # test_oai.py imports and LLMClient.is_wrapped detection. Cap until autoevals is updated.
+        "braintrust<0.13",  # used for testing
         "build",
         "flake8",
         "flake8-isort",

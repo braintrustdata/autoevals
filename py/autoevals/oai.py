@@ -12,8 +12,13 @@ from typing import Any, Optional, Protocol, TypedDict, TypeVar, Union, cast, run
 GATEWAY_URL = "https://gateway.braintrust.dev"
 
 
+def _gateway_url() -> str:
+    return os.environ.get("BRAINTRUST_AI_GATEWAY_URL", GATEWAY_URL)
+
+
 def _is_gateway_url(base_url: str) -> bool:
-    return base_url.rstrip("/") == GATEWAY_URL
+    normalized_base_url = base_url.rstrip("/")
+    return normalized_base_url == GATEWAY_URL or normalized_base_url == _gateway_url().rstrip("/")
 
 
 class DefaultModelConfig(TypedDict, total=False):
@@ -431,7 +436,7 @@ def init(
               models for different evaluation types. Only the specified models are updated;
               others remain unchanged.
 
-            When using non-OpenAI providers via the Braintrust Gateway, set this to the
+            When using non-OpenAI providers via the Braintrust AI Gateway, set this to the
             appropriate model string (e.g., "claude-3-5-sonnet-20241022").
 
     Example:
@@ -448,7 +453,7 @@ def init(
             init(
                 client=OpenAI(
                     api_key=os.environ["BRAINTRUST_API_KEY"],
-                    base_url="https://gateway.braintrust.dev",
+                    base_url=os.getenv("BRAINTRUST_AI_GATEWAY_URL") or "https://gateway.braintrust.dev",
                 ),
                 default_model={
                     "completion": "claude-3-5-sonnet-20241022",
@@ -520,7 +525,8 @@ def prepare_openai(
             Deprecated: Use the `client` argument and set the `openai`.
 
         base_url (str, optional): Base URL for API requests. If not provided, will
-            use OPENAI_BASE_URL from environment or fall back to GATEWAY_URL.
+            use OPENAI_BASE_URL from environment or fall back to BRAINTRUST_AI_GATEWAY_URL
+            or GATEWAY_URL.
             Deprecated: Use the `client` argument and set the `openai`.
 
     Returns:
@@ -560,7 +566,7 @@ def prepare_openai(
         warned_deprecated_api_key_base_url = True
 
     if base_url is None:
-        base_url = os.environ.get("OPENAI_BASE_URL", GATEWAY_URL)
+        base_url = os.environ.get("OPENAI_BASE_URL") or _gateway_url()
     # prepare the default openai sdk, if not provided
     if api_key is None:
         if _is_gateway_url(base_url):

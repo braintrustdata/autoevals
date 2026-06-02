@@ -101,17 +101,17 @@ import { Factuality } from "autoevals";
 
 ## Using other AI providers
 
-When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI-compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [Braintrust Gateway](https://www.braintrust.dev/docs/deploy/gateway).
+When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI-compatible API. If `OPENAI_BASE_URL` is not set, it will look for a `BRAINTRUST_AI_GATEWAY_URL` environment variable and then default to the [Braintrust AI Gateway](https://www.braintrust.dev/docs/deploy/gateway).
 
-When you use the Gateway, you'll also get:
+When you use the Braintrust AI Gateway, you'll also get:
 
 - Simplified access to many AI providers
 - Reduced costs with automatic request caching
 - Increased observability when you enable logging to Braintrust
 
-The Braintrust-hosted Gateway is free to use while it is in beta.
+The Braintrust-hosted AI Gateway is free to use while it is in beta.
 
-Set the `BRAINTRUST_API_KEY` environment variable to authenticate Gateway requests. You can also route requests to supported AI providers and models or custom models you have configured in Braintrust.
+Set the `BRAINTRUST_API_KEY` environment variable to authenticate AI Gateway requests. You can also route requests to supported AI providers and models or custom models you have configured in Braintrust.
 
 <div className="tabs">
 

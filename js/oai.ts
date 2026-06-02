@@ -82,10 +82,18 @@ export function extractOpenAIArgs<T extends Record<string, unknown>>(
       };
 }
 
-const GATEWAY_URL = "https://gateway.braintrust.dev";
+const DEFAULT_GATEWAY_URL = "https://gateway.braintrust.dev";
 
-const isGatewayBaseURL = (baseURL: string): boolean =>
-  baseURL.replace(/\/+$/, "") === GATEWAY_URL;
+const getGatewayURL = (): string =>
+  process.env.BRAINTRUST_AI_GATEWAY_URL || DEFAULT_GATEWAY_URL;
+
+const isGatewayBaseURL = (baseURL: string): boolean => {
+  const normalizedBaseURL = baseURL.replace(/\/+$/, "");
+  return (
+    normalizedBaseURL === DEFAULT_GATEWAY_URL ||
+    normalizedBaseURL === getGatewayURL().replace(/\/+$/, "")
+  );
+};
 
 const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
   const {
@@ -118,7 +126,7 @@ const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
     });
   }
 
-  const baseURL = openAiBaseUrl || process.env.OPENAI_BASE_URL || GATEWAY_URL;
+  const baseURL = openAiBaseUrl || process.env.OPENAI_BASE_URL || getGatewayURL();
   const apiKey =
     openAiApiKey ||
     (isGatewayBaseURL(baseURL)
@@ -180,7 +188,7 @@ export interface InitOptions {
   /**
    * An OpenAI-compatible client to use for all evaluations.
    * This can be an OpenAI client, or any client that implements the OpenAI API
-   * (e.g., configured to use the Braintrust Gateway with Anthropic, Gemini, etc.)
+   * (e.g., configured to use the Braintrust AI Gateway with Anthropic, Gemini, etc.)
    */
   client?: OpenAI;
   /**
@@ -193,7 +201,7 @@ export interface InitOptions {
    *   default models for different evaluation types. Only the specified models
    *   are updated; others remain unchanged.
    *
-   * When using non-OpenAI providers via the Braintrust Gateway, set this to
+   * When using non-OpenAI providers via the Braintrust AI Gateway, set this to
    * the appropriate model string (e.g., "claude-3-5-sonnet-20241022").
    *
    * @example
@@ -244,14 +252,14 @@ export interface InitOptions {
  * init({ client: new OpenAI() });
  *
  * @example
- * // Using with Anthropic via Braintrust Gateway
+ * // Using with Anthropic via Braintrust AI Gateway
  * import { init } from "autoevals";
  * import { OpenAI } from "openai";
  *
  * init({
  *   client: new OpenAI({
  *     apiKey: process.env.BRAINTRUST_API_KEY,
- *     baseURL: "https://gateway.braintrust.dev",
+ *     baseURL: process.env.BRAINTRUST_AI_GATEWAY_URL || "https://gateway.braintrust.dev",
  *   }),
  *   defaultModel: {
  *     completion: "claude-3-5-sonnet-20241022",

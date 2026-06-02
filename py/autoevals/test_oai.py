@@ -32,6 +32,7 @@ def reset_env_and_client(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_BASE_URL", "http://test-url")
+    monkeypatch.delenv("BRAINTRUST_AI_GATEWAY_URL", raising=False)
     monkeypatch.setattr("autoevals.oai._named_wrapper", None)
     monkeypatch.setattr("autoevals.oai._wrap_openai", None)
     monkeypatch.setattr("autoevals.oai._openai_module", None)
@@ -98,6 +99,7 @@ def test_prepare_openai_defaults():
 
 def test_prepare_openai_defaults_to_gateway(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    monkeypatch.delenv("BRAINTRUST_AI_GATEWAY_URL", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
     monkeypatch.setenv("BRAINTRUST_API_KEY", "braintrust-key")
 
@@ -106,6 +108,19 @@ def test_prepare_openai_defaults_to_gateway(monkeypatch: pytest.MonkeyPatch):
     openai_obj = unwrap_named_wrapper(prepared_client.openai)
     assert openai_obj.api_key == "braintrust-key"
     assert str(openai_obj.base_url).rstrip("/") == GATEWAY_URL
+
+
+def test_prepare_openai_uses_configured_gateway_url(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
+    monkeypatch.setenv("BRAINTRUST_AI_GATEWAY_URL", "https://gateway.example.com")
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
+    monkeypatch.setenv("BRAINTRUST_API_KEY", "braintrust-key")
+
+    prepared_client = prepare_openai()
+
+    openai_obj = unwrap_named_wrapper(prepared_client.openai)
+    assert openai_obj.api_key == "braintrust-key"
+    assert str(openai_obj.base_url).rstrip("/") == "https://gateway.example.com"
 
 
 def test_prepare_openai_with_plain_openai():

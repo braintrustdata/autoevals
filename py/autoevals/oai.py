@@ -13,7 +13,7 @@ GATEWAY_URL = "https://gateway.braintrust.dev"
 
 
 def _gateway_url() -> str:
-    return os.environ.get("BRAINTRUST_AI_GATEWAY_URL", GATEWAY_URL)
+    return os.environ.get("BRAINTRUST_AI_GATEWAY_URL", "").strip() or GATEWAY_URL
 
 
 def _is_gateway_url(base_url: str) -> bool:

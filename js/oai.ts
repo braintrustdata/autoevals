@@ -85,7 +85,7 @@ export function extractOpenAIArgs<T extends Record<string, unknown>>(
 const DEFAULT_GATEWAY_URL = "https://gateway.braintrust.dev";
 
 const getGatewayURL = (): string =>
-  process.env.BRAINTRUST_AI_GATEWAY_URL || DEFAULT_GATEWAY_URL;
+  (process.env.BRAINTRUST_AI_GATEWAY_URL ?? "").trim() || DEFAULT_GATEWAY_URL;
 
 const isGatewayBaseURL = (baseURL: string): boolean => {
   const normalizedBaseURL = baseURL.replace(/\/+$/, "");

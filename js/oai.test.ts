@@ -153,7 +153,7 @@ describe("OAI", () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_BASE_URL;
     process.env.BRAINTRUST_API_KEY = "braintrust-test-key";
-    process.env.BRAINTRUST_AI_GATEWAY_URL = "https://gateway.example.com";
+    process.env.BRAINTRUST_AI_GATEWAY_URL = "  https://gateway.example.com  ";
 
     server.use(
       http.post("https://gateway.example.com/chat/completions", () => {

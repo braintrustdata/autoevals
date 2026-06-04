@@ -38,10 +38,12 @@ jobs:
         with:
           version: 10.33.0
       - run: pnpm install --frozen-lockfile
-      # The lockfile pins zod 3, so re-pin to exercise the zod 4 half of the range.
-      - name: Pin zod 4
+      # The lockfile pins zod 3, so override across the whole tree
+      - name: Force zod 4
         if: matrix.zod == '4'
-        run: pnpm add -D "zod@^4" --no-frozen-lockfile
+        run: |
+          printf '\noverrides:\n  zod: ^4\n' >> pnpm-workspace.yaml
+          pnpm install --no-frozen-lockfile
       - name: Verify resolved zod major
         run: node -e "const v=require('zod/package.json').version; console.log('zod', v); if (!v.startsWith('${{ matrix.zod }}.')) { console.error('expected zod ${{ matrix.zod }}.x'); process.exit(1); }"
       - run: pnpm run test

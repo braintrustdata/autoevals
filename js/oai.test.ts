@@ -227,6 +227,45 @@ describe("OAI", () => {
     });
   });
 
+  test("wraps client with dangerouslyAllowBrowser", async () => {
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", () => {
+        return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
+      }),
+    );
+
+    // Create a subclass that throws if dangerouslyAllowBrowser is not passed
+    // This simulates browser environment behavior
+    class BrowserOpenAI extends OpenAI {
+      constructor(opts: ConstructorParameters<typeof OpenAI>[0]) {
+        if (!opts?.dangerouslyAllowBrowser) {
+          throw new Error(
+            "dangerouslyAllowBrowser must be set in browser environment",
+          );
+        }
+        super(opts);
+      }
+    }
+
+    await withMockWrapper(async ({ createSpy }) => {
+      const client = new BrowserOpenAI({
+        apiKey: "test-api-key",
+        dangerouslyAllowBrowser: true,
+      });
+
+      // This would throw before the fix, because isWrapped() was not
+      // passing dangerouslyAllowBrowser when constructing the clean client
+      const builtClient = buildOpenAIClient({ client });
+
+      await builtClient.chat.completions.create({
+        model: "gpt-4",
+        messages: [{ role: "user", content: "Hello" }],
+      });
+
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   test("init sets client", async () => {
     server.use(
       http.post("https://api.openai.com/v1/chat/completions", () => {
@@ -261,8 +300,8 @@ describe("OAI", () => {
     expect(Object.is(builtClient, otherClient)).toBe(true);
   });
 
-  test("getDefaultModel returns gpt-4o by default", () => {
-    expect(getDefaultModel()).toBe("gpt-4o");
+  test("getDefaultModel returns gpt-5-mini by default", () => {
+    expect(getDefaultModel()).toBe("gpt-5-mini");
   });
 
   test("init sets default model", () => {
@@ -275,7 +314,7 @@ describe("OAI", () => {
     expect(getDefaultModel()).toBe("claude-3-5-sonnet-20241022");
 
     init({ defaultModel: undefined });
-    expect(getDefaultModel()).toBe("gpt-4o");
+    expect(getDefaultModel()).toBe("gpt-5-mini");
   });
 
   test("init can set both client and default model", () => {

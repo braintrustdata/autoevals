@@ -3,7 +3,7 @@
 This module provides a collection of pre-built LLM scorers for common evaluation tasks.
 
 All evaluators accept the following common arguments:
-- model: Model to use (defaults to gpt-4o)
+- model: Model to use (defaults to gpt-5-mini)
 - temperature: Controls randomness (0-1). If not specified, uses the model's default.
 - max_tokens: Maximum tokens to generate. If not specified, uses the model's default.
 - client: OpenAI client (defaults to global client from init())
@@ -45,10 +45,13 @@ print(result.score)  # 1 if correct, 0 if incorrect
 ```
 """
 
+import asyncio
+import inspect
 import json
 import os
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import chevron
@@ -58,6 +61,12 @@ from autoevals.partial import ScorerWithPartial
 
 from .oai import Client, arun_cached_request, get_default_model, run_cached_request
 from .score import Score
+from .thread_utils import (
+    THREAD_VARIABLE_NAMES,
+    compute_thread_template_vars,
+    filter_system_messages_from_thread,
+    template_uses_thread_variables,
+)
 
 # Disable HTML escaping in chevron.
 chevron.renderer._html_escape = lambda x: x  # type: ignore[attr-defined]
@@ -79,7 +88,7 @@ single choice by setting the `choice` parameter to a single choice from {{__choi
 )
 
 # Deprecated: Use init(default_model="...") to configure the default model instead.
-DEFAULT_MODEL = "gpt-4o"
+DEFAULT_MODEL = "gpt-5-mini"
 
 PLAIN_RESPONSE_SCHEMA = {
     "properties": {"choice": {"description": "The choice", "title": "Choice", "type": "string"}},
@@ -168,6 +177,10 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         render_args=None,
         max_tokens=None,
         temperature=None,
+        reasoning_effort=None,
+        reasoning_enabled=None,
+        reasoning_budget=None,
+        use_responses_api=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -188,6 +201,18 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
         if max_tokens is not None:
             self.extra_args["max_tokens"] = max(max_tokens, 5)
+
+        if reasoning_effort is not None:
+            self.extra_args["reasoning_effort"] = reasoning_effort
+
+        if reasoning_enabled is not None:
+            self.extra_args["reasoning_enabled"] = reasoning_enabled
+
+        if reasoning_budget is not None:
+            self.extra_args["reasoning_budget"] = reasoning_budget
+
+        if use_responses_api is not None:
+            self.extra_args["use_responses_api"] = use_responses_api
 
         self.render_args = {}
         if render_args:
@@ -231,6 +256,9 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
         return ret
 
+    async def _request_args_async(self, output, expected, **kwargs):
+        return self._request_args(output, expected, **kwargs)
+
     def _process_response(self, resp):
         metadata = {}
         if "tool_calls" not in resp:
@@ -256,7 +284,9 @@ class OpenAILLMClassifier(OpenAILLMScorer):
             raise ValueError("Empty response from OpenAI")
 
     async def _run_eval_async(self, output, expected, **kwargs):
-        return self._postprocess_response(await arun_cached_request(**self._request_args(output, expected, **kwargs)))
+        return self._postprocess_response(
+            await arun_cached_request(**(await self._request_args_async(output, expected, **kwargs)))
+        )
 
     def _run_eval_sync(self, output, expected, **kwargs):
         return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
@@ -311,14 +341,22 @@ class LLMClassifier(OpenAILLMClassifier):
         use_cot: Enable chain of thought reasoning. Defaults to True.
         max_tokens: Maximum tokens to generate. If not specified, uses the model's default.
         temperature: Controls randomness (0-1). If not specified, uses the model's default.
+        reasoning_effort: Controls reasoning depth for o-series models (e.g., "low", "medium", "high").
+        reasoning_enabled: Enable extended thinking for supported models (e.g., Claude). Defaults to None.
+        reasoning_budget: Token allocation for model's internal reasoning. Defaults to None.
         engine: Deprecated by OpenAI. Use model instead.
         api_key: Deprecated. Use client instead.
         base_url: Deprecated. Use client instead.
         client: OpenAI client. If not provided, uses global client from init().
+        trace: Optional trace object for multi-turn scoring. When provided at
+            evaluation time and the template references thread variables
+            (`{{thread}}`, `{{thread_count}}`, etc.), thread variables are
+            derived from `trace.get_thread()` / `trace.getThread()`.
         **extra_render_args: Additional template variables
     """
 
     _SPEC_FILE_CONTENTS: dict[str, str] = defaultdict(str)
+    _thread_variable_names = THREAD_VARIABLE_NAMES
 
     def __init__(
         self,
@@ -329,12 +367,17 @@ class LLMClassifier(OpenAILLMClassifier):
         use_cot=True,
         max_tokens=None,
         temperature=None,
+        reasoning_effort=None,
+        reasoning_enabled=None,
+        reasoning_budget=None,
+        use_responses_api=None,
         engine=None,
         api_key=None,
         base_url=None,
         client: Client | None = None,
         **extra_render_args,
     ):
+        self._template_uses_thread_variables = template_uses_thread_variables(prompt_template)
         choice_strings = list(choice_scores.keys())
         # Use configured default model if not specified
         if model is None:
@@ -356,12 +399,77 @@ class LLMClassifier(OpenAILLMClassifier):
             classification_tools=build_classification_tools(use_cot, choice_strings),
             max_tokens=max_tokens,
             temperature=temperature,
+            reasoning_effort=reasoning_effort,
+            reasoning_enabled=reasoning_enabled,
+            reasoning_budget=reasoning_budget,
+            use_responses_api=use_responses_api,
             engine=engine,
             api_key=api_key,
             base_url=base_url,
             render_args={"__choices": choice_strings, **extra_render_args},
             client=client,
         )
+
+    @staticmethod
+    def _get_trace_thread_method(trace) -> Callable[..., object] | None:
+        if hasattr(trace, "get_thread") and callable(trace.get_thread):
+            return trace.get_thread
+        return None
+
+    def _compute_thread_vars_sync(self, trace) -> dict[str, object]:
+        method = self._get_trace_thread_method(trace)
+        if method is None:
+            raise TypeError("trace must implement async get_thread(options=None)")
+
+        thread_awaitable = method()
+        if not inspect.isawaitable(thread_awaitable):
+            raise TypeError("trace.get_thread() must return an awaitable")
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            thread = asyncio.run(thread_awaitable)
+        else:
+            raise RuntimeError("trace.get_thread() is async; use eval_async() when already inside an event loop")
+
+        if not isinstance(thread, list):
+            thread = list(thread)
+
+        computed = compute_thread_template_vars(filter_system_messages_from_thread(thread))
+        return {name: computed[name] for name in self._thread_variable_names}
+
+    async def _compute_thread_vars_async(self, trace) -> dict[str, object]:
+        method = self._get_trace_thread_method(trace)
+        if method is None:
+            raise TypeError("trace must implement async get_thread(options=None)")
+
+        thread_awaitable = method()
+        if not inspect.isawaitable(thread_awaitable):
+            raise TypeError("trace.get_thread() must return an awaitable")
+        thread = await thread_awaitable
+
+        if not isinstance(thread, list):
+            thread = list(thread)
+
+        computed = compute_thread_template_vars(filter_system_messages_from_thread(thread))
+        return {name: computed[name] for name in self._thread_variable_names}
+
+    def _request_args(self, output, expected, **kwargs):
+        trace = kwargs.get("trace")
+        thread_vars: dict[str, object] = {}
+        if trace is not None and self._template_uses_thread_variables:
+            thread_vars = self._compute_thread_vars_sync(trace)
+
+        # Thread vars come first so explicit render args can override.
+        return super()._request_args(output, expected, **thread_vars, **kwargs)
+
+    async def _request_args_async(self, output, expected, **kwargs):
+        trace = kwargs.get("trace")
+        thread_vars: dict[str, object] = {}
+        if trace is not None and self._template_uses_thread_variables:
+            thread_vars = await self._compute_thread_vars_async(trace)
+
+        # Thread vars come first so explicit render args can override.
+        return super()._request_args(output, expected, **thread_vars, **kwargs)
 
     @classmethod
     def from_spec(cls, name: str, spec: ModelGradedSpec, client: Client | None = None, **kwargs):
@@ -396,6 +504,7 @@ class SpecFileClassifier(LLMClassifier):
         use_cot=None,
         max_tokens=None,
         temperature=None,
+        use_responses_api=None,
         api_key=None,
         base_url=None,
         client: Client | None = None,
@@ -411,6 +520,8 @@ class SpecFileClassifier(LLMClassifier):
             kwargs["max_tokens"] = max_tokens
         if temperature is not None:
             kwargs["temperature"] = temperature
+        if use_responses_api is not None:
+            kwargs["use_responses_api"] = use_responses_api
         if api_key is not None:
             kwargs["api_key"] = api_key
         if base_url is not None:

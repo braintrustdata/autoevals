@@ -1,6 +1,6 @@
 {
   "name": "autoevals",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Universal library for evaluating AI models",
   "repository": {
     "type": "git",
@@ -23,12 +23,23 @@
     "jsdist/**/*"
   ],
   "scripts": {
+    "preinstall": "node -e \"const userAgent = process.env.npm_config_user_agent || ''; if (process.env.INIT_CWD === process.cwd() && !userAgent.includes('pnpm/')) { console.error('Use pnpm in this repo.'); process.exit(1); }\"",
     "build": "tsup",
     "watch": "tsup --watch",
     "docs": "npx typedoc --options typedoc.json js/index.ts",
-    "test": "vitest",
-    "prepublishOnly": "../scripts/node_prepublish_autoevals.py",
-    "postpublish": "../scripts/node_postpublish_autoevals.py"
+    "test": "vitest"
+  },
+  "engines": {
+    "pnpm": ">=10.27.0",
+    "npm": "please-use-pnpm",
+    "yarn": "please-use-pnpm"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": ">=10.27.0",
+      "onFail": "error"
+    }
   },
   "author": "",
   "license": "MIT",
@@ -60,5 +71,5 @@
     "openai": "^6.7.0",
     "zod-to-json-schema": "3.25.0"
   },
-  "packageManager": "pnpm@10.26.2"
+  "packageManager": "pnpm@10.33.0"
 }

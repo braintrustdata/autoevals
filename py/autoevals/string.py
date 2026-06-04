@@ -24,7 +24,7 @@ from polyleven import levenshtein as distance
 from autoevals.partial import ScorerWithPartial
 from autoevals.value import normalize_value
 
-from .oai import LLMClient, arun_cached_request, run_cached_request
+from .oai import LLMClient, arun_cached_request, get_default_embedding_model, run_cached_request
 from .score import Score
 
 
@@ -115,7 +115,7 @@ class EmbeddingSimilarity(ScorerWithPartial):
     def __init__(
         self,
         prefix="",
-        model=MODEL,
+        model=None,
         expected_min=0.7,
         api_key=None,
         base_url=None,
@@ -124,7 +124,7 @@ class EmbeddingSimilarity(ScorerWithPartial):
         self.prefix = prefix
         self.expected_min = expected_min
 
-        self.extra_args = {"model": model}
+        self.extra_args = {"model": model if model is not None else get_default_embedding_model()}
         if api_key:
             self.extra_args["api_key"] = api_key
         if base_url:

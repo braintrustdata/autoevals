@@ -11,8 +11,55 @@ import {
   ChatCompletionMessageParam,
   ChatCompletionTool,
 } from "openai/resources";
+import type { ReasoningEffort } from "openai/resources/shared";
 import { makePartial, ScorerWithPartial } from "./partial";
 import { renderMessages } from "./render-messages";
+import {
+  computeThreadTemplateVars,
+  type ThreadTemplateVars,
+} from "./thread-utils";
+
+/**
+ * Minimal interface for a Trace object that can provide thread data.
+ * This is compatible with the Trace interface from the braintrust SDK.
+ */
+export interface TraceForScorer {
+  getThread(options?: { preprocessor?: string }): Promise<unknown[]>;
+}
+
+// Thread-related template variable names that require preprocessor invocation
+export const THREAD_VARIABLE_NAMES = [
+  "thread",
+  "thread_count",
+  "first_message",
+  "last_message",
+  "user_messages",
+  "assistant_messages",
+  "human_ai_pairs",
+];
+
+// Pattern to match thread variables in template syntax: {{thread, {{ thread, {%...thread, etc.
+export const THREAD_VARIABLE_PATTERN = new RegExp(
+  `\\{[\\{%]\\s*(${THREAD_VARIABLE_NAMES.join("|")})`,
+);
+
+/**
+ * Check if a template string might use thread-related template variables.
+ * This is a heuristic - looks for variable names after `{{` or `{%` syntax.
+ */
+export function templateUsesThreadVariables(template: string): boolean {
+  return THREAD_VARIABLE_PATTERN.test(template);
+}
+
+function filterSystemMessagesFromThread(thread: unknown[]): unknown[] {
+  return thread.filter((message) => {
+    if (!message || typeof message !== "object" || Array.isArray(message)) {
+      return true;
+    }
+    const role = Reflect.get(message, "role");
+    return role !== "system";
+  });
+}
 
 const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
@@ -23,13 +70,22 @@ const COT_SUFFIX =
 export type LLMArgs = {
   maxTokens?: number;
   temperature?: number;
+  reasoningEffort?: ReasoningEffort;
+  reasoningEnabled?: boolean;
+  reasoningBudget?: number;
+  /**
+   * Force the request to use the Responses API, even when the model name does
+   * not start with "gpt-5". Useful for proxy/internal setups that serve a
+   * Responses-only model under a non-matching name.
+   */
+  useResponsesApi?: boolean;
 } & OpenAIAuth;
 
 /**
  * The default model to use for LLM-based evaluations.
  * @deprecated Use `init({ defaultModel: "..." })` to configure the default model instead.
  */
-export const DEFAULT_MODEL = "gpt-4o";
+export const DEFAULT_MODEL = "gpt-5-mini";
 
 const PLAIN_RESPONSE_SCHEMA = {
   properties: {
@@ -113,16 +169,39 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     classificationTools: classificationTools,
     maxTokens,
     temperature,
+    reasoningEffort,
+    reasoningEnabled,
+    reasoningBudget,
+    useResponsesApi,
     cache,
     ...remainingRenderArgs
   } = remaining;
 
-  const extraArgs: { temperature?: number; max_tokens?: number } = {};
+  const extraArgs: {
+    temperature?: number;
+    max_tokens?: number;
+    reasoning_effort?: ReasoningEffort;
+    reasoning_enabled?: boolean;
+    reasoning_budget?: number;
+    use_responses_api?: boolean;
+  } = {};
   if (temperature !== undefined) {
     extraArgs.temperature = temperature;
   }
   if (maxTokens !== undefined) {
     extraArgs.max_tokens = maxTokens;
+  }
+  if (reasoningEffort !== undefined) {
+    extraArgs.reasoning_effort = reasoningEffort;
+  }
+  if (reasoningEnabled !== undefined) {
+    extraArgs.reasoning_enabled = reasoningEnabled;
+  }
+  if (reasoningBudget !== undefined) {
+    extraArgs.reasoning_budget = reasoningBudget;
+  }
+  if (useResponsesApi !== undefined) {
+    extraArgs.use_responses_api = useResponsesApi;
   }
 
   const renderArgs = {
@@ -205,6 +284,12 @@ function parseResponse(
 export type LLMClassifierArgs<RenderArgs> = {
   model?: string;
   useCoT?: boolean;
+  /**
+   * Optional trace object for multi-turn scoring.
+   * When provided, thread template variables (thread_text, thread_count, etc.)
+   * are automatically computed and made available in the template.
+   */
+  trace?: TraceForScorer;
 } & LLMArgs &
   RenderArgs;
 
@@ -216,6 +301,10 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   useCoT: useCoTArg,
   temperature,
   maxTokens: maxTokensArg,
+  reasoningEffort,
+  reasoningEnabled,
+  reasoningBudget,
+  useResponsesApi,
 }: {
   name: string;
   promptTemplate: string;
@@ -224,6 +313,10 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   useCoT?: boolean;
   temperature?: number;
   maxTokens?: number;
+  reasoningEffort?: ReasoningEffort;
+  reasoningEnabled?: boolean;
+  reasoningBudget?: number;
+  useResponsesApi?: boolean;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
   const ret = async (
@@ -232,6 +325,22 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
     // Use runtime model > template model > configured default model
     const model = runtimeArgs.model ?? modelArg ?? getDefaultModel();
+
+    // Compute thread template variables if trace is available AND the template uses them.
+    // These become available in templates as {{thread}}, {{thread_count}}, etc.
+    // Note: {{thread}} automatically renders as human-readable text via smart escape.
+    // Only call getThread() if the template actually uses thread variables to avoid
+    // creating unnecessary preprocessor spans.
+    let threadVars: Record<string, unknown> = {};
+    if (runtimeArgs.trace && templateUsesThreadVariables(promptTemplate)) {
+      const thread = await runtimeArgs.trace.getThread();
+      const scorerThread = filterSystemMessagesFromThread(thread);
+      const computed = computeThreadTemplateVars(scorerThread);
+      // Build threadVars from THREAD_VARIABLE_NAMES to keep in sync with the pattern
+      for (const name of THREAD_VARIABLE_NAMES) {
+        threadVars[name] = computed[name as keyof ThreadTemplateVars];
+      }
+    }
 
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
@@ -244,7 +353,8 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       },
     ];
 
-    return await OpenAIClassifier({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const classifierArgs: any = {
       name,
       messages,
       choiceScores,
@@ -252,13 +362,20 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       model,
       maxTokens,
       temperature,
+      reasoningEffort,
+      reasoningEnabled,
+      reasoningBudget,
+      useResponsesApi,
       __choices: choiceStrings,
+      // Thread template vars come first so explicit args can override
+      ...threadVars,
       ...runtimeArgs,
-
       // Since the logic is a bit funky for computing this, include
       // it at the end to prevent overrides
       useCoT,
-    });
+    };
+
+    return await OpenAIClassifier(classifierArgs);
   };
   Object.defineProperty(ret, "name", {
     value: name,

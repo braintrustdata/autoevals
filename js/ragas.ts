@@ -103,7 +103,7 @@ import mustache from "mustache";
 
 import { Scorer, ScorerArgs } from "./score";
 import { LLMArgs } from "./llm";
-import { getDefaultModel } from "./oai";
+import { getDefaultModel, getDefaultEmbeddingModel } from "./oai";
 import { buildOpenAIClient, extractOpenAIArgs } from "./oai";
 import OpenAI from "openai";
 import { zodFunction } from "openai/helpers/zod";
@@ -381,10 +381,12 @@ export const ContextRecall: ScorerWithPartial<string, RagasArgs> = makePartial(
     return {
       name: "ContextRecall",
       score:
-        statements.statements.reduce(
-          (acc, { attributed }) => acc + attributed,
-          0,
-        ) / statements.statements.length,
+        statements.statements.length > 0
+          ? statements.statements.reduce(
+              (acc, { attributed }) => acc + attributed,
+              0,
+            ) / statements.statements.length
+          : 0,
       metadata: {
         statements: statements.statements,
       },
@@ -745,7 +747,7 @@ export const AnswerRelevancy: ScorerWithPartial<
         ...extractOpenAIArgs(args),
         output: question,
         expected: input,
-        model: args.embeddingModel,
+        model: args.embeddingModel ?? getDefaultEmbeddingModel(),
       });
       return { question, score };
     }),
@@ -958,8 +960,10 @@ function parseArgs(args: ScorerArgs<string, RagasArgs>): {
     "messages"
   > = {
     model: args.model ?? getDefaultModel(),
-    temperature: args.temperature ?? 0,
   };
+  if (args.temperature !== undefined) {
+    chatArgs.temperature = args.temperature;
+  }
   if (args.maxTokens) {
     chatArgs.max_tokens = args.maxTokens;
   }

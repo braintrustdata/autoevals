@@ -4,6 +4,7 @@ import {
   ChatCompletionTool,
   ChatCompletionToolChoiceOption,
 } from "openai/resources";
+import { ReasoningEffort } from "openai/resources/shared";
 import { AzureOpenAI, OpenAI } from "openai";
 
 export interface CachedLLMParams {
@@ -17,6 +18,13 @@ export interface CachedLLMParams {
   tool_choice?: ChatCompletionToolChoiceOption;
   temperature?: number;
   max_tokens?: number;
+  reasoning_effort?: ReasoningEffort;
+  /**
+   * Force the request to use the Responses API, even when the model name does
+   * not start with "gpt-5". Useful for proxy/internal setups that serve a
+   * Responses-only model under a name that doesn't match {@link isGPT5Model}.
+   */
+  use_responses_api?: boolean;
   span_info?: {
     spanAttributes?: Record<string, string>;
   };
@@ -125,9 +133,15 @@ const resolveOpenAIClient = (options: OpenAIAuth): OpenAI => {
   });
 };
 
-const isWrapped = (client: OpenAI): boolean => {
+const isWrapped = (
+  client: OpenAI,
+  dangerouslyAllowBrowser?: boolean,
+): boolean => {
   const Constructor = Object.getPrototypeOf(client).constructor;
-  const clean = new Constructor({ apiKey: "dummy" });
+  const clean = new Constructor({
+    apiKey: "dummy",
+    dangerouslyAllowBrowser,
+  });
   return (
     String(client.chat.completions.create) !==
     String(clean.chat.completions.create)
@@ -137,8 +151,16 @@ const isWrapped = (client: OpenAI): boolean => {
 export function buildOpenAIClient(options: OpenAIAuth): OpenAI {
   const client = resolveOpenAIClient(options);
 
+  // Extract from deprecated options or client instance
+  const dangerouslyAllowBrowser =
+    options.openAiDangerouslyAllowBrowser ??
+    (client as any)._options?.dangerouslyAllowBrowser;
+
   // avoid re-wrapping if the client is already wrapped (proxied)
-  if (globalThis.__inherited_braintrust_wrap_openai && !isWrapped(client)) {
+  if (
+    globalThis.__inherited_braintrust_wrap_openai &&
+    !isWrapped(client, dangerouslyAllowBrowser)
+  ) {
     return globalThis.__inherited_braintrust_wrap_openai(client);
   }
 
@@ -150,6 +172,7 @@ declare global {
   var __inherited_braintrust_wrap_openai: ((openai: any) => any) | undefined;
   var __client: OpenAI | undefined;
   var __defaultModel: string | undefined;
+  var __defaultEmbeddingModel: string | undefined;
 }
 
 export interface InitOptions {
@@ -160,17 +183,57 @@ export interface InitOptions {
    */
   client?: OpenAI;
   /**
-   * The default model to use for evaluations when not specified per-call.
-   * Defaults to "gpt-4o" if not set.
+   * The default model(s) to use for evaluations when not specified per-call.
+   *
+   * Can be either:
+   * - A string (for backward compatibility): Sets the default completion model only.
+   *   Defaults to "gpt-5-mini" if not set.
+   * - An object with `completion` and/or `embedding` properties: Allows setting
+   *   default models for different evaluation types. Only the specified models
+   *   are updated; others remain unchanged.
    *
    * When using non-OpenAI providers via the Braintrust proxy, set this to
    * the appropriate model string (e.g., "claude-3-5-sonnet-20241022").
+   *
+   * @example
+   * // String form (backward compatible)
+   * init({ defaultModel: "gpt-4-turbo" })
+   *
+   * @example
+   * // Object form: set both models
+   * init({
+   *   defaultModel: {
+   *     completion: "claude-3-5-sonnet-20241022",
+   *     embedding: "text-embedding-3-large"
+   *   }
+   * })
+   *
+   * @example
+   * // Object form: set only embedding model
+   * init({
+   *   defaultModel: {
+   *     embedding: "text-embedding-3-large"
+   *   }
+   * })
    */
-  defaultModel?: string;
+  defaultModel?:
+    | string
+    | {
+        /**
+         * Default model for LLM-as-a-judge evaluations (completion).
+         * Defaults to "gpt-5-mini" if not set.
+         */
+        completion?: string;
+        /**
+         * Default model for embedding-based evaluations.
+         * Defaults to "text-embedding-ada-002" if not set.
+         */
+        embedding?: string;
+      };
 }
 
 /**
- * Initialize autoevals with a custom client and/or default model.
+ * Initialize autoevals with a custom client and/or default models.
  *
  * @example
  * // Using with OpenAI (default)
@@ -189,20 +252,63 @@ export interface InitOptions {
  *     apiKey: process.env.BRAINTRUST_API_KEY,
  *     baseURL: "https://api.braintrust.dev/v1/proxy",
  *   }),
- *   defaultModel: "claude-3-5-sonnet-20241022",
+ *   defaultModel: {
+ *     completion: "claude-3-5-sonnet-20241022",
+ *     embedding: "text-embedding-3-large",
+ *   },
  * });
+ *
+ * @example
+ * // String form (backward compatible)
+ * init({ defaultModel: "gpt-4-turbo" });
  */
 export const init = ({ client, defaultModel }: InitOptions = {}) => {
   globalThis.__client = client;
-  globalThis.__defaultModel = defaultModel;
+  if (typeof defaultModel === "string") {
+    // String form: sets completion model only, resets embedding to default
+    globalThis.__defaultModel = defaultModel;
+    globalThis.__defaultEmbeddingModel = undefined;
+  } else if (defaultModel) {
+    // Object form: only update models that are explicitly provided
+    if ("completion" in defaultModel) {
+      globalThis.__defaultModel = defaultModel.completion;
+    }
+    if ("embedding" in defaultModel) {
+      globalThis.__defaultEmbeddingModel = defaultModel.embedding;
+    }
+  } else {
+    // No defaultModel: reset both to defaults
+    globalThis.__defaultModel = undefined;
+    globalThis.__defaultEmbeddingModel = undefined;
+  }
 };
 
 /**
- * Get the configured default model, or "gpt-4o" if not set.
+ * Get the configured default completion model, or "gpt-5-mini" if not set.
  */
 export const getDefaultModel = (): string => {
-  return globalThis.__defaultModel ?? "gpt-4o";
+  return globalThis.__defaultModel ?? "gpt-5-mini";
 };
+
+/**
+ * Get the configured default embedding model, or "text-embedding-ada-002" if not set.
+ */
+export const getDefaultEmbeddingModel = (): string => {
+  return globalThis.__defaultEmbeddingModel ?? "text-embedding-ada-002";
+};
+
+function isGPT5Model(model: string): boolean {
+  return model.startsWith("gpt-5");
+}
+
+/**
+ * Whether to route the request through the Responses API. GPT-5 models require
+ * it, and callers can force it via `useResponsesApi` for proxy/internal setups
+ * that serve a Responses-only model under a name that doesn't start with "gpt-5".
+ */
+function isForcedResponsesMode(params: CachedLLMParams): boolean {
+  return isGPT5Model(params.model) || params.use_responses_api === true;
+}
 
 export async function cachedChatCompletion(
   params: CachedLLMParams,
@@ -210,17 +316,125 @@ export async function cachedChatCompletion(
 ): Promise<ChatCompletion> {
   const openai = buildOpenAIClient(options);
 
+  // Strip use_responses_api so it is never forwarded to either API.
+  const { use_responses_api: _useResponsesApi, ...completionParams } = params;
+
   const fullParams = globalThis.__inherited_braintrust_wrap_openai
     ? {
-        ...params,
+        ...completionParams,
         span_info: {
           spanAttributes: {
-            ...params.span_info?.spanAttributes,
+            ...completionParams.span_info?.spanAttributes,
             purpose: "scorer",
           },
         },
       }
-    : params;
+    : completionParams;
+
+  // GPT-5 models require the Responses API; callers may also force it.
+  if (isForcedResponsesMode(params)) {
+    // Convert Chat Completions API params to Responses API params
+    const responsesParams: any = {
+      model: fullParams.model,
+      input: fullParams.messages,
+    };
+
+    if (fullParams.tools) {
+      // Transform tools from Chat Completions format to Responses API format
+      // Chat Completions: { type: "function", function: { name, description, parameters } }
+      // Responses API: { type: "function", name, description, parameters } (flattened)
+      responsesParams.tools = fullParams.tools.map((tool) => {
+        if (tool.type === "function") {
+          return {
+            type: "function",
+            name: tool.function.name,
+            description: tool.function.description,
+            parameters: tool.function.parameters,
+          };
+        }
+        return tool;
+      });
+    }
+    if (fullParams.tool_choice) {
+      // Transform tool_choice format
+      // Chat Completions API: { type: "function", function: { name: "..." } }
+      // Responses API only accepts: "none", "auto", or "required"
+      if (
+        typeof fullParams.tool_choice === "object" &&
+        fullParams.tool_choice.type === "function"
+      ) {
+        // Force the model to call a tool (equivalent to specifying a specific function)
+        responsesParams.tool_choice = "required";
+      } else if (
+        fullParams.tool_choice === "auto" ||
+        fullParams.tool_choice === "none"
+      ) {
+        responsesParams.tool_choice = fullParams.tool_choice;
+      } else {
+        // Default to required for other cases
+        responsesParams.tool_choice = "required";
+      }
+    }
+    if (fullParams.temperature !== undefined) {
+      responsesParams.temperature = fullParams.temperature;
+    }
+    // Note: max_tokens is not supported by Responses API
+    if (fullParams.reasoning_effort) {
+      // The Responses API nests this under reasoning.effort, unlike Chat Completions.
+      responsesParams.reasoning = { effort: fullParams.reasoning_effort };
+    }
+    const response: any = await openai.responses.create(responsesParams);
+
+    // Convert Responses API response to Chat Completions format for compatibility
+    // Responses API returns { output: [...], ... } with separate items for text and tool calls
+    // Extract text content and tool calls from output array
+    let content = null;
+    const tool_calls: any[] = [];
+
+    if (response.output && Array.isArray(response.output)) {
+      for (const item of response.output) {
+        if (item.type === "output_text" || item.type === "text") {
+          content = item.content || item.text;
+        } else if (
+          item.type === "function_call" ||
+          item.type === "custom_tool_call"
+        ) {
+          // Convert Responses API tool call format to Chat Completions format
+          // Responses API uses 'arguments' directly, not 'input'
+          tool_calls.push({
+            id: item.call_id,
+            type: "function",
+            function: {
+              name: item.name,
+              arguments: item.arguments,
+            },
+          });
+        }
+      }
+    }
+
+    const chatCompletion: ChatCompletion = {
+      id: response.id,
+      object: "chat.completion",
+      created: response.created || Math.floor(Date.now() / 1000),
+      model: response.model,
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content,
+            tool_calls: tool_calls.length > 0 ? tool_calls : undefined,
+            refusal: null,
+          },
+          finish_reason: response.stop_reason || "stop",
+          logprobs: null,
+        },
+      ],
+    };
+
+    return chatCompletion;
+  }
 
   return await openai.chat.completions.create(fullParams);
 }

@@ -1,0 +1,66 @@
+name: publish
+
+concurrency:
+  group: publish-${{ inputs.release_type }}-${{ inputs.branch }}
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Release type
+        required: true
+        default: stable
+        type: choice
+        options:
+          - stable
+          - prerelease
+      branch:
+        description: Branch to publish from
+        required: true
+        default: main
+        type: string
+
+jobs:
+  dispatch-package-publishes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch JS and Python publish workflows
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+          PRERELEASE_SUFFIX: ${{ github.run_number }}
+          WORKFLOW_REF: main
+        with:
+          script: |
+            const workflows = ["publish-js.yaml", "publish-py.yaml"];
+            for (const workflow_id of workflows) {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id,
+                ref: process.env.WORKFLOW_REF,
+                inputs: {
+                  release_type: process.env.RELEASE_TYPE,
+                  branch: process.env.TARGET_BRANCH,
+                  prerelease_suffix: process.env.PRERELEASE_SUFFIX,
+                },
+              });
+            }
+
+      - name: Summarize dispatch
+        run: |
+          {
+            echo "## Package publishes queued"
+            echo
+            echo "- Workflows: \`publish-js.yaml\`, \`publish-py.yaml\`"
+            echo "- Release type: \`${{ inputs.release_type }}\`"
+            echo "- Branch: \`${{ inputs.branch }}\`"
+            if [ "${{ inputs.release_type }}" = "prerelease" ]; then
+              echo "- Shared prerelease suffix: \`${{ github.run_number }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

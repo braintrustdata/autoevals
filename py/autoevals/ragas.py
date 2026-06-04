@@ -17,7 +17,7 @@ These metrics are ported from the RAGAS project with some enhancements.
 
 **Common arguments**:
 
-    - `model`: Model to use for evaluation, defaults to the model configured via init(default_model=...) or "gpt-4o"
+    - `model`: Model to use for evaluation, defaults to the model configured via init(default_model=...) or "gpt-5-mini"
     - `client`: Optional Client for API calls. If not provided, uses global client from init()
 
 **Example - Direct usage**:
@@ -113,7 +113,14 @@ import chevron
 from . import Score
 from .list import ListContains
 from .llm import OpenAILLMScorer
-from .oai import Client, _default_model_var, arun_cached_request, get_default_model, run_cached_request
+from .oai import (
+    Client,
+    _default_model_var,
+    arun_cached_request,
+    get_default_embedding_model,
+    get_default_model,
+    run_cached_request,
+)
 from .string import EmbeddingSimilarity
 
 
@@ -124,8 +131,8 @@ def check_required(name, **kwargs):
 
 
 # Deprecated: Use init(default_model="...") to configure the default model instead.
-# This was previously "gpt-4o-mini" but now defaults to the configured model.
-DEFAULT_RAGAS_MODEL = "gpt-4o-mini"
+# This was previously "gpt-5-nano" but now defaults to the configured model.
+DEFAULT_RAGAS_MODEL = "gpt-5-nano"
 
 
 def _get_model(model: str | None) -> str:
@@ -138,7 +145,7 @@ def _get_model(model: str | None) -> str:
         return model
 
     # Check if user configured a custom default via init(default_model=...)
-    # If they did (even if it's "gpt-4o"), respect it for consistency
+    # If they did (even if it's "gpt-5-mini"), respect it for consistency
     configured_default = _default_model_var.get(None)
     if configured_default is not None:
         return configured_default
@@ -146,8 +153,6 @@ def _get_model(model: str | None) -> str:
     # Fall back to RAGAS-specific default when user hasn't configured anything
     return DEFAULT_RAGAS_MODEL
 
-
-DEFAULT_RAGAS_EMBEDDING_MODEL = "text-embedding-3-small"
 
 ENTITY_PROMPT = """Given a text, extract unique entities without repetition. Ensure you consider different forms or mentions of the same entity as a single entity.
 
@@ -559,7 +564,7 @@ class ContextRecall(OpenAILLMScorer):
 
         return Score(
             name=self._name(),
-            score=ones / total,
+            score=ones / total if total > 0 else 0,
             metadata={
                 "statements": statements,
                 "recall": statements,
@@ -1133,7 +1138,7 @@ class AnswerRelevancy(OpenAILLMScorer):
         model: str | None = None,
         strictness=3,
         temperature=0.5,
-        embedding_model=DEFAULT_RAGAS_EMBEDDING_MODEL,
+        embedding_model=None,
         client: Client | None = None,
         **kwargs,
     ):
@@ -1196,7 +1201,9 @@ class AnswerRelevancy(OpenAILLMScorer):
             for _ in range(self.strictness)
         ]
         similarity = [
-            EmbeddingSimilarity(client=self.client).eval(output=q["question"], expected=input, model=self.model)
+            EmbeddingSimilarity(client=self.client).eval(
+                output=q["question"], expected=input, model=self.embedding_model
+            )
             for q in questions
         ]
 
@@ -1234,7 +1241,7 @@ class AnswerSimilarity(OpenAILLMScorer):
     def __init__(
         self,
         pairwise_scorer=None,
-        model=DEFAULT_RAGAS_EMBEDDING_MODEL,
+        model=None,
         client: Client | None = None,
         **kwargs,
     ):
@@ -1388,7 +1395,7 @@ class AnswerCorrectness(OpenAILLMScorer):
 
         self.model = _get_model(model)
         self.answer_similarity = answer_similarity or AnswerSimilarity(
-            model=embedding_model if embedding_model is not None else DEFAULT_RAGAS_EMBEDDING_MODEL,
+            model=embedding_model,
             client=client,
         )
 

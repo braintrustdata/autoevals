@@ -1,0 +1,228 @@
+name: publish-py
+
+concurrency:
+  group: publish-py-${{ inputs.release_type }}-${{ inputs.branch }}
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Release type
+        required: true
+        default: stable
+        type: choice
+        options:
+          - stable
+          - prerelease
+      branch:
+        description: Branch to release from
+        required: true
+        default: main
+        type: string
+      prerelease_suffix:
+        description: Optional shared prerelease suffix
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.release_metadata.outputs.version }}
+      release_tag: ${{ steps.release_metadata.outputs.release_tag }}
+      branch: ${{ steps.release_metadata.outputs.branch }}
+      commit: ${{ steps.release_metadata.outputs.commit }}
+      release_type: ${{ steps.release_metadata.outputs.release_type }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 1
+          ref: ${{ inputs.branch }}
+
+      - name: Check version sync
+        run: python3 .github/scripts/check_version_sync.py
+
+      - name: Set up Python
+        uses: actions/setup-python@3542bca2639a428e1796aaa6a2ffef0c0f575566 # v3.1.4
+        with:
+          python-version: "3.12"
+
+      - name: Determine release metadata
+        id: release_metadata
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          TARGET_BRANCH: ${{ inputs.branch }}
+          PRERELEASE_SUFFIX: ${{ inputs.prerelease_suffix }}
+        run: |
+          set -euo pipefail
+
+          CURRENT_VERSION=$(python -c 'from pathlib import Path; ns = {}; exec(Path("py/autoevals/version.py").read_text(encoding="utf-8"), ns); print(ns["VERSION"])')
+          RELEASE_COMMIT=$(git rev-parse HEAD)
+
+          if [[ -z "${PRERELEASE_SUFFIX}" ]]; then
+            PRERELEASE_SUFFIX="${GITHUB_RUN_NUMBER}"
+          fi
+
+          echo "release_type=${RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "branch=${TARGET_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "commit=${RELEASE_COMMIT}" >> "$GITHUB_OUTPUT"
+
+          if [[ "$RELEASE_TYPE" == "stable" ]]; then
+            RELEASE_TAG="py-${CURRENT_VERSION}"
+
+            if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+              echo "Tag ${RELEASE_TAG} already exists on origin" >&2
+              exit 1
+            fi
+
+            echo "version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          else
+            VERSION="${CURRENT_VERSION}rc${PRERELEASE_SUFFIX}"
+
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "release_tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    needs: prepare-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      id-token: write # Required for PyPI trusted publishing
+    env:
+      PACKAGE_NAME: autoevals
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+      RELEASE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
+      RELEASE_TYPE: ${{ needs.prepare-release.outputs.release_type }}
+      TARGET_BRANCH: ${{ needs.prepare-release.outputs.branch }}
+      RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.prepare-release.outputs.branch }}
+
+      - name: Check version sync
+        run: python3 .github/scripts/check_version_sync.py
+
+      - name: Set up Python
+        uses: actions/setup-python@3542bca2639a428e1796aaa6a2ffef0c0f575566 # v3.1.4
+        with:
+          python-version: "3.12"
+
+      - name: Check PyPI version availability
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import os
+          import sys
+          import urllib.error
+          import urllib.request
+
+          package = os.environ["PACKAGE_NAME"]
+          version = os.environ["VERSION"]
+          url = f"https://pypi.org/pypi/{package}/{version}/json"
+
+          try:
+              urllib.request.urlopen(url)
+          except urllib.error.HTTPError as exc:
+              if exc.code == 404:
+                  raise SystemExit(0)
+              raise
+          except urllib.error.URLError as exc:
+              print(f"Failed to query PyPI: {exc}", file=sys.stderr)
+              raise
+          else:
+              print(f"{package}=={version} already exists on PyPI", file=sys.stderr)
+              raise SystemExit(1)
+          PY
+
+      - name: Install build dependencies
+        run: python -m pip install --upgrade pip build twine
+
+      - name: Prepare prerelease package metadata
+        if: ${{ env.RELEASE_TYPE == 'prerelease' }}
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("py/autoevals/version.py")
+          text = path.read_text(encoding="utf-8")
+          new_text, count = re.subn(
+              r'^VERSION\s*=\s*["\'][^"\']+["\']\s*$',
+              f'VERSION = "{os.environ["VERSION"]}"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit("Could not update py/autoevals/version.py for prerelease publish")
+          path.write_text(new_text + ("" if new_text.endswith("\n") else "\n"), encoding="utf-8")
+          PY
+
+      - name: Build package
+        run: python -m build
+
+      - name: Verify package metadata
+        run: python -m twine check dist/*
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # release/v1
+        with:
+          packages-dir: dist/
+
+      - name: Create and push stable release tag
+        if: ${{ env.RELEASE_TYPE == 'stable' }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${RELEASE_TAG}" "${RELEASE_COMMIT}"
+          git push origin "${RELEASE_TAG}"
+
+      - name: Create GitHub release
+        if: ${{ env.RELEASE_TYPE == 'stable' }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          VERSION: ${{ env.VERSION }}
+        with:
+          script: |
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: process.env.RELEASE_TAG,
+              name: `autoevals Python v${process.env.VERSION}`,
+              draft: false,
+              prerelease: false,
+              generate_release_notes: true,
+            });
+
+      - name: Summarize release
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## PyPI publish complete"
+            echo
+            echo "- Package: \`${PACKAGE_NAME}\`"
+            echo "- Version: \`${VERSION}\`"
+            echo "- Release type: \`${RELEASE_TYPE}\`"
+            if [ "${RELEASE_TYPE}" = "prerelease" ]; then
+              echo "- Install: \`pip install --pre ${PACKAGE_NAME}\`"
+            else
+              echo "- Git tag: \`${RELEASE_TAG}\`"
+              echo "- Install: \`pip install ${PACKAGE_NAME}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

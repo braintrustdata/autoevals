@@ -1,0 +1,17 @@
+name: Enforce pnpm
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  reject-npm-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Reject npm lockfiles
+        run: |
+          if git ls-files | grep -E '(^|/)package-lock\.json$'; then
+            echo "Remove package-lock.json and use pnpm."
+            exit 1
+          fi

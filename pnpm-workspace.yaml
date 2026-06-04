@@ -6,3 +6,11 @@ ignoredBuiltDependencies:
   - duckdb
   - esbuild
   - msw
+
+strictDepBuilds: true
+blockExoticSubdeps: true
+trustPolicy: no-downgrade
+# Ignore the check for packages published more than 30 days ago (pnpm 10.27+)
+# Useful for older packages that pre-date provenance support
+trustPolicyIgnoreAfter: 43200 # minutes (30 days)
+minimumReleaseAge: 20160 # 2 weeks (in minutes)

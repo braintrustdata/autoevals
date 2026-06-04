@@ -134,4 +134,5 @@ from .oai import get_default_model, init
 from .ragas import *
 from .score import Score, Scorer, SerializableDataClass
 from .string import *
+from .thread_utils import *
 from .value import ExactMatch

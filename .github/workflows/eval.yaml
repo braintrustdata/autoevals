@@ -1,10 +1,15 @@
 name: Run pnpm evals
 
 on:
-  push:
+  pull_request:
     # Uncomment to run only when files in the 'evals' directory change
-    # - paths:
-    #     - "evals/**"
+    # paths:
+    #   - "evals/**"
+  push:
+    branches: [main]
+    # Uncomment to run only when files in the 'evals' directory change
+    # paths:
+    #   - "evals/**"
 
 permissions:
   pull-requests: write

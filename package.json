@@ -48,7 +48,8 @@
     "typedoc": "^0.25.13",
     "typedoc-plugin-markdown": "^3.17.1",
     "typescript": "^5.9.2",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "zod": "^3.25.34"
   },
   "dependencies": {
     "ajv": "^8.17.1",
@@ -58,8 +59,10 @@
     "linear-sum-assignment": "^1.0.7",
     "mustache": "^4.2.0",
     "openai": "^6.3.0",
-    "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.6"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.34 || ^4.0"
   },
   "packageManager": "pnpm@10.33.0"
 }

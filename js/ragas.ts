@@ -109,7 +109,7 @@ import OpenAI from "openai";
 import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod";
-import zodToJsonSchema from "zod-to-json-schema";
+import { zodToJsonSchema } from "./zod-utils";
 import { makePartial, ScorerWithPartial } from "./partial";
 
 type RagasArgs = {

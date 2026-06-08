@@ -12,15 +12,15 @@ py: ${VENV_PYTHON_PACKAGES}
 VENV_INITIALIZED := venv/.initialized
 
 ${VENV_INITIALIZED}:
-	rm -rf venv && python3 -m venv venv
+	rm -rf venv && uv venv venv
 	@touch ${VENV_INITIALIZED}
 
 VENV_PYTHON_PACKAGES := venv/.python_packages
 
 ${VENV_PYTHON_PACKAGES}: ${VENV_INITIALIZED}
-	bash -c 'source venv/bin/activate && python -m pip install --upgrade pip setuptools build twine openai'
-	bash -c 'source venv/bin/activate && python -m pip install -e ".[dev]"'
-	bash -c 'source venv/bin/activate && python -m pip install -e ".[scipy]"'  # for local tests
+	uv pip install --python venv/bin/python --upgrade setuptools build twine openai
+	uv pip install --python venv/bin/python -e ".[dev]"
+	uv pip install --python venv/bin/python -e ".[scipy]"  # for local tests
 	@touch $@
 
 ${VENV_PRE_COMMIT}: ${VENV_PYTHON_PACKAGES}

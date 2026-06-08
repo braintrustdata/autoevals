@@ -27,40 +27,30 @@ Homepage = "https://www.braintrustdata.com"
 
 [project.optional-dependencies]
 dev = [
+  # Formatting and linting
   "black==22.6.0",
-  "braintrust",
-  "build",
   "flake8",
   "flake8-isort",
-  "ipython",
   "isort==5.12.0",
-  "openai",
   "pre-commit",
-  "pytest",
-  "respx",
+
+  # Build and release tooling
+  "build",
   "twine",
+
+  # Development and test tooling
+  "braintrust",
+  "ipython",
+  "openai",
+  "pytest",
+  "pytest-asyncio",
+  "pytest-mock",
+  "respx",
 ]
 doc = ["pydoc-markdown"]
 scipy = ["numpy", "scipy"]
 litellm = ["litellm>=1.60,<1.85"]
-all = [
-  "black==22.6.0",
-  "braintrust",
-  "build",
-  "flake8",
-  "flake8-isort",
-  "ipython",
-  "isort==5.12.0",
-  "litellm>=1.60,<1.85",
-  "numpy",
-  "openai",
-  "pre-commit",
-  "pydoc-markdown",
-  "pytest",
-  "respx",
-  "scipy",
-  "twine",
-]
+all = ["autoevals[dev,doc,litellm,scipy]"]
 
 [tool.setuptools]
 package-dir = { "" = "py" }

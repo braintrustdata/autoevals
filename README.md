@@ -453,6 +453,23 @@ Nicolo also dropped this as a reference: http://spec.openapis.org/oas/v3.0.3#ope
 
 </div>
 
+## Score results
+
+Every scorer returns a small `Score` result object. This is the public surface
+consumers should read when they need to store, compare, or export evaluation
+results:
+
+- `name`: the scorer name
+- `score`: a number between 0 and 1, or `None` / `null` when the evaluation is skipped
+- `metadata`: optional scorer-specific details, such as rationale text or a
+  selected choice. Keys are scorer-specific; consumers should not assume
+  metadata keys are shared across scorer types.
+- `error`: deprecated and retained for backward compatibility; some scorers may
+  still populate it, but callers should primarily handle thrown exceptions
+
+Inputs, expected values, model prompts, and other runtime context are not part
+of the `Score` object. Keep those separately if your application needs them.
+
 ## Creating custom scorers
 
 You can also create your own scoring functions that do not use LLMs. For example, to test whether the word `'banana'`

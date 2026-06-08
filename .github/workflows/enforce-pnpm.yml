@@ -3,6 +3,7 @@ name: Enforce pnpm
 on:
   pull_request:
   push:
+    branches: [main]
 
 jobs:
   reject-npm-lockfile:

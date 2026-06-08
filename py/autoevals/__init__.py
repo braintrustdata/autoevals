@@ -127,6 +127,7 @@ See individual module documentation for detailed usage and options.
 
 from .json import *
 from .list import *
+from .litellm import AsyncLiteLLMClient, LiteLLMClient
 from .llm import *
 from .moderation import *
 from .number import *

@@ -194,9 +194,9 @@ python3 .github/scripts/check_version_sync.py
 pnpm install --frozen-lockfile
 pnpm run build
 npm publish --dry-run --access public
-python3 -m pip install --upgrade build twine
-python3 -m build
-python3 -m twine check dist/*
+uv sync --extra dev
+uv run python -m build
+uv run python -m twine check dist/*
 ```
 
 ## Historical releases and source mapping

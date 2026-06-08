@@ -13,12 +13,15 @@
   "license": "ISC",
   "dependencies": {
     "autoevals": "workspace:*",
-    "braintrust": "^0.0.140",
-    "zod": "^3.22.4"
+    "braintrust": "2.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
     "duckdb": "^1.0.0",
-    "tsx": "^3.14.0"
+    "tsx": "^3.14.0",
+    "zod": "3.25.67"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.0 || ^4.0.0"
   }
 }

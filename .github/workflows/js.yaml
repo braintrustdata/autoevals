@@ -7,11 +7,15 @@ on:
 
 jobs:
   build:
+    name: node ${{ matrix.node-version }} / zod ${{ matrix.zod }}
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         node-version: [20.x, 22.x, 24.x]
+        # zod is a peerDependency ("^3.25.0 || ^4.0.0"); test both majors.
+        zod: ["3", "4"]
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -25,6 +29,14 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The lockfile pins zod 3, so override across the whole tree
+      - name: Force zod 4
+        if: matrix.zod == '4'
+        run: |
+          printf '\noverrides:\n  zod: ^4\n' >> pnpm-workspace.yaml
+          pnpm install --no-frozen-lockfile
+      - name: Verify resolved zod major
+        run: node -e "const v=require('zod/package.json').version; console.log('zod', v); if (!v.startsWith('${{ matrix.zod }}.')) { console.error('expected zod ${{ matrix.zod }}.x'); process.exit(1); }"
       - run: pnpm run test
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

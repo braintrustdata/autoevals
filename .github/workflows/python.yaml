@@ -27,16 +27,13 @@ jobs:
         with:
           enable-cache: true
       - name: Install dependencies
-        run: |
-          uv pip install --system --upgrade setuptools build twine openai
-          uv pip install --system -e .[all]
+        run: uv sync --all-extras
       - name: Build package
-        run: python -m build
+        run: uv run --all-extras python -m build
       - name: Check package metadata
-        run: python -m twine check dist/*
+        run: uv run --all-extras python -m twine check dist/*
       - name: Test with pytest
-        run: |
-          pytest
+        run: uv run --all-extras pytest
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}

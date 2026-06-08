@@ -1,3 +1,77 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoevals"
+dynamic = ["version"]
+description = "Universal library for evaluating AI models"
+readme = "README.md"
+requires-python = ">=3.10.0"
+authors = [{ name = "BrainTrust", email = "info@braintrustdata.com" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "chevron",
+  "jsonschema",
+  "polyleven",
+  "pyyaml",
+]
+
+[project.urls]
+Homepage = "https://www.braintrustdata.com"
+"Bug Tracker" = "https://github.com/braintrustdata/autoevals"
+
+[project.optional-dependencies]
+dev = [
+  "black==22.6.0",
+  "braintrust",
+  "build",
+  "flake8",
+  "flake8-isort",
+  "ipython",
+  "isort==5.12.0",
+  "openai",
+  "pre-commit",
+  "pytest",
+  "respx",
+  "twine",
+]
+doc = ["pydoc-markdown"]
+scipy = ["numpy", "scipy"]
+litellm = ["litellm>=1.60,<1.85"]
+all = [
+  "black==22.6.0",
+  "braintrust",
+  "build",
+  "flake8",
+  "flake8-isort",
+  "ipython",
+  "isort==5.12.0",
+  "litellm>=1.60,<1.85",
+  "numpy",
+  "openai",
+  "pre-commit",
+  "pydoc-markdown",
+  "pytest",
+  "respx",
+  "scipy",
+  "twine",
+]
+
+[tool.setuptools]
+package-dir = { "" = "py" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["py"]
+
+[tool.setuptools.dynamic]
+version = { attr = "autoevals.version.VERSION" }
+
 [tool.black]
 line-length = 119
 

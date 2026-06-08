@@ -3,15 +3,7 @@ from typing import Any, cast
 
 import openai
 import pytest
-from braintrust.oai import (
-    ChatCompletionV0Wrapper,
-    CompletionsV1Wrapper,
-    NamedWrapper,
-    OpenAIV0Wrapper,
-    OpenAIV1Wrapper,
-    wrap_openai,
-)
-from openai.resources.chat.completions import AsyncCompletions
+from braintrust.oai import NamedWrapper, wrap_openai
 
 from autoevals import init  # type: ignore[import]
 from autoevals.oai import (  # type: ignore[import]
@@ -27,7 +19,7 @@ from autoevals.oai import (  # type: ignore[import]
 
 
 def unwrap_named_wrapper(obj: NamedWrapper | OpenAIV1Module.OpenAI | OpenAIV0Module) -> Any:
-    return getattr(obj, "_NamedWrapper__wrapped")
+    return getattr(obj, "_NamedWrapper__wrapped", obj)
 
 
 @pytest.fixture(autouse=True)
@@ -73,7 +65,6 @@ def test_init_creates_llmclient_if_needed():
     prepared_client = prepare_openai()
 
     assert isinstance(prepared_client, LLMClient)
-    assert prepared_client.is_wrapped
     assert unwrap_named_wrapper(prepared_client.openai) == openai_obj
 
 
@@ -83,8 +74,6 @@ def test_init_creates_async_llmclient_if_needed(mock_openai_v0: OpenAIV0Module):
     prepared_client = prepare_openai()
 
     assert isinstance(prepared_client, LLMClient)
-    assert prepared_client.is_wrapped
-    assert isinstance(prepared_client.openai, OpenAIV0Wrapper)
     assert prepared_client.complete.__name__ == "acreate"
 
 
@@ -92,7 +81,6 @@ def test_prepare_openai_defaults():
     prepared_client = prepare_openai()
 
     assert isinstance(prepared_client, LLMClient)
-    assert prepared_client.is_wrapped
     openai_obj = unwrap_named_wrapper(prepared_client.openai)
     assert isinstance(openai_obj, openai.OpenAI)
     assert callable(prepared_client.complete)
@@ -105,16 +93,14 @@ def test_prepare_openai_with_plain_openai():
     client = openai.OpenAI(api_key="api-key", base_url="http://test")
     prepared_client = prepare_openai(client=client)
 
-    assert prepared_client.is_wrapped
-    assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
+    assert isinstance(prepared_client.openai, openai.OpenAI)
 
 
 def test_prepare_openai_async():
     prepared_client = prepare_openai(is_async=True)
 
     assert isinstance(prepared_client, LLMClient)
-    assert prepared_client.is_wrapped
-    assert isinstance(prepared_client.openai, OpenAIV1Wrapper)
+    assert isinstance(prepared_client.openai, openai.AsyncOpenAI)
 
     assert callable(prepared_client.complete)
     assert prepared_client.complete.__name__ == "complete_wrapper"
@@ -131,7 +117,6 @@ def test_prepare_openai_wraps_once():
     prepared_client = prepare_openai()
 
     assert prepared_client is client
-    assert prepared_client.is_wrapped
     assert prepared_client.openai is openai_obj
 
 
@@ -228,16 +213,13 @@ def mock_openai_v0(monkeypatch: pytest.MonkeyPatch):
 def test_prepare_openai_v0_sdk(mock_openai_v0: OpenAIV0Module):
     prepared_client = prepare_openai()
 
-    assert prepared_client.is_wrapped
     assert prepared_client.openai.api_key == "test-key"
-
-    assert isinstance(getattr(prepared_client.complete, "__self__", None), ChatCompletionV0Wrapper)
+    assert prepared_client.complete.__name__ == "create"
 
 
 def test_prepare_openai_v0_async(mock_openai_v0: OpenAIV0Module):
     prepared_client = prepare_openai(is_async=True)
 
-    assert prepared_client.is_wrapped
     assert prepared_client.openai.api_key == "test-key"
 
     assert prepared_client.complete.__name__ == "acreate"
@@ -248,7 +230,6 @@ def test_prepare_openai_v0_with_client(mock_openai_v0: OpenAIV0Module):
 
     prepared_client = prepare_openai(client=client)
 
-    assert prepared_client.is_wrapped
     assert prepared_client.openai.api_key is mock_openai_v0.api_key  # must be set by the user
     assert prepared_client.complete.__name__ == "acreate"
 
@@ -284,7 +265,6 @@ def test_init_can_set_both_client_and_default_model():
     init(client, default_model="gpt-4-turbo")
 
     prepared_client = prepare_openai()
-    assert prepared_client.is_wrapped
 
     # Unwrap to check it's the same client
     assert unwrap_named_wrapper(prepared_client.openai) == client

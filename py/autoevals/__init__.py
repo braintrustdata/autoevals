@@ -15,7 +15,7 @@ This library provides a collection of specialized scorers for different types of
 - Both sync and async evaluation support
 - Configurable scoring parameters
 - Detailed feedback through metadata
-- Integration with OpenAI and other LLM providers through Braintrust AI Proxy
+- Integration with OpenAI and other LLM providers through the Braintrust Gateway
 
 **Client setup**:
 
@@ -43,10 +43,10 @@ client = AsyncOpenAI()
 evaluator = ClosedQA(client=client)
 ```
 
-**Multi-provider support via the Braintrust AI Proxy**:
+**Multi-provider support via the Braintrust Gateway**:
 
-Autoevals supports multiple LLM providers (Anthropic, Azure, etc.) through the Braintrust AI Proxy.
-Configure your client to use the proxy and set the default model:
+Autoevals supports multiple LLM providers (Anthropic, Azure, etc.) through the Braintrust Gateway.
+Configure your client to use the Gateway and set the default model:
 
 ```python
 import os
@@ -54,9 +54,9 @@ from openai import AsyncOpenAI
 from autoevals import init
 from autoevals.llm import Factuality
 
-# Configure client to use Braintrust AI Proxy with Claude
+# Configure client to use the Braintrust Gateway with Claude
 client = AsyncOpenAI(
-    base_url="https://api.braintrust.dev/v1/proxy",
+    base_url=os.getenv("BRAINTRUST_AI_GATEWAY_URL") or "https://gateway.braintrust.dev",
     api_key=os.getenv("BRAINTRUST_API_KEY"),
 )
 

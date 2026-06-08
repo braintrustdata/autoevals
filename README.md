@@ -101,24 +101,24 @@ import { Factuality } from "autoevals";
 
 ## Using other AI providers
 
-When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI compatible API. If `OPENAI_BASE_URL` is not set, it will default to the [AI proxy](https://www.braintrust.dev/docs/guides/proxy).
+When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI-compatible API. If `OPENAI_BASE_URL` is not set, it will look for a `BRAINTRUST_AI_GATEWAY_URL` environment variable and then default to the [Braintrust Gateway](https://www.braintrust.dev/docs/deploy/gateway).
 
-If you choose to use the proxy, you'll also get:
+When you use the Braintrust Gateway, you'll also get:
 
 - Simplified access to many AI providers
 - Reduced costs with automatic request caching
 - Increased observability when you enable logging to Braintrust
 
-The proxy is free to use, even if you don't have a Braintrust account.
+The Braintrust-hosted Gateway is free to use while it is in beta.
 
-If you have a Braintrust account, you can optionally set the `BRAINTRUST_API_KEY` environment variable instead of `OPENAI_API_KEY` to unlock additional features like logging and monitoring. You can also route requests to [supported AI providers and models](https://www.braintrust.dev/docs/guides/proxy#supported-models) or custom models you have configured in Braintrust.
+Set the `BRAINTRUST_API_KEY` environment variable to authenticate Gateway requests. You can also route requests to supported AI providers and models or custom models you have configured in Braintrust.
 
 <div className="tabs">
 
 ### Python
 
 ```python
-# NOTE: ensure BRAINTRUST_API_KEY is set in your environment and OPENAI_API_KEY is not set
+# NOTE: ensure BRAINTRUST_API_KEY is set in your environment
 from autoevals.llm import *
 
 # Create an LLM-based evaluator using the Claude 3.5 Sonnet model from Anthropic
@@ -139,7 +139,7 @@ print(f"Factuality metadata: {result.metadata['rationale']}")
 ### TypeScript
 
 ```typescript
-// NOTE: ensure BRAINTRUST_API_KEY is set in your environment and OPENAI_API_KEY is not set
+// NOTE: ensure BRAINTRUST_API_KEY is set in your environment
 import { Factuality } from "autoevals";
 
 (async () => {

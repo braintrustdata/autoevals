@@ -26,10 +26,14 @@ beforeAll(() => {
 
 let OPENAI_API_KEY: string | undefined;
 let OPENAI_BASE_URL: string | undefined;
+let BRAINTRUST_API_KEY: string | undefined;
+let BRAINTRUST_AI_GATEWAY_URL: string | undefined;
 
 beforeEach(() => {
   OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   OPENAI_BASE_URL = process.env.OPENAI_BASE_URL;
+  BRAINTRUST_API_KEY = process.env.BRAINTRUST_API_KEY;
+  BRAINTRUST_AI_GATEWAY_URL = process.env.BRAINTRUST_AI_GATEWAY_URL;
 });
 
 afterEach(() => {
@@ -37,6 +41,8 @@ afterEach(() => {
 
   process.env.OPENAI_API_KEY = OPENAI_API_KEY;
   process.env.OPENAI_BASE_URL = OPENAI_BASE_URL;
+  process.env.BRAINTRUST_API_KEY = BRAINTRUST_API_KEY;
+  process.env.BRAINTRUST_AI_GATEWAY_URL = BRAINTRUST_AI_GATEWAY_URL;
 
   // Reset init state
   init({ client: undefined, defaultModel: undefined });
@@ -120,13 +126,14 @@ describe("OAI", () => {
     );
   });
 
-  test("calls proxy if everything unset", async () => {
+  test("calls gateway if everything unset", async () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_BASE_URL;
+    delete process.env.BRAINTRUST_AI_GATEWAY_URL;
+    process.env.BRAINTRUST_API_KEY = "braintrust-test-key";
 
     server.use(
-      http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
-        debugger;
+      http.post("https://gateway.braintrust.dev/chat/completions", () => {
         return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
       }),
     );
@@ -137,7 +144,28 @@ describe("OAI", () => {
       messages: [{ role: "user", content: "Hello" }],
     });
 
-    debugger;
+    expect(response.choices[0].message.content).toBe(
+      "Hello, I am a mock response!",
+    );
+  });
+
+  test("uses configured Braintrust Gateway URL", async () => {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_BASE_URL;
+    process.env.BRAINTRUST_API_KEY = "braintrust-test-key";
+    process.env.BRAINTRUST_AI_GATEWAY_URL = "  https://gateway.example.com  ";
+
+    server.use(
+      http.post("https://gateway.example.com/chat/completions", () => {
+        return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
+      }),
+    );
+
+    const client = buildOpenAIClient({});
+    const response = await client.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: "Hello" }],
+    });
 
     expect(response.choices[0].message.content).toBe(
       "Hello, I am a mock response!",
@@ -147,9 +175,11 @@ describe("OAI", () => {
   test("default wraps", async () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_BASE_URL;
+    delete process.env.BRAINTRUST_AI_GATEWAY_URL;
+    process.env.BRAINTRUST_API_KEY = "braintrust-test-key";
 
     server.use(
-      http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
+      http.post("https://gateway.braintrust.dev/chat/completions", () => {
         return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
       }),
     );
@@ -173,9 +203,11 @@ describe("OAI", () => {
   test("wraps once", async () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_BASE_URL;
+    delete process.env.BRAINTRUST_AI_GATEWAY_URL;
+    process.env.BRAINTRUST_API_KEY = "braintrust-test-key";
 
     server.use(
-      http.post("https://api.braintrust.dev/v1/proxy/chat/completions", () => {
+      http.post("https://gateway.braintrust.dev/chat/completions", () => {
         return HttpResponse.json(MOCK_OPENAI_COMPLETION_RESPONSE);
       }),
     );

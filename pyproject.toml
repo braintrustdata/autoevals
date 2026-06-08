@@ -50,7 +50,7 @@ dev = [
 doc = ["pydoc-markdown"]
 scipy = ["numpy", "scipy"]
 litellm = ["litellm>=1.60,<1.85"]
-all = ["autoevals[dev,doc,litellm,scipy]"]
+all = ["autoevals[scipy]"]
 
 [tool.setuptools]
 package-dir = { "" = "py" }

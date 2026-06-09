@@ -146,10 +146,16 @@ jobs:
 
       - name: Publish stable release to npm
         if: ${{ env.RELEASE_TYPE == 'stable' }}
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
         run: npm publish --provenance --access public
 
       - name: Publish prerelease to npm
         if: ${{ env.RELEASE_TYPE == 'prerelease' }}
+        env:
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
         run: npm publish --tag rc --provenance --access public
 
       - name: Create and push stable release tag

@@ -14,6 +14,7 @@ from typing import Any
 
 THREAD_VARIABLE_NAMES = [
     "thread",
+    "thread_with_system",
     "thread_count",
     "first_message",
     "last_message",
@@ -245,8 +246,13 @@ def _to_renderable_message_array(messages: list[Any]) -> RenderableMessageArray:
     return RenderableMessageArray(wrapped)
 
 
-def compute_thread_template_vars(thread: list[Any]) -> dict[str, Any]:
+def compute_thread_template_vars(thread: list[Any], thread_with_system: list[Any] | None = None) -> dict[str, Any]:
     renderable_thread = _to_renderable_message_array(thread) if is_llm_message_array(thread) else thread
+    if thread_with_system is None:
+        thread_with_system = thread
+    renderable_thread_with_system = (
+        _to_renderable_message_array(thread_with_system) if is_llm_message_array(thread_with_system) else thread_with_system
+    )
 
     first_message = renderable_thread[0] if len(renderable_thread) > 0 else None
     last_message = renderable_thread[-1] if len(renderable_thread) > 0 else None
@@ -264,6 +270,7 @@ def compute_thread_template_vars(thread: list[Any]) -> dict[str, Any]:
 
     return {
         "thread": renderable_thread,
+        "thread_with_system": renderable_thread_with_system,
         "thread_count": len(thread),
         "first_message": first_message,
         "last_message": last_message,

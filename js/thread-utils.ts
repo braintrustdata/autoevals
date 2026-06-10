@@ -252,6 +252,7 @@ export function formatMessageArrayAsText(messages: LLMMessage[]): string {
  */
 export interface ThreadTemplateVars {
   thread: unknown[];
+  thread_with_system: unknown[];
   thread_count: number;
   first_message: unknown | null;
   last_message: unknown | null;
@@ -270,6 +271,7 @@ export interface ThreadTemplateVars {
  */
 export function computeThreadTemplateVars(
   thread: unknown[],
+  threadWithSystem: unknown[] = thread,
 ): ThreadTemplateVars {
   let _user_messages: unknown[] | undefined;
   let _assistant_messages: unknown[] | undefined;
@@ -279,6 +281,7 @@ export function computeThreadTemplateVars(
 
   return {
     thread,
+    thread_with_system: threadWithSystem,
     thread_count: thread.length,
 
     get first_message(): unknown | null {

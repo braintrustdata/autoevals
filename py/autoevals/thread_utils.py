@@ -251,7 +251,9 @@ def compute_thread_template_vars(thread: list[Any], thread_with_system: list[Any
     if thread_with_system is None:
         thread_with_system = thread
     renderable_thread_with_system = (
-        _to_renderable_message_array(thread_with_system) if is_llm_message_array(thread_with_system) else thread_with_system
+        _to_renderable_message_array(thread_with_system)
+        if is_llm_message_array(thread_with_system)
+        else thread_with_system
     )
 
     first_message = renderable_thread[0] if len(renderable_thread) > 0 else None

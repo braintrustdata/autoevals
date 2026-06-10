@@ -418,9 +418,8 @@ Issue Description: {{page_content}}
       throw new Error("Unexpected request input shape");
     }
 
-    const [filteredThread, fullThread] = firstInput.content.split(
-      "\n\nFull thread:\n",
-    );
+    const [filteredThread, fullThread] =
+      firstInput.content.split("\n\nFull thread:\n");
     expect(filteredThread).toContain("Hello");
     expect(filteredThread).toContain("Hi there");
     expect(filteredThread).not.toContain(systemMarker);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderMessages } from "./render-messages";
 import { ChatCompletionMessageParam } from "openai/resources";
+import { computeThreadTemplateVars } from "./thread-utils";
 
 describe("renderMessages", () => {
   it("should never HTML-escape values, regardless of mustache syntax", () => {
@@ -181,5 +182,43 @@ describe("renderMessages with thread variables", () => {
     expect(rendered[0].content).toContain("Hello with structured content");
     expect(rendered[0].content).toContain("Assistant:");
     expect(rendered[0].content).toContain("Simple response");
+  });
+
+  it("computeThreadTemplateVars can expose thread_with_system separately", () => {
+    const fullThread = [
+      { role: "system", content: "You are a helpful assistant." },
+      ...sampleThread,
+    ];
+
+    const renderedVars = computeThreadTemplateVars(sampleThread, fullThread);
+
+    expect(renderedVars.thread).toEqual(sampleThread);
+    expect(renderedVars.thread_with_system).toEqual(fullThread);
+    expect(renderedVars.thread_count).toBe(sampleThread.length);
+    expect(renderedVars.first_message).toEqual(sampleThread[0]);
+  });
+
+  it("{{thread_with_system}} renders full conversation and supports indexing", () => {
+    const fullThread = [
+      { role: "system", content: "You are a helpful assistant." },
+      ...sampleThread,
+    ];
+    const messages: ChatCompletionMessageParam[] = [
+      {
+        role: "user",
+        content:
+          "Full thread: {{thread_with_system}}\n\nFirst full: {{thread_with_system.0}}",
+      },
+    ];
+    const rendered = renderMessages(
+      messages,
+      computeThreadTemplateVars(sampleThread, fullThread),
+    );
+
+    expect(rendered[0].content).toContain("System:");
+    expect(rendered[0].content).toContain("You are a helpful assistant.");
+    expect(rendered[0].content).toContain(
+      "First full: system: You are a helpful assistant.",
+    );
   });
 });

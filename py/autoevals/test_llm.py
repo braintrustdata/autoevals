@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from autoevals import init
 from autoevals.llm import Battle, Factuality, LLMClassifier, OpenAILLMClassifier, build_classification_tools
 from autoevals.oai import OpenAIV1Module, get_default_model
-from autoevals.thread_utils import compute_thread_template_vars
+from autoevals.thread_utils import compute_thread_template_vars, template_uses_thread_variables
 
 
 class TestModel(BaseModel):
@@ -94,6 +94,87 @@ def test_render_messages_with_thread_variables():
     assert "Pairs:" in rendered[5]["content"]
     assert "human" in rendered[5]["content"]
     assert rendered[6]["content"].startswith("Messages:\n- user: Hello, how are you?")
+
+
+def test_thread_template_detection_and_split_thread_vars():
+    assert template_uses_thread_variables("{{thread_with_system}}")
+
+    full_thread = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello, how are you?"},
+        {"role": "assistant", "content": "I am doing well, thank you!"},
+    ]
+    filtered_thread = full_thread[1:]
+
+    thread_vars = compute_thread_template_vars(filtered_thread, full_thread)
+
+    assert len(thread_vars["thread"]) == 2
+    assert len(thread_vars["thread_with_system"]) == 3
+    assert str(thread_vars["thread"][0]) == "user: Hello, how are you?"
+    assert str(thread_vars["thread_with_system"][0]) == "system: You are a helpful assistant."
+    assert thread_vars["thread_count"] == 2
+
+
+class _FakeTrace:
+    def __init__(self, thread):
+        self._thread = thread
+
+    async def get_thread(self, options=None):
+        del options
+        return self._thread
+
+
+def test_llm_classifier_request_args_keep_thread_filtered_and_thread_with_system_unfiltered():
+    system_marker = "PY_AUTOEVALS_SYSTEM_MARKER"
+    trace = _FakeTrace(
+        [
+            {"role": "system", "content": system_marker},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+    )
+    classifier = LLMClassifier(
+        "test",
+        "Filtered thread:\n{{thread}}\n\nFull thread:\n{{thread_with_system}}",
+        {"Yes": 1, "No": 0},
+        use_cot=False,
+    )
+
+    request_args = classifier._request_args(output="", expected="", trace=trace)
+    rendered_prompt = request_args["messages"][0]["content"]
+
+    filtered_thread, full_thread = rendered_prompt.split("\n\nFull thread:\n", 1)
+    assert "Hello" in filtered_thread
+    assert "Hi there" in filtered_thread
+    assert system_marker not in filtered_thread
+    assert system_marker in full_thread
+
+
+@pytest.mark.asyncio
+async def test_llm_classifier_request_args_async_keep_thread_filtered_and_thread_with_system_unfiltered():
+    system_marker = "PY_AUTOEVALS_SYSTEM_MARKER_ASYNC"
+    trace = _FakeTrace(
+        [
+            {"role": "system", "content": system_marker},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+    )
+    classifier = LLMClassifier(
+        "test",
+        "Filtered thread:\n{{thread}}\n\nFull thread:\n{{thread_with_system}}",
+        {"Yes": 1, "No": 0},
+        use_cot=False,
+    )
+
+    request_args = await classifier._request_args_async(output="", expected="", trace=trace)
+    rendered_prompt = request_args["messages"][0]["content"]
+
+    filtered_thread, full_thread = rendered_prompt.split("\n\nFull thread:\n", 1)
+    assert "Hello" in filtered_thread
+    assert "Hi there" in filtered_thread
+    assert system_marker not in filtered_thread
+    assert system_marker in full_thread
 
 
 def test_openai():

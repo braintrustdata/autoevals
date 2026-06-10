@@ -30,6 +30,7 @@ export interface TraceForScorer {
 // Thread-related template variable names that require preprocessor invocation
 export const THREAD_VARIABLE_NAMES = [
   "thread",
+  "thread_with_system",
   "thread_count",
   "first_message",
   "last_message",
@@ -335,7 +336,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     if (runtimeArgs.trace && templateUsesThreadVariables(promptTemplate)) {
       const thread = await runtimeArgs.trace.getThread();
       const scorerThread = filterSystemMessagesFromThread(thread);
-      const computed = computeThreadTemplateVars(scorerThread);
+      const computed = computeThreadTemplateVars(scorerThread, thread);
       // Build threadVars from THREAD_VARIABLE_NAMES to keep in sync with the pattern
       for (const name of THREAD_VARIABLE_NAMES) {
         threadVars[name] = computed[name as keyof ThreadTemplateVars];

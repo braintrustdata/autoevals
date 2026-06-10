@@ -434,7 +434,7 @@ class LLMClassifier(OpenAILLMClassifier):
         if not isinstance(thread, list):
             thread = list(thread)
 
-        computed = compute_thread_template_vars(filter_system_messages_from_thread(thread))
+        computed = compute_thread_template_vars(filter_system_messages_from_thread(thread), thread)
         return {name: computed[name] for name in self._thread_variable_names}
 
     async def _compute_thread_vars_async(self, trace) -> dict[str, object]:
@@ -450,7 +450,7 @@ class LLMClassifier(OpenAILLMClassifier):
         if not isinstance(thread, list):
             thread = list(thread)
 
-        computed = compute_thread_template_vars(filter_system_messages_from_thread(thread))
+        computed = compute_thread_template_vars(filter_system_messages_from_thread(thread), thread)
         return {name: computed[name] for name in self._thread_variable_names}
 
     def _request_args(self, output, expected, **kwargs):

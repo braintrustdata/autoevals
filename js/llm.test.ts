@@ -8,6 +8,7 @@ import {
   buildClassificationTools,
   LLMClassifierFromTemplate,
   OpenAIClassifier,
+  templateUsesThreadVariables,
 } from "../js/llm";
 import {
   openaiClassifierShouldEvaluateArithmeticExpressions,
@@ -64,6 +65,15 @@ afterAll(() => {
 });
 
 describe("LLM Tests", () => {
+  test("templateUsesThreadVariables recognizes thread_with_system", () => {
+    expect(templateUsesThreadVariables("{{thread_with_system}}")).toBe(true);
+    expect(
+      templateUsesThreadVariables(
+        "Full thread: {{thread_with_system.0.content}}",
+      ),
+    ).toBe(true);
+  });
+
   test("openai classifier should evaluate titles", async () => {
     let callCount = -1;
     server.use(
@@ -340,6 +350,80 @@ Issue Description: {{page_content}}
     // The Responses API nests reasoning effort under reasoning.effort.
     expect(capturedRequestBody.reasoning).toEqual({ effort: "medium" });
     expect(capturedRequestBody.reasoning_effort).toBeUndefined();
+  });
+
+  test("LLMClassifierFromTemplate keeps thread filtered while exposing thread_with_system", async () => {
+    let capturedRequestBody: unknown;
+    const systemMarker = "TRACE_SYSTEM_MESSAGE";
+
+    server.use(
+      http.post("https://api.openai.com/v1/responses", async ({ request }) => {
+        capturedRequestBody = await request.json();
+
+        return HttpResponse.json({
+          id: "resp-test",
+          object: "response",
+          created: 1234567890,
+          model: "gpt-5-mini",
+          output: [
+            {
+              type: "function_call",
+              call_id: "call_test",
+              name: "select_choice",
+              arguments: JSON.stringify({ choice: "1" }),
+            },
+          ],
+        });
+      }),
+    );
+
+    const classifier = LLMClassifierFromTemplate({
+      name: "thread-template",
+      promptTemplate:
+        "Filtered thread:\n{{thread}}\n\nFull thread:\n{{thread_with_system}}",
+      choiceScores: { "1": 1, "2": 0 },
+      useCoT: false,
+    });
+
+    await classifier({
+      output: "",
+      expected: "",
+      trace: {
+        async getThread() {
+          return [
+            { role: "system", content: systemMarker },
+            { role: "user", content: "Hello" },
+            { role: "assistant", content: "Hi there" },
+          ];
+        },
+      },
+    });
+
+    if (
+      !capturedRequestBody ||
+      typeof capturedRequestBody !== "object" ||
+      !("input" in capturedRequestBody) ||
+      !Array.isArray(capturedRequestBody.input)
+    ) {
+      throw new Error("Unexpected request body shape");
+    }
+
+    const firstInput = capturedRequestBody.input[0];
+    if (
+      !firstInput ||
+      typeof firstInput !== "object" ||
+      !("content" in firstInput) ||
+      typeof firstInput.content !== "string"
+    ) {
+      throw new Error("Unexpected request input shape");
+    }
+
+    const [filteredThread, fullThread] =
+      firstInput.content.split("\n\nFull thread:\n");
+    expect(filteredThread).toContain("Hello");
+    expect(filteredThread).toContain("Hi there");
+    expect(filteredThread).not.toContain(systemMarker);
+    expect(fullThread).toContain(systemMarker);
   });
 
   test("useResponsesApi forces the Responses API for a non-gpt-5 model", async () => {

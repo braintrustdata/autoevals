@@ -6,6 +6,7 @@ import respx
 from httpx import Response
 from openai import OpenAI
 
+import autoevals.ragas as ragas_module
 from autoevals import init
 from autoevals.ragas import *
 
@@ -123,6 +124,51 @@ def test_context_relevancy_score_normal_case():
     assert result.score == pytest.approx(expected_score, rel=1e-3)
     assert result.score <= 1.0
     assert result.score >= 0.0
+
+
+def test_faithfulness_extracts_statements_from_output(monkeypatch):
+    """Regression test for Faithfulness answer routing.
+
+    This verifies that Faithfulness extracts statements from ``output`` (the model
+    answer being evaluated), not from ``expected`` (ground truth). The test uses
+    mismatched ``output``/``expected`` values and mocked helpers that derive
+    statements/verdicts from their inputs so the final score depends on which
+    field was routed into statement extraction.
+    """
+    captured_answer = None
+
+    def fake_extract_statements(question, answer, client=None, **extra_args):
+        nonlocal captured_answer
+        captured_answer = answer
+        statement = answer.strip().rstrip(".")
+        return {"statements": [statement]}
+
+    def fake_extract_faithfulness(context, statements, client=None, **extra_args):
+        faithfulness = []
+        for statement in statements:
+            verdict = int(statement in context)
+            faithfulness.append(
+                {
+                    "statement": statement,
+                    "verdict": verdict,
+                    "reason": "Supported by context" if verdict else "Not found in context",
+                }
+            )
+        return {"faithfulness": faithfulness}
+
+    monkeypatch.setattr(ragas_module, "extract_statements", fake_extract_statements)
+    monkeypatch.setattr(ragas_module, "extract_faithfulness", fake_extract_faithfulness)
+
+    scorer = Faithfulness()
+    score = scorer.eval(
+        input="What is the capital of France?",
+        output="Paris is the capital of France.",
+        expected="Lyon is the capital of France.",
+        context="Paris is the capital of France.",
+    )
+
+    assert score.score == 1
+    assert captured_answer == "Paris is the capital of France."
 
 
 @respx.mock

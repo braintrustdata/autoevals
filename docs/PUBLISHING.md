@@ -43,7 +43,11 @@ In GitHub Actions, manually run:
 Inputs:
 
 - `release_type=stable` or `prerelease`
-- `branch=main` (or another branch to publish from)
+- `sha=<commit>` — the full 40-character commit SHA to release
+
+You declare the exact commit to release (rather than a branch) so the release is
+pinned to a specific, reviewed commit, and JS and Python publish the *same* commit.
+Merge the version bump first, then dispatch `publish` with that commit's SHA.
 
 This workflow dispatches both:
 
@@ -66,15 +70,39 @@ The JavaScript publish workflow lives at:
 
 - `.github/workflows/publish-js.yaml`
 
+It runs the shared, centrally-maintained release actions from
+[`braintrustdata/sdk-actions`](https://github.com/braintrustdata/sdk-actions),
+pinned by SHA (`braintrustdata/sdk-actions/actions/release/...@<sha>`). Bumping that
+SHA pulls in upstream release-tooling improvements. autoevals keeps only its own glue
+(version-sync, version/channel computation, the prerelease `package.json` patch) in
+dedicated jobs/steps; the shared jobs contain only the pinned action.
+
 It supports two release types:
 
 - `stable`: publishes the exact version in `package.json`
 - `prerelease`: publishes `<package.json version>-rc.<suffix>` with the `rc` dist-tag
 
+It also takes a `dry_run` input (default `false`): when `true`, it builds and packs
+(`npm publish --dry-run`) without publishing, tagging, or creating a release, and runs
+under the `publish-dry-run` environment.
+
 For stable releases, the workflow also:
 
 - creates and pushes a git tag named `js-<version>`
 - creates a GitHub Release named `autoevals JavaScript v<version>`
+
+The flow is `compute-metadata → validate → prepare → notify-pending → publish`. The
+`publish` job is gated by a GitHub environment (see below); Slack notifications are sent
+before approval (pending) and after completion.
+
+### Approval gate
+
+The `publish` job uses GitHub Environments to require manual approval:
+
+- `publish` — real publishes; required reviewers + `main`-only deployment branches
+- `publish-dry-run` — used when `dry_run=true`
+
+Create both under repo Settings → Environments and add the reviewers.
 
 ### npm trusted publishing setup
 
@@ -85,11 +113,26 @@ Configure trusted publishing for the `autoevals` package in npm with these value
 - Repository owner: `braintrustdata`
 - Repository name: `autoevals`
 - Workflow file: `.github/workflows/publish-js.yaml`
+- Environment: `publish`
 
 Notes:
 
 - The workflow uses GitHub OIDC, so no `NPM_TOKEN` is required.
+- **The trusted publisher must include the `publish` environment.** The gated job's
+  OIDC token carries an `environment` claim; if the publisher isn't configured for it,
+  the publish is rejected (`ENEEDAUTH`). A `dry_run` does *not* exercise this — the first
+  real publish (use a prerelease as the canary) is the first true test.
 - The workflow publishes with provenance enabled via `npm publish --provenance`.
+
+### Slack notifications (optional)
+
+The JS workflow posts a pending notification (before approval) and a completion
+notification. These self-guard and no-op if unconfigured. To enable:
+
+- Repository variable `SLACK_SDK_RELEASE_CHANNEL` — the channel ID
+- Repository/org secret `SLACK_BOT_TOKEN` — the Brainbot token (invite it to the channel)
+
+Python publishing currently has neither the approval gate nor Slack (JS only, for now).
 
 ## Python PyPI publishing
 
@@ -131,7 +174,8 @@ Notes:
 3. In GitHub Actions, run the `publish` workflow.
 4. Choose:
    - `release_type=stable`
-   - `branch=main`
+   - `sha=<the merged commit's SHA>`
+5. Approve the `publish` environment when the JS `publish` job requests it.
 
 Expected outcome:
 
@@ -150,7 +194,8 @@ Expected outcome:
 2. In GitHub Actions, run the `publish` workflow.
 3. Choose:
    - `release_type=prerelease`
-   - `branch=main`
+   - `sha=<the commit's SHA>`
+4. Approve the `publish` environment when the JS `publish` job requests it.
 
 Expected outcome:
 
@@ -170,8 +215,11 @@ If needed, you can manually trigger either workflow directly:
 Both accept:
 
 - `release_type`
-- `branch`
+- `sha` — the full commit SHA to release
 - `prerelease_suffix` (optional)
+
+`publish-js` additionally accepts `dry_run` (default `false`) — build and pack without
+publishing, under the `publish-dry-run` environment.
 
 Normally you should prefer the top-level `publish` workflow so JS and Python prereleases use the same suffix.
 

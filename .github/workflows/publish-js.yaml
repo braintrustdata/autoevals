@@ -1,7 +1,40 @@
+#
+# Publishes the `autoevals` npm package via the shared, centrally-maintained
+# release actions in braintrustdata/sdk-actions (pinned by SHA below). Bumping
+# that SHA pulls in upstream release-tooling improvements.
+#
+# Adapted from braintrustdata/sdk-actions .github/workflows/release-js.yml
+# @ dc38f223e415652eb4a4f17567a360662ba729b1
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# SETUP REQUIREMENTS
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# GitHub Environments (repo Settings → Environments):
+#   publish
+#     - Required reviewers: SDK maintainers
+#     - Deployment branches: main only
+#   publish-dry-run
+#     - Required reviewers: at least yourself (to exercise the gate)
+#     - Allow administrators to bypass: enabled
+#
+# npm Trusted Publishing (OIDC — no token):
+#   npmjs.com → autoevals → Settings → Trusted Publisher
+#     Repository:  braintrustdata/autoevals
+#     Workflow:    publish-js.yaml
+#     Environment: publish   ← MUST match, or the gated publish is rejected
+#   Provenance requires a PUBLIC package; the publish job needs id-token: write.
+#
+# Slack (optional — steps self-guard and no-op if unset):
+#   Repository variable SLACK_SDK_RELEASE_CHANNEL  (channel ID)
+#   Repository/org secret SLACK_BOT_TOKEN          (Brainbot token; invite it to the channel)
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
 name: publish-js
 
 concurrency:
-  group: publish-js-${{ inputs.release_type }}-${{ inputs.branch }}
+  group: publish-js-${{ inputs.release_type }}-${{ inputs.sha }}
   cancel-in-progress: false
 
 on:
@@ -15,125 +48,152 @@ on:
         options:
           - stable
           - prerelease
-      branch:
-        description: Branch to release from
+      sha:
+        description: Commit SHA to release (full 40-char SHA)
         required: true
-        default: main
         type: string
       prerelease_suffix:
         description: Optional shared prerelease suffix
         required: false
         default: ""
         type: string
+      dry_run:
+        description: "Dry run: build and pack without publishing"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
-  prepare-release:
+  # autoevals glue: fail-fast version sync + version/channel computation (all pre-gate).
+  compute-metadata:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      version: ${{ steps.release_metadata.outputs.version }}
-      release_tag: ${{ steps.release_metadata.outputs.release_tag }}
-      branch: ${{ steps.release_metadata.outputs.branch }}
-      commit: ${{ steps.release_metadata.outputs.commit }}
-      release_type: ${{ steps.release_metadata.outputs.release_type }}
+      version: ${{ steps.meta.outputs.version }}
+      channel: ${{ steps.meta.outputs.channel }}
+      github_release: ${{ steps.meta.outputs.github_release }}
+      release_type: ${{ steps.meta.outputs.release_type }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          ref: ${{ inputs.sha }}
           fetch-depth: 1
-          ref: ${{ inputs.branch }}
+
+      # Only place version-sync runs — pre-gate, fail-fast.
       - name: Check version sync
         run: python3 .github/scripts/check_version_sync.py
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .tool-versions
-      - name: Determine release metadata
-        id: release_metadata
+
+      - name: Compute release metadata
+        id: meta
         env:
           RELEASE_TYPE: ${{ inputs.release_type }}
-          TARGET_BRANCH: ${{ inputs.branch }}
           PRERELEASE_SUFFIX: ${{ inputs.prerelease_suffix }}
         run: |
           set -euo pipefail
 
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          RELEASE_COMMIT=$(git rev-parse HEAD)
-
-          if [[ -z "${PRERELEASE_SUFFIX}" ]]; then
-            PRERELEASE_SUFFIX="${GITHUB_RUN_NUMBER}"
-          fi
-
+          CURRENT=$(node -p "require('./package.json').version")
           echo "release_type=${RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
-          echo "branch=${TARGET_BRANCH}" >> "$GITHUB_OUTPUT"
-          echo "commit=${RELEASE_COMMIT}" >> "$GITHUB_OUTPUT"
 
           if [[ "$RELEASE_TYPE" == "stable" ]]; then
-            RELEASE_TAG="js-${CURRENT_VERSION}"
-
-            if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
-              echo "Tag ${RELEASE_TAG} already exists on origin" >&2
-              exit 1
-            fi
-
-            echo "version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
-            echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+            echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
+            echo "channel=latest" >> "$GITHUB_OUTPUT"
+            echo "github_release=true" >> "$GITHUB_OUTPUT"
           else
-            VERSION="${CURRENT_VERSION}-rc.${PRERELEASE_SUFFIX}"
-
-            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-            echo "release_tag=" >> "$GITHUB_OUTPUT"
+            SUFFIX="${PRERELEASE_SUFFIX:-$GITHUB_RUN_NUMBER}"
+            echo "version=${CURRENT}-rc.${SUFFIX}" >> "$GITHUB_OUTPUT"
+            echo "channel=rc" >> "$GITHUB_OUTPUT"
+            echo "github_release=false" >> "$GITHUB_OUTPUT"
           fi
 
+  validate:
+    needs: compute-metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      release_tag: ${{ steps.validate.outputs.release_tag }}
+      prev_release: ${{ steps.validate.outputs.prev_release }}
+      branch: ${{ steps.validate.outputs.branch }}
+      on_release_branch: ${{ steps.validate.outputs.on_release_branch }}
+      commit_message: ${{ steps.validate.outputs.commit_message }}
+    steps:
+      - name: Validate release
+        id: validate
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/validate@dc38f223e415652eb4a4f17567a360662ba729b1
+        with:
+          sha: ${{ inputs.sha }}
+          version: ${{ needs.compute-metadata.outputs.version }} # computed override (esp. prerelease)
+          node_version: .tool-versions
+          tag_format: 'js-{version}'
+          package_name: autoevals # enables the npm-availability fail-fast (covers prereleases)
+          channel: ${{ needs.compute-metadata.outputs.channel }}
+          allowed_channels: 'latest,rc'
+          dry_run: ${{ inputs.dry_run }}
+
+  prepare:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # required for the releases/generate-notes API
+    outputs:
+      pr_list: ${{ steps.prepare.outputs.pr_list }}
+      notes: ${{ steps.prepare.outputs.notes }}
+    steps:
+      - name: Prepare release
+        id: prepare
+        uses: braintrustdata/sdk-actions/actions/release/prepare@dc38f223e415652eb4a4f17567a360662ba729b1
+        with:
+          release_tag: ${{ needs.validate.outputs.release_tag }}
+          sha: ${{ inputs.sha }}
+          prev_release: ${{ needs.validate.outputs.prev_release }}
+
+  notify-pending:
+    needs: [validate, prepare]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Notify release pending
+        uses: braintrustdata/sdk-actions/actions/release/notify-pending@dc38f223e415652eb4a4f17567a360662ba729b1
+        with:
+          sha: ${{ inputs.sha }}
+          release_tag: ${{ needs.validate.outputs.release_tag }}
+          prev_release: ${{ needs.validate.outputs.prev_release }}
+          branch: ${{ needs.validate.outputs.branch }}
+          on_release_branch: ${{ needs.validate.outputs.on_release_branch }}
+          commit_message: ${{ needs.validate.outputs.commit_message }}
+          pr_list: ${{ needs.prepare.outputs.pr_list }}
+          notes: ${{ needs.prepare.outputs.notes }}
+          dry_run: ${{ inputs.dry_run }}
+          slack_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack_channel: ${{ vars.SLACK_SDK_RELEASE_CHANNEL }}
+          label: 'autoevals (js)'
+          emoji: ':javascript:'
+
   publish:
-    needs: prepare-release
+    needs: [compute-metadata, validate, prepare, notify-pending]
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment: ${{ inputs.dry_run && 'publish-dry-run' || 'publish' }}
     permissions:
       contents: write
-      id-token: write
-    env:
-      PACKAGE_NAME: autoevals
-      VERSION: ${{ needs.prepare-release.outputs.version }}
-      RELEASE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
-      RELEASE_TYPE: ${{ needs.prepare-release.outputs.release_type }}
-      TARGET_BRANCH: ${{ needs.prepare-release.outputs.branch }}
-      RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
+      id-token: write # OIDC trusted publishing + provenance
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          ref: ${{ inputs.sha }}
           fetch-depth: 0
-          ref: ${{ needs.prepare-release.outputs.branch }}
 
-      - name: Check version sync
-        run: python3 .github/scripts/check_version_sync.py
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .tool-versions
-          registry-url: https://registry.npmjs.org
-
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
-        with:
-          version: 10.33.0
-
-      - name: Check npm version availability
+      # Write the computed version into package.json before publish. For a
+      # prerelease this applies the -rc.N suffix (and deliberately diverges from
+      # py/version.py); for stable it confirms the already-bumped version.
+      # publish runs with checkout:false so this edit survives into the build.
+      - name: Patch package.json version
+        env:
+          VERSION: ${{ needs.compute-metadata.outputs.version }}
         run: |
-          set -euo pipefail
-
-          if npm view "${PACKAGE_NAME}@${VERSION}" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
-            echo "${PACKAGE_NAME}@${VERSION} already exists on npm" >&2
-            exit 1
-          fi
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Prepare prerelease package metadata
-        if: ${{ env.RELEASE_TYPE == 'prerelease' }}
-        run: |
-          set -euo pipefail
-
           node -e '
             const fs = require("fs");
             const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
@@ -141,66 +201,25 @@ jobs:
             fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
           '
 
-      - name: Build package
-        run: pnpm run build
-
-      - name: Publish stable release to npm
-        if: ${{ env.RELEASE_TYPE == 'stable' }}
-        env:
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-        run: npm publish --provenance --access public
-
-      - name: Publish prerelease to npm
-        if: ${{ env.RELEASE_TYPE == 'prerelease' }}
-        env:
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-        run: npm publish --tag rc --provenance --access public
-
-      - name: Create and push stable release tag
-        if: ${{ env.RELEASE_TYPE == 'stable' }}
-        run: |
-          set -euo pipefail
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "${RELEASE_TAG}" "${RELEASE_COMMIT}"
-          git push origin "${RELEASE_TAG}"
-
-      - name: Create GitHub release
-        if: ${{ env.RELEASE_TYPE == 'stable' }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        env:
-          RELEASE_TAG: ${{ env.RELEASE_TAG }}
-          VERSION: ${{ env.VERSION }}
+      - name: Publish
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/publish@dc38f223e415652eb4a4f17567a360662ba729b1
         with:
-          script: |
-            await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: process.env.RELEASE_TAG,
-              name: `autoevals JavaScript v${process.env.VERSION}`,
-              draft: false,
-              prerelease: false,
-              generate_release_notes: true,
-            });
-
-      - name: Summarize release
-        run: |
-          set -euo pipefail
-
-          {
-            echo "## npm publish complete"
-            echo
-            echo "- Package: \`${PACKAGE_NAME}\`"
-            echo "- Version: \`${VERSION}\`"
-            echo "- Release type: \`${RELEASE_TYPE}\`"
-            if [ "${RELEASE_TYPE}" = "prerelease" ]; then
-              echo "- npm tag: \`rc\`"
-              echo "- Install: \`npm install ${PACKAGE_NAME}@rc\`"
-            else
-              echo "- Git tag: \`${RELEASE_TAG}\`"
-              echo "- Install: \`npm install ${PACKAGE_NAME}\`"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
+          sha: ${{ inputs.sha }}
+          checkout: 'false' # keep the patched package.json (checked out + patched above)
+          node_version: .tool-versions
+          version: ${{ needs.compute-metadata.outputs.version }}
+          release_tag: ${{ needs.validate.outputs.release_tag }}
+          channel: ${{ needs.compute-metadata.outputs.channel }}
+          github_release: ${{ needs.compute-metadata.outputs.github_release }} # stable only
+          release_title: autoevals JavaScript v${{ needs.compute-metadata.outputs.version }}
+          package_name: autoevals
+          label: 'autoevals (js)'
+          dry_run: ${{ inputs.dry_run }}
+          notes: ${{ needs.prepare.outputs.notes }}
+          prev_release: ${{ needs.validate.outputs.prev_release }}
+          branch: ${{ needs.validate.outputs.branch }}
+          on_release_branch: ${{ needs.validate.outputs.on_release_branch }}
+          pr_list: ${{ needs.prepare.outputs.pr_list }}
+          slack_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack_channel: ${{ vars.SLACK_SDK_RELEASE_CHANNEL }}
+          emoji: ':javascript:'

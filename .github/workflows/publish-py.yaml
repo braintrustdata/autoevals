@@ -1,7 +1,7 @@
 name: publish-py
 
 concurrency:
-  group: publish-py-${{ inputs.release_type }}-${{ inputs.branch }}
+  group: publish-py-${{ inputs.release_type }}-${{ inputs.sha }}
   cancel-in-progress: false
 
 on:
@@ -15,10 +15,9 @@ on:
         options:
           - stable
           - prerelease
-      branch:
-        description: Branch to release from
+      sha:
+        description: Commit SHA to release (full 40-char SHA)
         required: true
-        default: main
         type: string
       prerelease_suffix:
         description: Optional shared prerelease suffix
@@ -33,14 +32,14 @@ jobs:
     outputs:
       version: ${{ steps.release_metadata.outputs.version }}
       release_tag: ${{ steps.release_metadata.outputs.release_tag }}
-      branch: ${{ steps.release_metadata.outputs.branch }}
+      sha: ${{ steps.release_metadata.outputs.sha }}
       commit: ${{ steps.release_metadata.outputs.commit }}
       release_type: ${{ steps.release_metadata.outputs.release_type }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 1
-          ref: ${{ inputs.branch }}
+          ref: ${{ inputs.sha }}
 
       - name: Check version sync
         run: python3 .github/scripts/check_version_sync.py
@@ -54,7 +53,7 @@ jobs:
         id: release_metadata
         env:
           RELEASE_TYPE: ${{ inputs.release_type }}
-          TARGET_BRANCH: ${{ inputs.branch }}
+          RELEASE_SHA: ${{ inputs.sha }}
           PRERELEASE_SUFFIX: ${{ inputs.prerelease_suffix }}
         run: |
           set -euo pipefail
@@ -67,7 +66,7 @@ jobs:
           fi
 
           echo "release_type=${RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
-          echo "branch=${TARGET_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "sha=${RELEASE_SHA}" >> "$GITHUB_OUTPUT"
           echo "commit=${RELEASE_COMMIT}" >> "$GITHUB_OUTPUT"
 
           if [[ "$RELEASE_TYPE" == "stable" ]]; then
@@ -99,13 +98,12 @@ jobs:
       VERSION: ${{ needs.prepare-release.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
       RELEASE_TYPE: ${{ needs.prepare-release.outputs.release_type }}
-      TARGET_BRANCH: ${{ needs.prepare-release.outputs.branch }}
       RELEASE_COMMIT: ${{ needs.prepare-release.outputs.commit }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          ref: ${{ needs.prepare-release.outputs.branch }}
+          ref: ${{ needs.prepare-release.outputs.sha }}
 
       - name: Check version sync
         run: python3 .github/scripts/check_version_sync.py

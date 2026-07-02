@@ -37,6 +37,18 @@ describe("renderMessages", () => {
     const rendered = renderMessages(messages, {});
     expect(rendered[0].content).toBe("");
   });
+
+  it("should explain unclosed tags with line and column", () => {
+    const messages: ChatCompletionMessageParam[] = [
+      {
+        role: "user",
+        content: "Grade this.\nOutput: {{output}}\nExpected: {{expected",
+      },
+    ];
+    expect(() => renderMessages(messages, { output: "x" })).toThrow(
+      /Unclosed tag at \d+ \(line 3, column \d+, near/,
+    );
+  });
 });
 
 describe("renderMessages with thread variables", () => {

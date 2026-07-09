@@ -28,16 +28,42 @@ function escapeValue(v: unknown): string {
   return JSON.stringify(v);
 }
 
+function explainMustacheError(error: unknown, template: string): unknown {
+  if (!(error instanceof Error)) {
+    return error;
+  }
+  const match = error.message.match(/at (\d+)$/);
+  if (!match) {
+    return error;
+  }
+  const offset = Number(match[1]);
+  const before = template.slice(0, offset);
+  const line = before.split("\n").length;
+  const column = offset - before.lastIndexOf("\n");
+  const snippet = template.slice(Math.max(0, offset - 30), offset + 10);
+  return new Error(
+    `${error.message} (line ${line}, column ${column}, near "…${snippet}…"). ` +
+      "Check for an unclosed {{ }} tag or {{#section}} block in the template.",
+  );
+}
+
 export function renderMessages(
   messages: ChatCompletionMessageParam[],
   renderArgs: Record<string, unknown>,
 ): ChatCompletionMessageParam[] {
-  return messages.map((m) => ({
-    ...m,
-    content: m.content
-      ? mustache.render(m.content as string, renderArgs, undefined, {
+  return messages.map((m) => {
+    if (!m.content) {
+      return { ...m, content: "" };
+    }
+    try {
+      return {
+        ...m,
+        content: mustache.render(m.content as string, renderArgs, undefined, {
           escape: escapeValue,
-        })
-      : "",
-  }));
+        }),
+      };
+    } catch (e) {
+      throw explainMustacheError(e, String(m.content));
+    }
+  });
 }

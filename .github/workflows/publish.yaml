@@ -1,66 +1,349 @@
+# Releases the autoevals npm + PyPI packages TOGETHER, at one shared version, behind ONE
+# approval gate — via braintrustdata/sdk-actions (custom / build-ownership shape).
+#
+# Shape (fan-out → fan-in → fan-out), one lane per package:
+#   configure-{js,py} → validate-{js,py} → pack-{js,py}   (unprivileged build+attest)
+#        └──────────────── request-approval  (single gate: builds one approval covering
+#                         both packages, then parks at the `publish` environment)
+#   request-approval → ship-package-{js,py}  (gated: verify attestation → publish → GitHub release)
+#
+# configure is the fact-finding action for each package: it derives version/tag/channel,
+# checks the registry, fetches release notes, and emits a `package` JSON object. validate
+# only judges those facts; request-approval consumes the package objects directly.
+#
+# This is hand-authored, but deliberately modeled as the output a future sdk-actions "monorepo"
+# template should generate: each lane is an independent, uniformly-parameterized column; the only
+# shared, once-per-release job is request-approval, which composes a `packages` array (one entry per
+# lane, from configure outputs) so reviewers approve BOTH packages in one gate. A failure in
+# either lane skips request-approval → neither ships (the packages always release together).
+#
+# ── SETUP (repo Settings) ─────────────────────────────────────────────────────────────────────
+#   Environments: `publish` (required reviewers) and `publish-dry-run`.
+#   Trusted publishers (OIDC, no tokens) — BOTH must set environment=`publish`, which is what keeps
+#     the unprivileged pack jobs (id-token for attestation only) from being able to publish:
+#       npm  `autoevals`  → repo braintrustdata/autoevals, workflow publish.yaml, environment publish
+#       PyPI `autoevals`  → repo braintrustdata/autoevals, workflow publish.yaml, environment publish
+#   Secrets/vars (optional Slack): SLACK_BOT_TOKEN, SLACK_SDK_RELEASE_CHANNEL.
+#
+# Version-sync (package.json == py/autoevals/version.py) is enforced by the version-sync.yaml CI
+# workflow on PRs, so it is intentionally NOT re-checked here. Prereleases publish the COMMITTED
+# version (release_type only suppresses the GitHub release / sets the npm rc channel) — bump to an
+# rc version in a PR if you want a prerelease.
+#
+# sdk-actions pinned @f9201aff (branch release_multi_package, PR #64). RE-PIN to the
+# merged main SHA before merging this PR.
 name: publish
 
 concurrency:
-  group: publish-${{ inputs.release_type }}-${{ inputs.branch }}
+  group: publish-${{ inputs.release_type }}-${{ inputs.sha }}
   cancel-in-progress: false
 
 on:
   workflow_dispatch:
     inputs:
-      release_type:
-        description: Release type
-        required: true
-        default: stable
-        type: choice
-        options:
-          - stable
-          - prerelease
-      branch:
-        description: Branch to publish from
-        required: true
-        default: main
+      _instructions:
+        description: "⚠️ Before starting: merge a version-bump PR (package.json + py/autoevals/version.py, matching). The release publishes the version at the SHA — it can't be overridden here."
         type: string
+        default: "I have merged a version bump PR"
+        required: false
+      release_type:
+        description: "Release type (stable → GitHub releases; prerelease → none, npm rc channel)"
+        type: choice
+        default: stable
+        options: [stable, prerelease]
+      sha:
+        description: "Commit SHA (of the version bump) to release — same commit for js + py"
+        required: true
+        type: string
+      prev_release:
+        description: "Release-notes anchor: a tag or SHA (empty → each lane's previous tag)"
+        type: string
+        required: false
+      dry_run:
+        description: "Dry run: build + pack + attest, but do not publish or create releases"
+        type: boolean
+        default: false
 
 jobs:
-  dispatch-package-publishes:
-    runs-on: ubuntu-latest
+  # ─────────────────────────── JS lane ───────────────────────────
+  configure-js:
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
-      actions: write
+      contents: write # releases/generate-notes API
+    outputs:
+      version: ${{ steps.configure.outputs.version }}
+      release_tag: ${{ steps.configure.outputs.release_tag }}
+      prev_release: ${{ steps.configure.outputs.prev_release }}
+      branch: ${{ steps.configure.outputs.branch }}
+      on_release_branch: ${{ steps.configure.outputs.on_release_branch }}
+      commit_message: ${{ steps.configure.outputs.commit_message }}
+      channel: ${{ steps.configure.outputs.channel }}
+      github_release: ${{ steps.configure.outputs.github_release }}
+      already_published: ${{ steps.configure.outputs.already_published }}
+      notes: ${{ steps.configure.outputs.notes }}
+      package: ${{ steps.configure.outputs.package }}
     steps:
-      - name: Dispatch JS and Python publish workflows
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        env:
-          RELEASE_TYPE: ${{ inputs.release_type }}
-          TARGET_BRANCH: ${{ inputs.branch }}
-          PRERELEASE_SUFFIX: ${{ github.run_number }}
-          WORKFLOW_REF: main
+      - name: Configure release
+        id: configure
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/configure@f9201aff8c0aad3fa147924ac595824934c7c441
         with:
-          script: |
-            const workflows = ["publish-js.yaml", "publish-py.yaml"];
-            for (const workflow_id of workflows) {
-              await github.rest.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id,
-                ref: process.env.WORKFLOW_REF,
-                inputs: {
-                  release_type: process.env.RELEASE_TYPE,
-                  branch: process.env.TARGET_BRANCH,
-                  prerelease_suffix: process.env.PRERELEASE_SUFFIX,
-                },
-              });
-            }
+          sha: ${{ inputs.sha }}
+          working_directory: .
+          tag_format: "js-{version}"
+          release_type: ${{ inputs.release_type }}
+          npm_package_name: autoevals
+          package_label: "autoevals (js)"
+          emoji: ":javascript:"
+          prev_release: ${{ inputs.prev_release }}
 
-      - name: Summarize dispatch
+  validate-js:
+    needs: [configure-js]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Validate release
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/validate@f9201aff8c0aad3fa147924ac595824934c7c441
+        with:
+          sha: ${{ inputs.sha }}
+          dry_run: ${{ inputs.dry_run }}
+          working_directory: .
+          node_version: .tool-versions
+          release_tag: ${{ needs.configure-js.outputs.release_tag }}
+          channel: ${{ needs.configure-js.outputs.channel }}
+          allowed_channels: "latest,rc"
+          on_release_branch: ${{ needs.configure-js.outputs.on_release_branch }}
+          notes: ${{ needs.configure-js.outputs.notes }}
+          already_published: ${{ needs.configure-js.outputs.already_published }}
+          build: "false" # pack-js owns the build
+          sbom: "false" # pack-js generates + attests the SBOM
+          # Multi-package heal re-run: don't hard-abort when one package/tag is already out;
+          # ship-package skips the lane that's already published and releases the one that failed.
+          check_version_unpublished: "false"
+          check_tag_unused: "false"
+
+  pack-js:
+    needs: [configure-js, validate-js]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Pack + attest
+        id: pack
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/pack-pnpm@f9201aff8c0aad3fa147924ac595824934c7c441
+        with:
+          sha: ${{ inputs.sha }}
+          working_directory: .
+          node_version: .tool-versions
+          # autoevals installs + builds on its pinned pnpm 10.33 (to honor its supply-chain config);
+          # the packer resolves a pnpm >= 11.8 on its own for `pnpm pack` + the SBOM. No override here.
+          dry_run: ${{ inputs.dry_run }}
+
+      - name: Stage artifact
         run: |
-          {
-            echo "## Package publishes queued"
-            echo
-            echo "- Workflows: \`publish-js.yaml\`, \`publish-py.yaml\`"
-            echo "- Release type: \`${{ inputs.release_type }}\`"
-            echo "- Branch: \`${{ inputs.branch }}\`"
-            if [ "${{ inputs.release_type }}" = "prerelease" ]; then
-              echo "- Shared prerelease suffix: \`${{ github.run_number }}\`"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p artifact
+          cp "${{ steps.pack.outputs.tarball }}" artifact/
+          cp ./sbom.json artifact/ 2>/dev/null || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-package-js
+          path: artifact/
+          retention-days: 1
+          if-no-files-found: error
+
+  # ─────────────────────────── PY lane ───────────────────────────
+  configure-py:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write # releases/generate-notes API
+    outputs:
+      version: ${{ steps.configure.outputs.version }}
+      release_tag: ${{ steps.configure.outputs.release_tag }}
+      prev_release: ${{ steps.configure.outputs.prev_release }}
+      branch: ${{ steps.configure.outputs.branch }}
+      on_release_branch: ${{ steps.configure.outputs.on_release_branch }}
+      commit_message: ${{ steps.configure.outputs.commit_message }}
+      github_release: ${{ steps.configure.outputs.github_release }}
+      already_published: ${{ steps.configure.outputs.already_published }}
+      notes: ${{ steps.configure.outputs.notes }}
+      package: ${{ steps.configure.outputs.package }}
+    steps:
+      - name: Configure release
+        id: configure
+        uses: braintrustdata/sdk-actions/actions/release/lang/py/configure@f9201aff8c0aad3fa147924ac595824934c7c441
+        with:
+          version_file: py/autoevals/version.py
+          sha: ${{ inputs.sha }}
+          working_directory: .
+          tag_format: "py-{version}"
+          release_type: ${{ inputs.release_type }}
+          pypi_package_name: autoevals
+          package_label: "autoevals (py)"
+          emoji: ":python:"
+          prev_release: ${{ inputs.prev_release }}
+
+  validate-py:
+    needs: [configure-py]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Validate release
+        uses: braintrustdata/sdk-actions/actions/release/lang/py/validate@f9201aff8c0aad3fa147924ac595824934c7c441
+        with:
+          sha: ${{ inputs.sha }}
+          dry_run: ${{ inputs.dry_run }}
+          working_directory: .
+          python_version: .tool-versions
+          release_tag: ${{ needs.configure-py.outputs.release_tag }}
+          on_release_branch: ${{ needs.configure-py.outputs.on_release_branch }}
+          notes: ${{ needs.configure-py.outputs.notes }}
+          already_published: ${{ needs.configure-py.outputs.already_published }}
+          build: "false" # pack-py owns the build
+          sbom: "false" # pack-py generates + attests the SBOM
+          # Multi-package heal re-run: don't hard-abort when one package/tag is already out;
+          # ship-package skips the lane that's already published and releases the one that failed.
+          check_version_unpublished: "false"
+          check_tag_unused: "false"
+
+  pack-py:
+    needs: [configure-py, validate-py]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Pack + attest
+        uses: braintrustdata/sdk-actions/actions/release/lang/py/pack@f9201aff8c0aad3fa147924ac595824934c7c441
+        with:
+          sha: ${{ inputs.sha }}
+          working_directory: .
+          python_version: .tool-versions
+          dry_run: ${{ inputs.dry_run }}
+
+      - name: Stage artifact
+        run: |
+          mkdir -p artifact/dist
+          cp ./dist/*.whl ./dist/*.tar.gz artifact/dist/
+          cp ./sbom.json artifact/ 2>/dev/null || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-package-py
+          path: artifact/
+          retention-days: 1
+          if-no-files-found: error
+
+  # ─────────────── fan-in: ONE approval covering both packages ───────────────
+  request-approval:
+    needs:
+      [configure-js, validate-js, pack-js, configure-py, validate-py, pack-py]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Request release approval
+        uses: braintrustdata/sdk-actions/actions/release/request-approval@f9201aff8c0aad3fa147924ac595824934c7c441
+        with:
+          packages: '{"packages":[${{ needs.configure-js.outputs.package }}, ${{ needs.configure-py.outputs.package }}]}'
+          title: autoevals
+          sha: ${{ inputs.sha }}
+          branch: ${{ needs.configure-js.outputs.branch }}
+          on_release_branch: ${{ needs.configure-js.outputs.on_release_branch }}
+          commit_message: ${{ needs.configure-js.outputs.commit_message }}
+          dry_run: ${{ inputs.dry_run }}
+          slack_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack_channel: ${{ vars.SLACK_SDK_RELEASE_CHANNEL }}
+
+  # ─────────────── fan-out: gated per-lane publish (one approval releases both) ───────────────
+  ship-package-js:
+    needs: [configure-js, pack-js, request-approval]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: ${{ inputs.dry_run && 'publish-dry-run' || 'publish' }}
+    permissions:
+      contents: write
+      id-token: write # OIDC trusted publishing + provenance
+      attestations: read # gh attestation verify
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-package-js
+          path: dl
+
+      - name: Resolve tarball
+        id: art
+        run: echo "tarball=$(ls dl/*.tgz)" >> "$GITHUB_OUTPUT"
+
+      - name: Ship package
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/ship-package@f9201aff8c0aad3fa147924ac595824934c7c441
+        with:
+          tarball: ${{ steps.art.outputs.tarball }}
+          working_directory: dl
+          sha: ${{ inputs.sha }}
+          dry_run: ${{ inputs.dry_run }}
+          release_tag: ${{ needs.configure-js.outputs.release_tag }}
+          already_published: ${{ needs.configure-js.outputs.already_published }}
+          github_release: ${{ needs.configure-js.outputs.github_release }}
+          version: ${{ needs.configure-js.outputs.version }}
+          access: "public"
+          provenance: "true"
+          channel: ${{ needs.configure-js.outputs.channel }}
+          package_name: autoevals
+          label: "autoevals (js)"
+          notes: ${{ needs.configure-js.outputs.notes }}
+          prev_release: ${{ needs.configure-js.outputs.prev_release }}
+          branch: ${{ needs.configure-js.outputs.branch }}
+          on_release_branch: ${{ needs.configure-js.outputs.on_release_branch }}
+          slack_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack_channel: ${{ vars.SLACK_SDK_RELEASE_CHANNEL }}
+          emoji: ":javascript:"
+
+  ship-package-py:
+    needs: [configure-py, pack-py, request-approval]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: ${{ inputs.dry_run && 'publish-dry-run' || 'publish' }}
+    permissions:
+      contents: write
+      id-token: write # OIDC trusted publishing + PEP 740
+      attestations: read # gh attestation verify
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-package-py
+          path: dl
+
+      - name: Ship package
+        uses: braintrustdata/sdk-actions/actions/release/lang/py/ship-package@f9201aff8c0aad3fa147924ac595824934c7c441
+        with:
+          working_directory: dl # holds dist/ (whl + sdist) + sbom.json
+          sha: ${{ inputs.sha }}
+          dry_run: ${{ inputs.dry_run }}
+          release_tag: ${{ needs.configure-py.outputs.release_tag }}
+          already_published: ${{ needs.configure-py.outputs.already_published }}
+          github_release: ${{ needs.configure-py.outputs.github_release }}
+          version: ${{ needs.configure-py.outputs.version }}
+          package_name: autoevals
+          label: "autoevals (py)"
+          notes: ${{ needs.configure-py.outputs.notes }}
+          prev_release: ${{ needs.configure-py.outputs.prev_release }}
+          branch: ${{ needs.configure-py.outputs.branch }}
+          on_release_branch: ${{ needs.configure-py.outputs.on_release_branch }}
+          slack_token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack_channel: ${{ vars.SLACK_SDK_RELEASE_CHANNEL }}
+          emoji: ":python:"

@@ -118,10 +118,6 @@ In a Braintrust eval:
 import { Behavior } from "autoevals";
 import { Eval } from "braintrust";
 
-const behaviorScore = Behavior.partial({
-  behavior: "support-ticket-triage",
-});
-
 Eval("Support agent", {
   data: () => [
     {
@@ -131,7 +127,7 @@ Eval("Support agent", {
     },
   ],
   task: async (input) => runSupportAgent(input.message),
-  scores: [behaviorScore],
+  scores: [Behavior],
 });
 ```
 
@@ -140,8 +136,6 @@ Eval("Support agent", {
 ```python
 from autoevals import Behavior
 from braintrust import Eval
-
-behavior_score = Behavior(behavior="support-ticket-triage")
 
 Eval(
     "Support agent",
@@ -153,13 +147,25 @@ Eval(
         },
     ],
     task=lambda input: run_support_agent(input["message"]),
-    scores=[behavior_score],
+    scores=[Behavior],
 )
 ```
 
 </div>
 
-If the project contains exactly one valid `.agents/behaviors/<name>/BEHAVIOR.md`, omit `behavior` to discover it automatically. You can also pass a `BEHAVIOR.md` path, complete file content, or a loaded behavior object.
+This usage discovers the behavior automatically when the project contains exactly one valid `.agents/behaviors/<name>/BEHAVIOR.md`.
+
+If the project contains multiple behaviors, select one when configuring the scorer:
+
+```typescript
+scores: [Behavior.partial({ behavior: "support-ticket-triage" })];
+```
+
+```python
+scores=[Behavior(behavior="support-ticket-triage")]
+```
+
+You can also select a behavior with a `BEHAVIOR.md` path, complete file content, or loaded behavior object.
 
 The scorer can also be called directly:
 

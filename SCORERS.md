@@ -22,14 +22,15 @@ Evaluates observable agent conduct against an [Agent Behavior](https://github.co
 
 **Parameters:**
 
-- `output` (required): Agent output or trajectory to evaluate
+- `output` (required): Task return value—the agent's final answer or a structured trajectory
 - `behavior` (optional): Loaded behavior, behavior name, `BEHAVIOR.md` path/directory, or complete spec content
 - `behaviorRoot` / `behavior_root` (optional): Project root for discovery and relative paths (default: current directory)
-- `input` (optional): Task or input context
-- `trace` (optional): Trace whose thread should be judged
+- `input` (optional): Dataset case passed to the task, such as the user request and agent context
+- `expected` (optional): Reference data that may help judge the output; this is not the behavior spec
+- `trace` (optional): Trace whose thread should be judged; Braintrust Eval supplies this automatically
 - `model` (optional): Model to use
 
-If `behavior` is omitted, exactly one valid spec must be discoverable under `.agents/behaviors/`.
+When used in `Braintrust Eval`, `input`, `output`, `expected`, `metadata`, and the trace are passed to the scorer automatically. If `behavior` is omitted, exactly one valid spec must be discoverable under `.agents/behaviors/`.
 
 **Score Range:**
 

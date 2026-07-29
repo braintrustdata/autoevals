@@ -101,42 +101,81 @@ import { Factuality } from "autoevals";
 
 ## Evaluating Agent Behavior
 
-The `Behavior` LLM judge evaluates an agent output, structured trajectory, or trace thread against an [Agent Behavior](https://github.com/braintrustdata/agentbehavior) spec. It returns `1` for compliance, `0` for non-compliance, and `null`/`None` when the behavior is not applicable or cannot be judged.
+The `Behavior` LLM judge evaluates an agent against an [Agent Behavior](https://github.com/braintrustdata/agentbehavior) spec. It returns `1` for compliance, `0` for non-compliance, and `null`/`None` when the behavior is not applicable or cannot be judged.
 
-When a project contains exactly one valid `.agents/behaviors/<name>/BEHAVIOR.md`, the scorer discovers it automatically:
+In a Braintrust eval:
+
+- `input` is the dataset case passed to your task—for example, the user's request and any agent context.
+- `output` is the value returned by your task—for example, the agent's final answer or a structured trajectory.
+- `expected` is optional reference data. The behavior spec is supplied separately through `behavior`.
+- When the agent is instrumented with Braintrust, the scorer also receives its trace thread automatically.
 
 <div className="tabs">
-
-### Python
-
-```python
-from autoevals import Behavior
-
-judge = Behavior()  # Searches .agents/behaviors/ from the current directory
-result = judge.eval(output=agent_trajectory, input=user_request)
-```
 
 ### TypeScript
 
 ```typescript
 import { Behavior } from "autoevals";
+import { Eval } from "braintrust";
 
-const result = await Behavior({
-  output: agentTrajectory,
-  input: userRequest,
+const behaviorScore = Behavior.partial({
+  behavior: "support-ticket-triage",
 });
+
+Eval("Support agent", {
+  data: () => [
+    {
+      input: {
+        message: "Our API is returning 401s and production is blocked.",
+      },
+    },
+  ],
+  task: async (input) => runSupportAgent(input.message),
+  scores: [behaviorScore],
+});
+```
+
+### Python
+
+```python
+from autoevals import Behavior
+from braintrust import Eval
+
+behavior_score = Behavior(behavior="support-ticket-triage")
+
+Eval(
+    "Support agent",
+    data=[
+        {
+            "input": {
+                "message": "Our API is returning 401s and production is blocked.",
+            },
+        },
+    ],
+    task=lambda input: run_support_agent(input["message"]),
+    scores=[behavior_score],
+)
 ```
 
 </div>
 
-Pass a behavior name, a path to `BEHAVIOR.md` (or its directory), complete `BEHAVIOR.md` content, or a loaded behavior object to select one explicitly. If discovery finds multiple specs, explicit selection is required:
+If the project contains exactly one valid `.agents/behaviors/<name>/BEHAVIOR.md`, omit `behavior` to discover it automatically. You can also pass a `BEHAVIOR.md` path, complete file content, or a loaded behavior object.
 
-```python
-judge = Behavior(behavior="cost-sensitive-actions")
-```
+The scorer can also be called directly:
 
 ```typescript
-const judge = Behavior.partial({ behavior: "cost-sensitive-actions" });
+const result = await Behavior({
+  behavior: "support-ticket-triage",
+  input: userRequest,
+  output: agentResult,
+});
+```
+
+```python
+result = Behavior(behavior="support-ticket-triage").eval(
+    input=user_request,
+    output=agent_result,
+)
 ```
 
 ## Using other AI providers

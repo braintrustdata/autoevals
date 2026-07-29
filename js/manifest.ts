@@ -1,6 +1,7 @@
 import { JSONDiff, ValidJSON } from "./json";
 import {
   Battle,
+  Behavior,
   ClosedQA,
   Factuality,
   Humor,
@@ -41,6 +42,11 @@ export const Evaluators: {
   {
     label: "LLM-as-a-Judge",
     methods: [
+      {
+        method: Behavior,
+        description:
+          "Judge an agent output or trajectory against an Agent Behavior spec.",
+      },
       {
         method: Battle,
         description:

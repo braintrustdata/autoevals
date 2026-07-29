@@ -99,6 +99,46 @@ import { Factuality } from "autoevals";
 
 </div>
 
+## Evaluating Agent Behavior
+
+The `Behavior` LLM judge evaluates an agent output, structured trajectory, or trace thread against an [Agent Behavior](https://github.com/braintrustdata/agentbehavior) spec. It returns `1` for compliance, `0` for non-compliance, and `null`/`None` when the behavior is not applicable or cannot be judged.
+
+When a project contains exactly one valid `.agents/behaviors/<name>/BEHAVIOR.md`, the scorer discovers it automatically:
+
+<div className="tabs">
+
+### Python
+
+```python
+from autoevals import Behavior
+
+judge = Behavior()  # Searches .agents/behaviors/ from the current directory
+result = judge.eval(output=agent_trajectory, input=user_request)
+```
+
+### TypeScript
+
+```typescript
+import { Behavior } from "autoevals";
+
+const result = await Behavior({
+  output: agentTrajectory,
+  input: userRequest,
+});
+```
+
+</div>
+
+Pass a behavior name, a path to `BEHAVIOR.md` (or its directory), complete `BEHAVIOR.md` content, or a loaded behavior object to select one explicitly. If discovery finds multiple specs, explicit selection is required:
+
+```python
+judge = Behavior(behavior="cost-sensitive-actions")
+```
+
+```typescript
+const judge = Behavior.partial({ behavior: "cost-sensitive-actions" });
+```
+
 ## Using other AI providers
 
 When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI-compatible API. If `OPENAI_BASE_URL` is not set, it will look for a `BRAINTRUST_AI_GATEWAY_URL` environment variable and then default to the [Braintrust Gateway](https://www.braintrust.dev/docs/deploy/gateway).

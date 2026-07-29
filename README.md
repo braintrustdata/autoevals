@@ -99,6 +99,91 @@ import { Factuality } from "autoevals";
 
 </div>
 
+## Evaluating Agent Behavior
+
+The `Behavior` LLM judge evaluates an agent against an [Agent Behavior](https://github.com/braintrustdata/agentbehavior) spec. It returns `1` for compliance, `0` for non-compliance, and `null`/`None` when the behavior is not applicable or cannot be judged.
+
+In a Braintrust eval:
+
+- `input` is the dataset case passed to your task—for example, the user's request and any agent context.
+- `output` is the value returned by your task—for example, the agent's final answer or a structured trajectory.
+- `expected` is optional reference data. The behavior spec is supplied separately through `behavior`.
+- When the agent is instrumented with Braintrust, the scorer also receives its trace thread automatically.
+
+<div className="tabs">
+
+### TypeScript
+
+```typescript
+import { Behavior } from "autoevals";
+import { Eval } from "braintrust";
+
+Eval("Support agent", {
+  data: () => [
+    {
+      input: {
+        message: "Our API is returning 401s and production is blocked.",
+      },
+    },
+  ],
+  task: async (input) => runSupportAgent(input.message),
+  scores: [Behavior],
+});
+```
+
+### Python
+
+```python
+from autoevals import Behavior
+from braintrust import Eval
+
+Eval(
+    "Support agent",
+    data=[
+        {
+            "input": {
+                "message": "Our API is returning 401s and production is blocked.",
+            },
+        },
+    ],
+    task=lambda input: run_support_agent(input["message"]),
+    scores=[Behavior],
+)
+```
+
+</div>
+
+This usage discovers the behavior automatically when the project contains exactly one valid `.agents/behaviors/<name>/BEHAVIOR.md`.
+
+If the project contains multiple behaviors, select one when configuring the scorer:
+
+```typescript
+scores: [Behavior.partial({ behavior: "support-ticket-triage" })];
+```
+
+```python
+scores=[Behavior(behavior="support-ticket-triage")]
+```
+
+You can also select a behavior with a `BEHAVIOR.md` path, complete file content, or loaded behavior object.
+
+The scorer can also be called directly:
+
+```typescript
+const result = await Behavior({
+  behavior: "support-ticket-triage",
+  input: userRequest,
+  output: agentResult,
+});
+```
+
+```python
+result = Behavior(behavior="support-ticket-triage").eval(
+    input=user_request,
+    output=agent_result,
+)
+```
+
 ## Using other AI providers
 
 When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI-compatible API. If `OPENAI_BASE_URL` is not set, it will look for a `BRAINTRUST_AI_GATEWAY_URL` environment variable and then default to the [Braintrust Gateway](https://www.braintrust.dev/docs/deploy/gateway).

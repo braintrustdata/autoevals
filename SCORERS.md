@@ -16,6 +16,28 @@ Complete reference for all scorers available in Autoevals, including parameters,
 
 These scorers use language models to evaluate outputs based on semantic understanding.
 
+### Behavior
+
+Evaluates observable agent conduct against an [Agent Behavior](https://github.com/braintrustdata/agentbehavior) spec. It accepts text outputs, structured trajectories, or a trace thread.
+
+**Parameters:**
+
+- `output` (required): Task return value—the agent's final answer or a structured trajectory
+- `behavior` (optional): Loaded behavior, behavior name, `BEHAVIOR.md` path/directory, or complete spec content
+- `behaviorRoot` / `behavior_root` (optional): Project root for discovery and relative paths (default: current directory)
+- `input` (optional): Dataset case passed to the task, such as the user request and agent context
+- `expected` (optional): Reference data that may help judge the output; this is not the behavior spec
+- `trace` (optional): Trace whose thread should be judged; Braintrust Eval supplies this automatically
+- `model` (optional): Model to use
+
+When used in `Braintrust Eval`, `input`, `output`, `expected`, `metadata`, and the trace are passed to the scorer automatically. If `behavior` is omitted, exactly one valid spec must be discoverable under `.agents/behaviors/`.
+
+**Score Range:**
+
+- `1.0` = Applicable behavior is satisfied
+- `0.0` = Applicable behavior is violated
+- `null` / `None` = Behavior is not applicable or cannot be judged
+
 ### Factuality
 
 Evaluates whether the output is factually consistent with the expected answer.

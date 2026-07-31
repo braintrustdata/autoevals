@@ -4,11 +4,12 @@ import json
 import pytest
 import respx
 from httpx import Response
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 
 import autoevals.ragas as ragas_module
 from autoevals import init
 from autoevals.ragas import *
+
 
 data = {
     "input": "Can starred docs from different workspaces be accessed in one place?",
@@ -262,3 +263,135 @@ def test_answer_correctness_uses_custom_embedding_model():
     )
 
     assert captured_embedding_model == "text-embedding-3-large"
+
+
+def _make_answer_relevancy_mocks(question: str):
+    """Build respx side effects for AnswerRelevancy: question generation + embeddings capture.
+
+    Returns (captured_embedding_models, chat_mock, responses_mock, embeddings_mock).
+    The question must be unique per test because EmbeddingSimilarity caches embeddings
+    by input text, so a repeated question would skip the embeddings API entirely.
+    """
+    captured_embedding_models = []
+
+    def mock_chat_completions(request):
+        return Response(
+            200,
+            json={
+                "id": "test-id",
+                "object": "chat.completion",
+                "created": 1234567890,
+                "model": "gpt-5-mini",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "tool_calls": [
+                                {
+                                    "id": "call_test",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "generate_question",
+                                        "arguments": json.dumps({"question": question, "noncommittal": 0}),
+                                    },
+                                }
+                            ],
+                        },
+                        "finish_reason": "tool_calls",
+                    }
+                ],
+            },
+        )
+
+    def mock_responses_api(request):
+        return Response(
+            200,
+            json={
+                "id": "test-id",
+                "object": "response",
+                "created": 1234567890,
+                "model": "gpt-5-mini",
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_test",
+                        "name": "generate_question",
+                        "arguments": json.dumps({"question": question, "noncommittal": 0}),
+                    }
+                ],
+            },
+        )
+
+    def mock_embeddings(request):
+        data = json.loads(request.content.decode())
+        captured_embedding_models.append(data.get("model"))
+        return Response(
+            200,
+            json={
+                "object": "list",
+                "data": [
+                    {
+                        "object": "embedding",
+                        "embedding": [0.1] * 1536,
+                        "index": 0,
+                    }
+                ],
+                "model": data.get("model"),
+                "usage": {"prompt_tokens": 5, "total_tokens": 5},
+            },
+        )
+
+    return captured_embedding_models, mock_chat_completions, mock_responses_api, mock_embeddings
+
+
+@respx.mock
+def test_answer_relevancy_uses_custom_embedding_model():
+    """Test that AnswerRelevancy passes embedding_model through to the embeddings API (#166)."""
+    captured, chat_mock, responses_mock, embeddings_mock = _make_answer_relevancy_mocks(
+        question="What is the sync capital of France?"
+    )
+
+    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=chat_mock)
+    respx.post("https://api.openai.com/v1/responses").mock(side_effect=responses_mock)
+    respx.post("https://api.openai.com/v1/embeddings").mock(side_effect=embeddings_mock)
+
+    init(OpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1"))
+
+    # Pin a chat-completions model so question generation hits the mocked endpoint above.
+    metric = AnswerRelevancy(model="gpt-4o-mini", embedding_model="text-embedding-3-large", strictness=1)
+    metric.eval(
+        input="What is the sync capital of France?!",
+        output="Paris",
+        context="Paris is the capital of France.",
+    )
+
+    assert captured, "expected at least one embeddings API call"
+    assert all(model == "text-embedding-3-large" for model in captured), captured
+
+
+@respx.mock
+def test_answer_relevancy_uses_custom_embedding_model_async():
+    """Test that AnswerRelevancy passes embedding_model through to the embeddings API in the async path (#166)."""
+    captured, chat_mock, responses_mock, embeddings_mock = _make_answer_relevancy_mocks(
+        question="What is the async capital of France?"
+    )
+
+    respx.post("https://api.openai.com/v1/chat/completions").mock(side_effect=chat_mock)
+    respx.post("https://api.openai.com/v1/responses").mock(side_effect=responses_mock)
+    respx.post("https://api.openai.com/v1/embeddings").mock(side_effect=embeddings_mock)
+
+    init(AsyncOpenAI(api_key="test-api-key", base_url="https://api.openai.com/v1"))
+
+    # Pin a chat-completions model so question generation hits the mocked endpoint above.
+    metric = AnswerRelevancy(model="gpt-4o-mini", embedding_model="text-embedding-3-large", strictness=1)
+    asyncio.run(
+        metric.eval_async(
+            input="What is the async capital of France?!",
+            output="Paris",
+            context="Paris is the capital of France.",
+        )
+    )
+
+    assert captured, "expected at least one embeddings API call"
+    assert all(model == "text-embedding-3-large" for model in captured), captured

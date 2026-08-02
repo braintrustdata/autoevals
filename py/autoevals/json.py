@@ -171,13 +171,25 @@ class JSONDiff(ScorerWithPartial):
             all_keys = set(o1.keys()).union(set(o2.keys()))
             base_scores = [self.json_diff(o1.get(k), o2.get(k)) for k in all_keys]
             base_scores = [s for s in base_scores if s is not None]
+            # Every key was skipped, so there is nothing to average. Propagate the
+            # skip rather than dividing by zero.
+            if not base_scores:
+                return None
             return sum(base_scores) / len(base_scores)
         elif isinstance(o1, list) and isinstance(o2, list):
             if len(o1) == 0 and len(o2) == 0:
                 return 1
-            base_scores = [self.json_diff(e1, e2) for (e1, e2) in zip(o1, o2)]
-            base_scores = [s for s in base_scores if s is not None]
-            return sum(base_scores) / max(len(o1), len(o2))
+            paired_scores = [self.json_diff(e1, e2) for (e1, e2) in zip(o1, o2)]
+            base_scores = [s for s in paired_scores if s is not None]
+            # A skipped comparison must not be scored as a mismatch, so drop it from
+            # the denominator the way the dict branch above does. Elements with no
+            # counterpart are a real difference and stay counted, which is what
+            # max(len(o1), len(o2)) contributes over the zip.
+            skipped = len(paired_scores) - len(base_scores)
+            denominator = max(len(o1), len(o2)) - skipped
+            if denominator <= 0:
+                return None
+            return sum(base_scores) / denominator
         elif isinstance(o1, str) and isinstance(o2, str):
             return self.string_scorer.eval(o1, o2).score
         elif (isinstance(o1, int) or isinstance(o1, float)) and (isinstance(o2, int) or isinstance(o2, float)):

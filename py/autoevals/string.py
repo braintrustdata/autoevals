@@ -132,33 +132,38 @@ class EmbeddingSimilarity(ScorerWithPartial):
 
         self.client = client
 
+    def _cache_key(self, value):
+        return (self.extra_args["model"], self.prefix, value)
+
     async def _a_embed(self, value):
         value = normalize_value(value, maybe_object=False)
+        cache_key = self._cache_key(value)
         with self._CACHE_LOCK:
-            if value in self._CACHE:
-                return self._CACHE[value]
+            if cache_key in self._CACHE:
+                return self._CACHE[cache_key]
 
         result = await arun_cached_request(
             client=self.client, request_type="embed", input=f"{self.prefix}{value}", **self.extra_args
         )
 
         with self._CACHE_LOCK:
-            self._CACHE[value] = result
+            self._CACHE[cache_key] = result
 
         return result
 
     def _embed(self, value):
         value = normalize_value(value, maybe_object=False)
+        cache_key = self._cache_key(value)
         with self._CACHE_LOCK:
-            if value in self._CACHE:
-                return self._CACHE[value]
+            if cache_key in self._CACHE:
+                return self._CACHE[cache_key]
 
         result = run_cached_request(
             client=self.client, request_type="embed", input=f"{self.prefix}{value}", **self.extra_args
         )
 
         with self._CACHE_LOCK:
-            self._CACHE[value] = result
+            self._CACHE[cache_key] = result
 
         return result
 

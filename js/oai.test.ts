@@ -357,6 +357,51 @@ describe("OAI", () => {
     expect(Object.is(builtClient, client)).toBe(true);
     expect(getDefaultModel()).toBe("gpt-4-turbo");
   });
+
+  const makePlainBridgeClient = () => ({
+    chat: {
+      completions: {
+        create: async () => MOCK_OPENAI_COMPLETION_RESPONSE,
+      },
+    },
+  });
+
+  test("plain object client works when wrap openai global is unset", async () => {
+    const originalWrapper = globalThis.__inherited_braintrust_wrap_openai;
+    globalThis.__inherited_braintrust_wrap_openai = undefined;
+    try {
+      const client = makePlainBridgeClient();
+      const builtClient = buildOpenAIClient({ client: client as OpenAI });
+      const response = await builtClient.chat.completions.create({
+        model: "gpt-4",
+        messages: [{ role: "user", content: "Hello" }],
+      });
+      expect(response.choices[0].message.content).toBe(
+        "Hello, I am a mock response!",
+      );
+    } finally {
+      globalThis.__inherited_braintrust_wrap_openai = originalWrapper;
+    }
+  });
+
+  test("plain object client does not throw TypeError when wrap openai global is set", async () => {
+    const originalWrapper = globalThis.__inherited_braintrust_wrap_openai;
+    // What `import "braintrust"` does as a side effect.
+    globalThis.__inherited_braintrust_wrap_openai = (c) => c;
+    try {
+      const client = makePlainBridgeClient();
+      const builtClient = buildOpenAIClient({ client: client as OpenAI });
+      const response = await builtClient.chat.completions.create({
+        model: "gpt-4",
+        messages: [{ role: "user", content: "Hello" }],
+      });
+      expect(response.choices[0].message.content).toBe(
+        "Hello, I am a mock response!",
+      );
+    } finally {
+      globalThis.__inherited_braintrust_wrap_openai = originalWrapper;
+    }
+  });
 });
 
 const withMockWrapper = async (

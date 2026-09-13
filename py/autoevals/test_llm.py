@@ -5,7 +5,7 @@ from typing import cast
 import pytest
 import respx
 from httpx import Response
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
 
 from autoevals import init
@@ -402,7 +402,7 @@ def test_battle():
 
 @respx.mock
 def test_llm_classifier_omits_optional_parameters_when_not_specified():
-    """Test that temperature is not included in API request when not specified."""
+    """Optional temperature and token limits should not be added by default."""
     captured_request_body = None
 
     def capture_request(request):
@@ -441,13 +441,14 @@ def test_llm_classifier_omits_optional_parameters_when_not_specified():
 
     classifier.eval(output="test output", expected="test expected")
 
-    # Verify that temperature is NOT in the request (Responses API doesn't support max_tokens)
     assert "temperature" not in captured_request_body
+    assert "max_output_tokens" not in captured_request_body
+    assert "max_tokens" not in captured_request_body
 
 
 @respx.mock
 def test_llm_classifier_includes_parameters_when_specified():
-    """Test that temperature is included in API request when specified (max_tokens not supported by Responses API)."""
+    """Explicit parameters should reach the Responses API using its field names."""
     captured_request_body = None
 
     def capture_request(request):
@@ -489,12 +490,69 @@ def test_llm_classifier_includes_parameters_when_specified():
 
     classifier.eval(output="test output", expected="test expected")
 
-    # Verify that temperature is in the request with correct value (max_tokens not supported by Responses API)
     assert captured_request_body["temperature"] == 0.5
+    assert captured_request_body["max_output_tokens"] == 256
     assert "max_tokens" not in captured_request_body
     # The Responses API nests reasoning effort under reasoning.effort.
     assert captured_request_body["reasoning"] == {"effort": "medium"}
     assert "reasoning_effort" not in captured_request_body
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("is_async", [False, True], ids=["sync", "async"])
+@pytest.mark.parametrize(
+    "model,use_responses_api",
+    [("gpt-5-mini", False), ("internal-proxy-model", True)],
+    ids=["automatic", "explicit"],
+)
+@pytest.mark.parametrize("max_tokens", [None, 256], ids=["default", "limited"])
+@respx.mock
+async def test_responses_token_limit(is_async, model, use_responses_api, max_tokens):
+    route = respx.post("https://api.openai.com/v1/responses").respond(
+        json={
+            "id": "resp-test",
+            "object": "response",
+            "created": 1234567890,
+            "model": model,
+            "output": [
+                {
+                    "type": "function_call",
+                    "call_id": "call_test",
+                    "name": "select_choice",
+                    "arguments": '{"choice": "1"}',
+                }
+            ],
+        }
+    )
+    client_class = AsyncOpenAI if is_async else OpenAI
+    client = client_class(api_key="test-api-key", base_url="https://api.openai.com/v1", max_retries=0)
+    classifier = LLMClassifier(
+        "test",
+        "Test prompt: {{output}}",
+        {"1": 1, "2": 0},
+        model=model,
+        use_responses_api=use_responses_api,
+        max_tokens=max_tokens,
+        client=client,
+    )
+    try:
+        result = (
+            await classifier.eval_async(output="test output") if is_async else classifier.eval(output="test output")
+        )
+    finally:
+        if is_async:
+            await client.close()
+        else:
+            client.close()
+
+    assert result.score == 1
+    assert route.call_count == 1
+    body = json.loads(route.calls[0].request.content)
+    assert "max_tokens" not in body
+    if max_tokens is None:
+        assert "max_output_tokens" not in body
+    else:
+        assert body["max_output_tokens"] == max_tokens
 
 
 @respx.mock

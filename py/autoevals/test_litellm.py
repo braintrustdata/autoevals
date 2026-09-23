@@ -4,9 +4,11 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from litellm import ModelResponse
 
 from autoevals import init
 from autoevals.litellm import AsyncLiteLLMClient, LiteLLMClient
+from autoevals.llm import LLMClassifier
 from autoevals.oai import LLMClient
 
 
@@ -162,3 +164,58 @@ def test_init_accepts_litellm_client(mocker):
     # Calling through the wrapper should dispatch to litellm.completion
     result = wrapper.complete(model="openai/gpt-4o-mini", messages=[{"role": "user", "content": "ping"}])
     assert result.choices[0].message.content == "init-ok"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("is_async", [False, True], ids=["sync", "async"])
+@pytest.mark.parametrize(
+    "model,use_responses_api",
+    [("gpt-5-mini", False), ("openai/gpt-4o-mini", True), ("openai/gpt-4o-mini", False)],
+    ids=["automatic-responses", "explicit-responses", "chat"],
+)
+@pytest.mark.parametrize("max_tokens", [None, 256], ids=["default", "limited"])
+async def test_llm_classifier_preserves_litellm_token_limit(mocker, is_async, model, use_responses_api, max_tokens):
+    response = ModelResponse(
+        **{
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {"type": "function", "function": {"name": "select_choice", "arguments": '{"choice": "1"}'}}
+                        ],
+                    }
+                }
+            ]
+        }
+    )
+    if is_async:
+        completion = mocker.patch("litellm.acompletion", new=AsyncMock(return_value=response))
+        client = AsyncLiteLLMClient(api_key="test-api-key")
+    else:
+        completion = mocker.patch("litellm.completion", return_value=response)
+        client = LiteLLMClient(api_key="test-api-key")
+    classifier = LLMClassifier(
+        "test",
+        "Test prompt: {{output}}",
+        {"1": 1, "2": 0},
+        model=model,
+        use_responses_api=use_responses_api,
+        max_tokens=max_tokens,
+        client=client,
+    )
+
+    result = await classifier.eval_async(output="test output") if is_async else classifier.eval(output="test output")
+
+    assert result.score == 1
+    completion.assert_called_once()
+    if is_async:
+        completion.assert_awaited_once()
+    kwargs = completion.call_args.kwargs
+    assert "messages" in kwargs
+    assert "input" not in kwargs
+    assert "max_output_tokens" not in kwargs
+    if max_tokens is None:
+        assert "max_tokens" not in kwargs
+    else:
+        assert kwargs["max_tokens"] == max_tokens

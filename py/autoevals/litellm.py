@@ -122,6 +122,8 @@ def _responses_params_to_chat_kwargs(kwargs: dict[str, Any]) -> dict[str, Any]:
     chat_kwargs = dict(kwargs)
     if "input" in chat_kwargs and "messages" not in chat_kwargs:
         chat_kwargs["messages"] = chat_kwargs.pop("input")
+    if "max_output_tokens" in chat_kwargs:
+        chat_kwargs["max_tokens"] = chat_kwargs.pop("max_output_tokens")
     # Responses-API tools use flat {type, name, description, parameters}; Chat-
     # Completions tools nest the schema under {type, function: {...}}.
     if "tools" in chat_kwargs:

@@ -4,6 +4,7 @@
     "outDir": "./jsdist",
     "lib": ["es2015", "dom"],
     "target": "ES2018",
+    "module": "ESNext",
     "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,

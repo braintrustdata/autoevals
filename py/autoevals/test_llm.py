@@ -1,6 +1,5 @@
 import asyncio
 import json
-from pathlib import Path
 from typing import cast
 
 import pytest
@@ -778,7 +777,7 @@ def test_llm_classifier_does_not_fetch_thread_when_template_does_not_use_it():
 
 
 @respx.mock
-def test_speech_clarity_sends_ogg_as_mp3_to_chat_completions():
+def test_speech_clarity_sends_audio_as_a_file_to_chat_completions():
     route = respx.route(method="POST", path__regex=r".*/chat/completions$").respond(
         json={
             "choices": [
@@ -800,17 +799,15 @@ def test_speech_clarity_sends_ogg_as_mp3_to_chat_completions():
             ],
         }
     )
-    ogg = (Path(__file__).parents[2] / "fixtures" / "tone.ogg").read_bytes()
-
     result = SpeechClarity(base_url="https://api.openai.com/v1/", api_key="test").eval(
-        input={"audio": {"data": ogg, "content_type": "audio/ogg"}}, output=None
+        input={"audio": {"data": b"\x01\x02\x03", "content_type": "audio/ogg"}}, output=None
     )
 
     assert result.score == 1
     body = json.loads(route.calls.last.request.content)
     assert body["model"] == "gemini-3.8-flash"
     assert body["messages"][0]["content"][0]["type"] == "text"
-    assert body["messages"][0]["content"][1]["input_audio"]["format"] == "mp3"
+    assert body["messages"][0]["content"][1]["file"]["file_data"] == "data:audio/ogg;base64,AQID"
 
 
 def test_speech_clarity_accepts_model_override():

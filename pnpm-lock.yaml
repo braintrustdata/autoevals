@@ -7,9 +7,6 @@ settings:
 importers:
   .:
     dependencies:
-      "@breezystack/lamejs":
-        specifier: 1.2.7
-        version: 1.2.7
       ajv:
         specifier: ^8.17.1
         version: 8.17.1
@@ -28,9 +25,6 @@ importers:
       mustache:
         specifier: ^4.2.0
         version: 4.2.0
-      ogg-opus-decoder:
-        specifier: 1.7.5
-        version: 1.7.5
       openai:
         specifier: ^6.7.0
         version: 6.15.0(zod@3.25.67)
@@ -107,12 +101,6 @@ packages:
         integrity: sha512-qZMxYJ0qqX/RfnuIaab+zp8UAeJn/ygXXAffR5I4N0n1IrvA6qBsjc8hXLmBiMV2zoXlifkacF7sEFnYnjBcqg==,
       }
     engines: { node: ">=18" }
-
-  "@breezystack/lamejs@1.2.7":
-    resolution:
-      {
-        integrity: sha512-6wc7ck65ctA75Hq7FYHTtTvGnYs6msgdxiSUICQ+A01nVOWg6rqouZB8IdyteRlfpYYiFovkf67dIeOgWIUzTA==,
-      }
 
   "@bundled-es-modules/cookie@2.0.1":
     resolution:
@@ -1012,12 +1000,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  "@eshaz/web-worker@1.2.2":
-    resolution:
-      {
-        integrity: sha512-WxXiHFmD9u/owrzempiDlBB1ZYqiLnm9s6aPc8AlFQalq2tKmqdmMr9GXOupDgzXtqnBipj8Un0gkIm7Sjf8mw==,
-      }
-
   "@gar/promisify@1.1.3":
     resolution:
       {
@@ -1258,7 +1240,6 @@ packages:
       }
     cpu: [arm]
     os: [linux]
-    libc: [glibc]
 
   "@rollup/rollup-linux-arm-musleabihf@4.46.4":
     resolution:
@@ -1267,7 +1248,6 @@ packages:
       }
     cpu: [arm]
     os: [linux]
-    libc: [musl]
 
   "@rollup/rollup-linux-arm64-gnu@4.46.4":
     resolution:
@@ -1276,7 +1256,6 @@ packages:
       }
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   "@rollup/rollup-linux-arm64-musl@4.46.4":
     resolution:
@@ -1285,7 +1264,6 @@ packages:
       }
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   "@rollup/rollup-linux-loongarch64-gnu@4.46.4":
     resolution:
@@ -1294,7 +1272,6 @@ packages:
       }
     cpu: [loong64]
     os: [linux]
-    libc: [glibc]
 
   "@rollup/rollup-linux-ppc64-gnu@4.46.4":
     resolution:
@@ -1303,7 +1280,6 @@ packages:
       }
     cpu: [ppc64]
     os: [linux]
-    libc: [glibc]
 
   "@rollup/rollup-linux-riscv64-gnu@4.46.4":
     resolution:
@@ -1312,7 +1288,6 @@ packages:
       }
     cpu: [riscv64]
     os: [linux]
-    libc: [glibc]
 
   "@rollup/rollup-linux-riscv64-musl@4.46.4":
     resolution:
@@ -1321,7 +1296,6 @@ packages:
       }
     cpu: [riscv64]
     os: [linux]
-    libc: [musl]
 
   "@rollup/rollup-linux-s390x-gnu@4.46.4":
     resolution:
@@ -1330,7 +1304,6 @@ packages:
       }
     cpu: [s390x]
     os: [linux]
-    libc: [glibc]
 
   "@rollup/rollup-linux-x64-gnu@4.46.4":
     resolution:
@@ -1339,7 +1312,6 @@ packages:
       }
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   "@rollup/rollup-linux-x64-musl@4.46.4":
     resolution:
@@ -1348,7 +1320,6 @@ packages:
       }
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   "@rollup/rollup-win32-arm64-msvc@4.46.4":
     resolution:
@@ -1501,18 +1472,6 @@ packages:
     resolution:
       {
         integrity: sha512-v0psaMSkNJ3A2NMrUEHFRzJtDPFn+/VWZ5WxImB21T9fjucJRmS7xCS3ppEnARb9y11OAzaD+P2Ps+b+BGX5iQ==,
-      }
-
-  "@wasm-audio-decoders/common@9.0.7":
-    resolution:
-      {
-        integrity: sha512-WRaUuWSKV7pkttBygml/a6dIEpatq2nnZGFIoPTc5yPLkxL6Wk4YaslPM98OPQvWacvNZ+Py9xROGDtrFBDzag==,
-      }
-
-  "@wasm-audio-decoders/opus-ml@0.0.3":
-    resolution:
-      {
-        integrity: sha512-SEeTmk0eb3q5etJA/NHCRWW6BivTx9tqvNTmG0kg2ynuATEQRUZnwQE6Ibvl1BBvqIGHqI57+qyJMWmJBwb5XQ==,
       }
 
   a-sync-waterfall@1.0.1:
@@ -1881,12 +1840,6 @@ packages:
         integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==,
       }
     engines: { node: ">=12" }
-
-  codec-parser@2.5.0:
-    resolution:
-      {
-        integrity: sha512-Ru9t80fV8B0ZiixQl8xhMTLru+dzuis/KQld32/x5T/+3LwZb0/YvQdSKytX9JqCnRdiupvAvyYJINKrXieziQ==,
-      }
 
   color-convert@2.0.1:
     resolution:
@@ -3113,12 +3066,6 @@ packages:
       }
     engines: { node: ">= 0.4" }
 
-  ogg-opus-decoder@1.7.5:
-    resolution:
-      {
-        integrity: sha512-08WfRbuBBew1H63PqQ3zj2B/J0Eh9ISfNOTi+Dk6vuXmkBGSx8BiPJGOJ470EYeKezTa7/GhOAwHe3XlXwOZMw==,
-      }
-
   on-finished@2.4.1:
     resolution:
       {
@@ -3146,12 +3093,6 @@ packages:
         optional: true
       zod:
         optional: true
-
-  opus-decoder@0.7.12:
-    resolution:
-      {
-        integrity: sha512-6zpHFDi/MhYvMwyYiuJPqJ2lcRkfm7wHblSvT3lUtx/kLvHkunoe/rhTn1dLKxqVGLeQj3gQi7CnR0N2p3RuOg==,
-      }
 
   outvariant@1.4.3:
     resolution:
@@ -3551,12 +3492,6 @@ packages:
     resolution:
       {
         integrity: sha512-ivHoFS9Yi9GY49ogc6/YAi3Fl9ROnF4VyubNylgCkA+RVqLaKWnDSzXOVzya8csELIaWaYNutsEuAhZrtOjozA==,
-      }
-
-  simple-yenc@1.0.4:
-    resolution:
-      {
-        integrity: sha512-5gvxpSd79e9a3V4QDYUqnqxeD4HGlhCakVpb6gMnDD7lexJggSBJRBO5h52y/iJrdXRilX9UCuDaIJhSWm5OWw==,
       }
 
   smart-buffer@4.2.0:
@@ -4247,8 +4182,6 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  "@breezystack/lamejs@1.2.7": {}
-
   "@bundled-es-modules/cookie@2.0.1":
     dependencies:
       cookie: 0.7.2
@@ -4556,8 +4489,6 @@ snapshots:
   "@esbuild/win32-x64@0.27.2":
     optional: true
 
-  "@eshaz/web-worker@1.2.2": {}
-
   "@gar/promisify@1.1.3": {}
 
   "@inquirer/confirm@5.1.15(@types/node@20.19.11)":
@@ -4812,15 +4743,6 @@ snapshots:
       loupe: 3.2.0
       tinyrainbow: 1.2.0
 
-  "@wasm-audio-decoders/common@9.0.7":
-    dependencies:
-      "@eshaz/web-worker": 1.2.2
-      simple-yenc: 1.0.4
-
-  "@wasm-audio-decoders/opus-ml@0.0.3":
-    dependencies:
-      "@wasm-audio-decoders/common": 9.0.7
-
   a-sync-waterfall@1.0.1: {}
 
   abbrev@1.1.1: {}
@@ -5067,8 +4989,6 @@ snapshots:
       string-width: 4.2.3
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
-
-  codec-parser@2.5.0: {}
 
   color-convert@2.0.1:
     dependencies:
@@ -5862,13 +5782,6 @@ snapshots:
 
   object-inspect@1.13.4: {}
 
-  ogg-opus-decoder@1.7.5:
-    dependencies:
-      "@wasm-audio-decoders/common": 9.0.7
-      "@wasm-audio-decoders/opus-ml": 0.0.3
-      codec-parser: 2.5.0
-      opus-decoder: 0.7.12
-
   on-finished@2.4.1:
     dependencies:
       ee-first: 1.1.1
@@ -5880,10 +5793,6 @@ snapshots:
   openai@6.15.0(zod@3.25.67):
     optionalDependencies:
       zod: 3.25.67
-
-  opus-decoder@0.7.12:
-    dependencies:
-      "@wasm-audio-decoders/common": 9.0.7
 
   outvariant@1.4.3: {}
 
@@ -6120,8 +6029,6 @@ snapshots:
       debug: 4.4.1
     transitivePeerDependencies:
       - supports-color
-
-  simple-yenc@1.0.4: {}
 
   smart-buffer@4.2.0: {}
 

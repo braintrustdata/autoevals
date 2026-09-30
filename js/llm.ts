@@ -7,7 +7,7 @@ import {
 } from "./oai";
 import { ModelGradedSpec, templates } from "./templates";
 import {
-  ChatCompletionContentPartInputAudio,
+  ChatCompletionContentPart,
   ChatCompletionMessage,
   ChatCompletionMessageParam,
   ChatCompletionTool,
@@ -74,43 +74,9 @@ function getPath(args: unknown, path: string): unknown {
   return value;
 }
 
-async function oggToMp3(ogg: Uint8Array): Promise<Uint8Array> {
-  const { OggOpusDecoder } = await import("ogg-opus-decoder");
-  const { Mp3Encoder } = await import("@breezystack/lamejs");
-  const decoder = new OggOpusDecoder();
-  await decoder.ready;
-  try {
-    const { channelData, samplesDecoded, sampleRate, errors } =
-      await decoder.decodeFile(ogg);
-    if (errors.length > 0 || samplesDecoded === 0) {
-      throw new Error("Could not decode OGG audio");
-    }
-    const [left, right] = channelData
-      .slice(0, 2)
-      .map((samples) =>
-        Int16Array.from(samples, (s) => Math.max(-1, Math.min(1, s)) * 0x7fff),
-      );
-    const encoder = new Mp3Encoder(right ? 2 : 1, sampleRate, 128);
-    const chunks = [encoder.encodeBuffer(left, right), encoder.flush()];
-    return Buffer.concat(chunks.map((c) => Buffer.from(c)));
-  } finally {
-    decoder.free();
-  }
-}
-
 export type Audio = { data: Uint8Array; content_type: string };
 
-const AUDIO_FORMATS: Record<string, "wav" | "mp3" | "ogg"> = {
-  "audio/wav": "wav",
-  "audio/x-wav": "wav",
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/ogg": "ogg",
-};
-
-async function audioPart(
-  audio: unknown,
-): Promise<ChatCompletionContentPartInputAudio> {
+function audioPart(audio: unknown): ChatCompletionContentPart.File {
   const data = Reflect.get(Object(audio), "data");
   if (!(data instanceof Uint8Array)) {
     throw new TypeError(
@@ -121,20 +87,15 @@ async function audioPart(
     .split(";")[0]
     .trim()
     .toLowerCase();
-  const format = AUDIO_FORMATS[contentType];
-  if (!format) {
+  if (!contentType.startsWith("audio/")) {
     throw new Error(
-      `Audio must be WAV, MP3, or OGG, got content type "${contentType}"`,
+      `Audio must have an audio/* content type, got "${contentType}"`,
     );
   }
-  const [bytes, sentFormat] =
-    format === "ogg" ? [await oggToMp3(data), "mp3" as const] : [data, format];
+  const base64 = Buffer.from(data).toString("base64");
   return {
-    type: "input_audio",
-    input_audio: {
-      data: Buffer.from(bytes).toString("base64"),
-      format: sentFormat,
-    },
+    type: "file",
+    file: { file_data: `data:${contentType};base64,${base64}` },
   };
 }
 
@@ -218,7 +179,7 @@ export type OpenAIClassifierArgs<RenderArgs> = {
   messages: ChatCompletionMessageParam[];
   choiceScores: Record<string, number>;
   classificationTools: ChatCompletionTool[];
-  inputAudio?: ChatCompletionContentPartInputAudio;
+  audioFile?: ChatCompletionContentPart.File;
   cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
@@ -251,7 +212,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     reasoningEnabled,
     reasoningBudget,
     useResponsesApi,
-    inputAudio,
+    audioFile,
     cache,
     ...remainingRenderArgs
   } = remaining;
@@ -290,11 +251,11 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   };
 
   const messages = renderMessages(messagesArg, renderArgs);
-  if (inputAudio) {
+  if (audioFile) {
     const last = messages[messages.length - 1];
     messages[messages.length - 1] = {
       role: "user",
-      content: [{ type: "text", text: String(last.content) }, inputAudio],
+      content: [{ type: "text", text: String(last.content) }, audioFile],
     };
   }
 
@@ -466,7 +427,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       // Since the logic is a bit funky for computing this, include
       // it at the end to prevent overrides
       useCoT,
-      inputAudio: audio ? await audioPart(audioValue) : undefined,
+      audioFile: audio ? audioPart(audioValue) : undefined,
     };
 
     return await OpenAIClassifier(classifierArgs);

@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { bypass, http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { OpenAI } from "openai";
@@ -666,7 +665,7 @@ Issue Description: {{page_content}}
 });
 
 describe("SpeechClarity", () => {
-  test("sends OGG audio as MP3 to gemini-3.8-flash through chat completions", async () => {
+  test("sends audio as a file to gemini-3.8-flash through chat completions", async () => {
     let body: any;
     server.use(
       http.post(
@@ -699,7 +698,7 @@ describe("SpeechClarity", () => {
     const score = await SpeechClarity({
       input: {
         audio: {
-          data: readFileSync("fixtures/tone.ogg"),
+          data: new Uint8Array([1, 2, 3]),
           content_type: "audio/ogg",
         },
       },
@@ -710,7 +709,9 @@ describe("SpeechClarity", () => {
     expect(score.score).toBe(1);
     expect(body.model).toBe("gemini-3.8-flash");
     expect(body.messages[0].content[0].type).toBe("text");
-    expect(body.messages[0].content[1].input_audio.format).toBe("mp3");
+    expect(body.messages[0].content[1].file.file_data).toBe(
+      "data:audio/ogg;base64,AQID",
+    );
   });
 
   test("skips when there is no audio", async () => {

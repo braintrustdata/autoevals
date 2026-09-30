@@ -19,7 +19,6 @@ dependencies = [
   "jsonschema",
   "polyleven",
   "pyyaml",
-  "soundfile",
 ]
 
 [project.urls]

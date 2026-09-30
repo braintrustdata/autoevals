@@ -48,7 +48,6 @@ print(result.score)  # 1 if correct, 0 if incorrect
 import asyncio
 import base64
 import inspect
-import io
 import json
 import os
 import re
@@ -142,40 +141,14 @@ def get_path(args, path):
     return value
 
 
-def ogg_to_mp3(audio):
-    import soundfile
-
-    samples, rate = soundfile.read(io.BytesIO(audio), dtype="int16", always_2d=True)
-    mp3 = io.BytesIO()
-    # compression_level 0.65 is 128 kbps, the lowest rate at which lamejs keeps 48 kHz
-    soundfile.write(mp3, samples[:, :2], rate, format="MP3", bitrate_mode="CONSTANT", compression_level=0.65)
-    return mp3.getvalue()
-
-
-AUDIO_FORMATS = {
-    "audio/wav": "wav",
-    "audio/x-wav": "wav",
-    "audio/mpeg": "mp3",
-    "audio/mp3": "mp3",
-    "audio/ogg": "ogg",
-}
-
-
 def audio_part(audio):
     if not isinstance(audio, dict) or not isinstance(audio.get("data"), (bytes, bytearray)):
         raise TypeError("Audio must be a dict with `data` bytes and a `content_type`")
     content_type = str(audio.get("content_type", "")).split(";")[0].strip().lower()
-    audio_format = AUDIO_FORMATS.get(content_type)
-    if audio_format is None:
-        raise ValueError(f"Audio must be WAV, MP3, or OGG, got content type {content_type!r}")
-    data = audio["data"]
-    if audio_format == "ogg":
-        data = ogg_to_mp3(data)
-        audio_format = "mp3"
-    return {
-        "type": "input_audio",
-        "input_audio": {"data": base64.b64encode(data).decode(), "format": audio_format},
-    }
+    if not content_type.startswith("audio/"):
+        raise ValueError(f"Audio must have an audio/* content type, got {content_type!r}")
+    data = base64.b64encode(audio["data"]).decode()
+    return {"type": "file", "file": {"file_data": f"data:{content_type};base64,{data}"}}
 
 
 class OpenAIScorer(ScorerWithPartial):
@@ -404,7 +377,7 @@ class LLMClassifier(OpenAILLMClassifier):
         reasoning_effort: Controls reasoning depth for o-series models (e.g., "low", "medium", "high").
         reasoning_enabled: Enable extended thinking for supported models (e.g., Claude). Defaults to None.
         reasoning_budget: Token allocation for model's internal reasoning. Defaults to None.
-        audio: Path in the arguments (e.g. `input.audio`) to a dict with `data` bytes and a WAV, MP3, or OGG `content_type`. Missing audio skips the score.
+        audio: Path in the arguments (e.g. `input.audio`) to a dict with `data` bytes and an audio `content_type`, such as `audio/ogg`. Missing audio skips the score.
         engine: Deprecated by OpenAI. Use model instead.
         api_key: Deprecated. Use client instead.
         base_url: Deprecated. Use client instead.
@@ -933,7 +906,7 @@ class SpeechClarity(SpecFileClassifier):
         ```
 
     Args:
-        input: Dict whose `audio` is the recording, as `{"data": bytes, "content_type": "audio/ogg"}` (WAV, MP3, or OGG)
+        input: Dict whose `audio` is the recording, as `{"data": bytes, "content_type": "audio/ogg"}`
     """
 
     pass
@@ -953,7 +926,7 @@ class TurnTaking(SpecFileClassifier):
         ```
 
     Args:
-        input: Dict whose `audio` is the recording, as `{"data": bytes, "content_type": "audio/ogg"}` (WAV, MP3, or OGG)
+        input: Dict whose `audio` is the recording, as `{"data": bytes, "content_type": "audio/ogg"}`
     """
 
     pass

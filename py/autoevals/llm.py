@@ -507,6 +507,24 @@ class LLMClassifier(OpenAILLMClassifier):
         # Thread vars come first so explicit render args can override.
         return super()._request_args(output, expected, **thread_vars, **kwargs)
 
+    def _run_eval_sync(self, output, expected, **kwargs):
+        trace = kwargs.get("trace")
+        if trace is not None and self._template_uses_thread_variables:
+            # Clear the trace so _request_args doesn't fetch the thread again.
+            kwargs = {**self._compute_thread_vars_sync(trace), **kwargs, "trace": None}
+        if self._template_uses_thread_variables and kwargs.get("thread_count") == 0:
+            return Score(name=self.name, score=None)
+        return super()._run_eval_sync(output, expected, **kwargs)
+
+    async def _run_eval_async(self, output, expected, **kwargs):
+        trace = kwargs.get("trace")
+        if trace is not None and self._template_uses_thread_variables:
+            # Clear the trace so _request_args doesn't fetch the thread again.
+            kwargs = {**await self._compute_thread_vars_async(trace), **kwargs, "trace": None}
+        if self._template_uses_thread_variables and kwargs.get("thread_count") == 0:
+            return Score(name=self.name, score=None)
+        return await super()._run_eval_async(output, expected, **kwargs)
+
     @classmethod
     def from_spec(cls, name: str, spec: ModelGradedSpec, client: Client | None = None, **kwargs):
         spec_kwargs = {}
@@ -927,6 +945,27 @@ class TurnTaking(SpecFileClassifier):
 
     Args:
         input: Dict whose `audio` is the recording, as `{"data": bytes, "content_type": "audio/ogg"}`
+    """
+
+    pass
+
+
+class VoiceTaskSuccess(SpecFileClassifier):
+    """Rate whether a voice agent correctly completed the caller's request, from the conversation in the trace.
+
+    The conversation comes from `trace.get_thread()`, including the agent's instructions, tool calls, and
+    tool results when the trace has them. An empty conversation skips the score.
+
+    Example:
+        ```python
+        from autoevals import VoiceTaskSuccess
+
+        result = await VoiceTaskSuccess().eval_async(output=None, trace=trace)
+        print(result.score)  # 1 if done correctly, 0.5 if done with minor problems, 0 if not done or wrong
+        ```
+
+    Args:
+        trace: Trace of the voice conversation
     """
 
     pass

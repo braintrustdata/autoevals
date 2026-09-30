@@ -12,6 +12,7 @@ import sql from "../templates/sql.yaml";
 import summary from "../templates/summary.yaml";
 import translation from "../templates/translation.yaml";
 import turn_taking from "../templates/turn_taking.yaml";
+import voice_task_success from "../templates/voice_task_success.yaml";
 
 export const modelGradedSpecSchema = z.object({
   prompt: z.string(),
@@ -37,6 +38,7 @@ const templateStrings = {
   summary,
   translation,
   turn_taking,
+  voice_task_success,
 } as const;
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

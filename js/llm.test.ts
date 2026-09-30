@@ -10,6 +10,7 @@ import {
   OpenAIClassifier,
   SpeechClarity,
   templateUsesThreadVariables,
+  VoiceTaskSuccess,
 } from "../js/llm";
 import {
   openaiClassifierShouldEvaluateArithmeticExpressions,
@@ -718,6 +719,21 @@ describe("SpeechClarity", () => {
     const score = await SpeechClarity({
       input: { text: "hello" },
       output: undefined,
+      openAiApiKey: "test-api-key",
+    });
+    expect(score.score).toBeNull();
+  });
+});
+
+describe("VoiceTaskSuccess", () => {
+  test("skips when the conversation is empty", async () => {
+    const score = await VoiceTaskSuccess({
+      output: undefined,
+      trace: {
+        async getThread() {
+          return [{ role: "system", content: "Be helpful." }];
+        },
+      },
       openAiApiKey: "test-api-key",
     });
     expect(score.score).toBeNull();

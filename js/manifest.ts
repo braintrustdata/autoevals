@@ -11,6 +11,7 @@ import {
   Summary,
   Translation,
   TurnTaking,
+  VoiceTaskSuccess,
 } from "./llm";
 import { NumericDiff } from "./number";
 import { EmbeddingSimilarity, Levenshtein } from "./string";
@@ -114,6 +115,12 @@ export const Evaluators: {
         description:
           "Test whether an agent takes turns well, without talking over or cutting off the caller, from a recording of the whole conversation (`input.audio`).",
         template: templates.turn_taking,
+      },
+      {
+        method: VoiceTaskSuccess,
+        description:
+          "Test whether a voice agent correctly completed the caller's request, from the conversation in the trace, including its instructions, tool calls, and tool results.",
+        template: templates.voice_task_success,
       },
     ],
   },

@@ -15,6 +15,7 @@ from autoevals.llm import (
     LLMClassifier,
     OpenAILLMClassifier,
     SpeechClarity,
+    VoiceTaskSuccess,
     build_classification_tools,
 )
 from autoevals.oai import OpenAIV1Module, get_default_model
@@ -816,3 +817,8 @@ def test_speech_clarity_accepts_model_override():
 
 def test_speech_clarity_skips_without_audio():
     assert SpeechClarity().eval(input={"text": "hello"}, output=None).score is None
+
+
+def test_voice_task_success_skips_empty_thread():
+    trace = _FakeTrace([{"role": "system", "content": "Be helpful."}])
+    assert VoiceTaskSuccess().eval(output=None, trace=trace).score is None

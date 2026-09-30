@@ -396,6 +396,12 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       }
     }
 
+    const threadCount =
+      Reflect.get(runtimeArgs, "thread_count") ?? threadVars.thread_count;
+    if (templateUsesThreadVariables(promptTemplate) && threadCount === 0) {
+      return { name, score: null };
+    }
+
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
 
@@ -564,3 +570,12 @@ export const TurnTaking = buildLLMClassifier<
   { input: { audio?: Audio; [key: string]: unknown } },
   unknown
 >("TurnTaking", "turn_taking");
+
+/**
+ * Test whether a voice agent correctly completed the caller's request, from the conversation
+ * in the trace, including its instructions, tool calls, and tool results.
+ */
+export const VoiceTaskSuccess = buildLLMClassifier<
+  Record<string, unknown>,
+  unknown
+>("VoiceTaskSuccess", "voice_task_success");

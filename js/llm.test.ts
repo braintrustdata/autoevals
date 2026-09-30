@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { bypass, http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { OpenAI } from "openai";
@@ -8,6 +9,7 @@ import {
   buildClassificationTools,
   LLMClassifierFromTemplate,
   OpenAIClassifier,
+  SpeechClarity,
   templateUsesThreadVariables,
 } from "../js/llm";
 import {
@@ -660,5 +662,63 @@ Issue Description: {{page_content}}
 
     // Reset for other tests
     init({ client });
+  });
+});
+
+describe("SpeechClarity", () => {
+  test("sends OGG audio as MP3 to gemini-3.8-flash through chat completions", async () => {
+    let body: any;
+    server.use(
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json({
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: '{"reasons":"Clear.","choice":"A"}',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+        },
+      ),
+    );
+
+    const score = await SpeechClarity({
+      input: {
+        audio: {
+          data: readFileSync("fixtures/tone.ogg"),
+          content_type: "audio/ogg",
+        },
+      },
+      output: undefined,
+      openAiApiKey: "test-api-key",
+    });
+
+    expect(score.score).toBe(1);
+    expect(body.model).toBe("gemini-3.8-flash");
+    expect(body.messages[0].content[0].type).toBe("text");
+    expect(body.messages[0].content[1].input_audio.format).toBe("mp3");
+  });
+
+  test("skips when there is no audio", async () => {
+    const score = await SpeechClarity({
+      input: { text: "hello" },
+      output: undefined,
+      openAiApiKey: "test-api-key",
+    });
+    expect(score.score).toBeNull();
   });
 });

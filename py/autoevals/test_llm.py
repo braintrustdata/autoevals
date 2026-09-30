@@ -1,5 +1,6 @@
 import asyncio
 import json
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -9,7 +10,14 @@ from openai import OpenAI
 from pydantic import BaseModel
 
 from autoevals import init
-from autoevals.llm import Battle, Factuality, LLMClassifier, OpenAILLMClassifier, build_classification_tools
+from autoevals.llm import (
+    Battle,
+    Factuality,
+    LLMClassifier,
+    OpenAILLMClassifier,
+    SpeechClarity,
+    build_classification_tools,
+)
 from autoevals.oai import OpenAIV1Module, get_default_model
 from autoevals.thread_utils import compute_thread_template_vars, template_uses_thread_variables
 
@@ -767,3 +775,47 @@ def test_llm_classifier_does_not_fetch_thread_when_template_does_not_use_it():
     classifier.eval(output="x", expected="y", trace=trace)
 
     assert trace.calls == 0
+
+
+@respx.mock
+def test_speech_clarity_sends_ogg_as_mp3_to_chat_completions():
+    route = respx.route(method="POST", path__regex=r".*/chat/completions$").respond(
+        json={
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_test",
+                                "type": "function",
+                                "function": {
+                                    "name": "select_choice",
+                                    "arguments": '{"reasons":"Clear.","choice":"A"}',
+                                },
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+    ogg = (Path(__file__).parents[2] / "fixtures" / "tone.ogg").read_bytes()
+
+    result = SpeechClarity(base_url="https://api.openai.com/v1/", api_key="test").eval(
+        input={"audio": {"data": ogg, "content_type": "audio/ogg"}}, output=None
+    )
+
+    assert result.score == 1
+    body = json.loads(route.calls.last.request.content)
+    assert body["model"] == "gemini-3.8-flash"
+    assert body["messages"][0]["content"][0]["type"] == "text"
+    assert body["messages"][0]["content"][1]["input_audio"]["format"] == "mp3"
+
+
+def test_speech_clarity_accepts_model_override():
+    assert SpeechClarity(model="gpt-4o-audio-preview").model == "gpt-4o-audio-preview"
+
+
+def test_speech_clarity_skips_without_audio():
+    assert SpeechClarity().eval(input={"text": "hello"}, output=None).score is None

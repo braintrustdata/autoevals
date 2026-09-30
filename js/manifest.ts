@@ -6,9 +6,11 @@ import {
   Humor,
   Possible,
   Security,
+  SpeechClarity,
   Sql,
   Summary,
   Translation,
+  TurnTaking,
 } from "./llm";
 import { NumericDiff } from "./number";
 import { EmbeddingSimilarity, Levenshtein } from "./string";
@@ -83,6 +85,12 @@ export const Evaluators: {
         template: templates.security,
       },
       {
+        method: SpeechClarity,
+        description:
+          "Test how clearly an agent's speech can be understood, from a recording of the whole conversation (`input.audio`).",
+        template: templates.speech_clarity,
+      },
+      {
         method: Sql,
         description:
           "Test whether a SQL query is semantically the same as a reference (output) query.",
@@ -100,6 +108,12 @@ export const Evaluators: {
           "Test whether an `output` is as good of a translation of the `input` in the specified `language` as an expert (`expected`) value.",
         template: templates.translation,
         requiresExtraParams: true,
+      },
+      {
+        method: TurnTaking,
+        description:
+          "Test whether an agent takes turns well, without talking over or cutting off the caller, from a recording of the whole conversation (`input.audio`).",
+        template: templates.turn_taking,
       },
     ],
   },

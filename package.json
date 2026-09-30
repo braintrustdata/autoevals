@@ -50,12 +50,14 @@
     "zod": "^3.25.0 || ^4.0.0"
   },
   "dependencies": {
+    "@breezystack/lamejs": "1.2.7",
     "ajv": "^8.17.1",
     "compute-cosine-similarity": "^1.1.0",
     "js-levenshtein": "^1.1.6",
     "js-yaml": "^4.1.0",
     "linear-sum-assignment": "^1.0.7",
     "mustache": "^4.2.0",
+    "ogg-opus-decoder": "1.7.5",
     "openai": "^6.7.0",
     "zod-to-json-schema": "3.25.0"
   },

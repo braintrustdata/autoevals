@@ -1,0 +1,12 @@
+prompt: |-
+  Listen to the attached recording of a conversation between an agent and a caller. Judge only how the agent handles turn-taking.
+  Consider whether the agent talks over the caller, cuts the caller off before they finish, or keeps talking when the caller interrupts. Brief backchannels such as "mm-hm" are fine unless they cover the caller's words. Ignore how long the agent takes to respond.
+  (A) The agent takes turns smoothly: it lets the caller finish and stops promptly when interrupted.
+  (B) There are brief overlaps or a slow yield, but no caller words are lost.
+  (C) The agent talks over the caller, ignores an interruption, or cuts the caller off, so caller words are lost.
+choice_scores:
+  "A": 1.0
+  "B": 0.5
+  "C": 0.0
+model: gemini-3.8-flash
+audio: input.audio

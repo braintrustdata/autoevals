@@ -7,6 +7,7 @@ import {
 } from "./oai";
 import { ModelGradedSpec, templates } from "./templates";
 import {
+  ChatCompletionContentPartInputAudio,
   ChatCompletionMessage,
   ChatCompletionMessageParam,
   ChatCompletionTool,
@@ -60,6 +61,81 @@ function filterSystemMessagesFromThread(thread: unknown[]): unknown[] {
     const role = Reflect.get(message, "role");
     return role !== "system";
   });
+}
+
+function getPath(args: unknown, path: string): unknown {
+  let value = args;
+  for (const key of path.split(".")) {
+    value =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? Reflect.get(value, key)
+        : undefined;
+  }
+  return value;
+}
+
+async function oggToMp3(ogg: Uint8Array): Promise<Uint8Array> {
+  const { OggOpusDecoder } = await import("ogg-opus-decoder");
+  const { Mp3Encoder } = await import("@breezystack/lamejs");
+  const decoder = new OggOpusDecoder();
+  await decoder.ready;
+  try {
+    const { channelData, samplesDecoded, sampleRate, errors } =
+      await decoder.decodeFile(ogg);
+    if (errors.length > 0 || samplesDecoded === 0) {
+      throw new Error("Could not decode OGG audio");
+    }
+    const [left, right] = channelData
+      .slice(0, 2)
+      .map((samples) =>
+        Int16Array.from(samples, (s) => Math.max(-1, Math.min(1, s)) * 0x7fff),
+      );
+    const encoder = new Mp3Encoder(right ? 2 : 1, sampleRate, 128);
+    const chunks = [encoder.encodeBuffer(left, right), encoder.flush()];
+    return Buffer.concat(chunks.map((c) => Buffer.from(c)));
+  } finally {
+    decoder.free();
+  }
+}
+
+export type Audio = { data: Uint8Array; content_type: string };
+
+const AUDIO_FORMATS: Record<string, "wav" | "mp3" | "ogg"> = {
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/ogg": "ogg",
+};
+
+async function audioPart(
+  audio: unknown,
+): Promise<ChatCompletionContentPartInputAudio> {
+  const data = Reflect.get(Object(audio), "data");
+  if (!(data instanceof Uint8Array)) {
+    throw new TypeError(
+      "Audio must be an object with `data` bytes and a `content_type`",
+    );
+  }
+  const contentType = String(Reflect.get(Object(audio), "content_type") ?? "")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
+  const format = AUDIO_FORMATS[contentType];
+  if (!format) {
+    throw new Error(
+      `Audio must be WAV, MP3, or OGG, got content type "${contentType}"`,
+    );
+  }
+  const [bytes, sentFormat] =
+    format === "ogg" ? [await oggToMp3(data), "mp3" as const] : [data, format];
+  return {
+    type: "input_audio",
+    input_audio: {
+      data: Buffer.from(bytes).toString("base64"),
+      format: sentFormat,
+    },
+  };
 }
 
 const NO_COT_SUFFIX =
@@ -142,6 +218,7 @@ export type OpenAIClassifierArgs<RenderArgs> = {
   messages: ChatCompletionMessageParam[];
   choiceScores: Record<string, number>;
   classificationTools: ChatCompletionTool[];
+  inputAudio?: ChatCompletionContentPartInputAudio;
   cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
@@ -174,6 +251,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     reasoningEnabled,
     reasoningBudget,
     useResponsesApi,
+    inputAudio,
     cache,
     ...remainingRenderArgs
   } = remaining;
@@ -212,6 +290,13 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   };
 
   const messages = renderMessages(messagesArg, renderArgs);
+  if (inputAudio) {
+    const last = messages[messages.length - 1];
+    messages[messages.length - 1] = {
+      role: "user",
+      content: [{ type: "text", text: String(last.content) }, inputAudio],
+    };
+  }
 
   const resp = await cachedChatCompletion(
     {
@@ -306,6 +391,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   reasoningEnabled,
   reasoningBudget,
   useResponsesApi,
+  audio,
 }: {
   name: string;
   promptTemplate: string;
@@ -318,11 +404,17 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   reasoningEnabled?: boolean;
   reasoningBudget?: number;
   useResponsesApi?: boolean;
+  audio?: string;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
   const ret = async (
     runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>,
   ) => {
+    const audioValue = audio ? getPath(runtimeArgs, audio) : undefined;
+    if (audio && audioValue == null) {
+      return { name, score: null };
+    }
+
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
     // Use runtime model > template model > configured default model
     const model = runtimeArgs.model ?? modelArg ?? getDefaultModel();
@@ -374,6 +466,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       // Since the logic is a bit funky for computing this, include
       // it at the end to prevent overrides
       useCoT,
+      inputAudio: audio ? await audioPart(audioValue) : undefined,
     };
 
     return await OpenAIClassifier(classifierArgs);
@@ -398,6 +491,7 @@ export function LLMClassifierFromSpec<RenderArgs>(
     useCoT: spec.use_cot,
     temperature: spec.temperature,
     maxTokens: spec.max_tokens,
+    audio: spec.audio,
   });
 }
 
@@ -409,10 +503,10 @@ export function LLMClassifierFromSpecFile<RenderArgs>(
   return LLMClassifierFromSpec(name, doc);
 }
 
-function buildLLMClassifier<RenderArgs>(
+function buildLLMClassifier<RenderArgs, Output = string>(
   name: string,
   templateName: keyof typeof templates,
-): ScorerWithPartial<string, LLMClassifierArgs<RenderArgs>> {
+): ScorerWithPartial<Output, LLMClassifierArgs<RenderArgs>> {
   if (!(templateName in templates)) {
     throw new Error(`Model template ${name} not found`);
   }
@@ -492,3 +586,20 @@ export const Translation = buildLLMClassifier<{
   language: string;
   input: string;
 }>("Translation", "translation");
+
+/**
+ * Test how clearly an agent speaks, from a recording of the whole conversation (`input.audio`).
+ */
+export const SpeechClarity = buildLLMClassifier<
+  { input: { audio?: Audio; [key: string]: unknown } },
+  unknown
+>("SpeechClarity", "speech_clarity");
+
+/**
+ * Test whether an agent takes turns without talking over or cutting off the caller,
+ * from a recording of the whole conversation (`input.audio`).
+ */
+export const TurnTaking = buildLLMClassifier<
+  { input: { audio?: Audio; [key: string]: unknown } },
+  unknown
+>("TurnTaking", "turn_taking");

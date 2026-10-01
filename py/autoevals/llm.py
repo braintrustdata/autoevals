@@ -88,7 +88,7 @@ single choice by setting the `choice` parameter to a single choice from {{__choi
 )
 
 # Deprecated: Use init(default_model="...") to configure the default model instead.
-DEFAULT_MODEL = "gpt-5-mini"
+DEFAULT_MODEL = "gpt-6-luna"
 
 PLAIN_RESPONSE_SCHEMA = {
     "properties": {"choice": {"description": "The choice", "title": "Choice", "type": "string"}},

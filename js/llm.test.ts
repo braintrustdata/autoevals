@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import {
   Battle,
   buildClassificationTools,
+  DEFAULT_MODEL,
   LLMClassifierFromTemplate,
   OpenAIClassifier,
   templateUsesThreadVariables,
@@ -65,6 +66,10 @@ afterAll(() => {
 });
 
 describe("LLM Tests", () => {
+  test("exports the default scorer model", () => {
+    expect(DEFAULT_MODEL).toBe("gpt-6-luna");
+  });
+
   test("templateUsesThreadVariables recognizes thread_with_system", () => {
     expect(templateUsesThreadVariables("{{thread_with_system}}")).toBe(true);
     expect(

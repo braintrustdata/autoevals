@@ -6,9 +6,11 @@ import {
   Humor,
   Possible,
   Security,
+  SpeechClarity,
   Sql,
   Summary,
   Translation,
+  TurnTaking,
 } from "./llm";
 import { NumericDiff } from "./number";
 import { EmbeddingSimilarity, Levenshtein } from "./string";
@@ -100,6 +102,21 @@ export const Evaluators: {
           "Test whether an `output` is as good of a translation of the `input` in the specified `language` as an expert (`expected`) value.",
         template: templates.translation,
         requiresExtraParams: true,
+      },
+    ],
+  },
+  {
+    label: "Voice",
+    methods: [
+      {
+        method: SpeechClarity,
+        description:
+          "Test whether the agent in a voice call recording speaks clearly.",
+      },
+      {
+        method: TurnTaking,
+        description:
+          "Test whether the agent in a voice call recording takes turns naturally.",
       },
     ],
   },

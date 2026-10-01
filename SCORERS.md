@@ -194,6 +194,42 @@ Evaluates translation quality.
 
 ---
 
+## Voice scorers
+
+These scorers listen to a voice call recording, not a transcript. They default to `gpt-audio`, which accepts WAV and MP3 audio.
+
+### SpeechClarity
+
+Evaluates how clearly the agent speaks: pronunciation, pacing, and audio problems such as distortion or dropouts.
+
+**Parameters:**
+
+- `audio` (object, required): The recording as OpenAI `input_audio`: base64 `data` and a `format` of `"wav"` or `"mp3"`
+- `model` (string, optional): An audio-capable model to use
+
+**Score Range:** 0-1
+
+- `1.0` = Clear
+- `0.5` = Mostly clear
+- `0.0` = Unclear
+
+### TurnTaking
+
+Evaluates how well the agent takes turns: talking over the user, ignoring interruptions, or leaving long silences.
+
+**Parameters:**
+
+- `audio` (object, required): The recording as OpenAI `input_audio`: base64 `data` and a `format` of `"wav"` or `"mp3"`
+- `model` (string, optional): An audio-capable model to use
+
+**Score Range:** 0-1
+
+- `1.0` = Natural
+- `0.5` = Minor problems
+- `0.0` = Poor
+
+---
+
 ## RAG (Retrieval-Augmented Generation) scorers
 
 These scorers evaluate RAG systems by assessing both context retrieval and answer generation quality.

@@ -7,6 +7,7 @@ import {
 } from "./oai";
 import { ModelGradedSpec, templates } from "./templates";
 import {
+  ChatCompletionContentPartInputAudio,
   ChatCompletionMessage,
   ChatCompletionMessageParam,
   ChatCompletionTool,
@@ -143,6 +144,7 @@ export type OpenAIClassifierArgs<RenderArgs> = {
   choiceScores: Record<string, number>;
   classificationTools: ChatCompletionTool[];
   cache?: ChatCache;
+  audio?: ChatCompletionContentPartInputAudio.InputAudio;
 } & LLMArgs &
   RenderArgs;
 
@@ -175,6 +177,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     reasoningBudget,
     useResponsesApi,
     cache,
+    audio,
     ...remainingRenderArgs
   } = remaining;
 
@@ -212,6 +215,12 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   };
 
   const messages = renderMessages(messagesArg, renderArgs);
+  if (audio) {
+    messages.push({
+      role: "user",
+      content: [{ type: "input_audio", input_audio: audio }],
+    });
+  }
 
   const resp = await cachedChatCompletion(
     {
@@ -492,3 +501,17 @@ export const Translation = buildLLMClassifier<{
   language: string;
   input: string;
 }>("Translation", "translation");
+
+/**
+ * Test whether the agent in a voice call `audio` recording speaks clearly.
+ */
+export const SpeechClarity = buildLLMClassifier<{
+  audio: ChatCompletionContentPartInputAudio.InputAudio;
+}>("SpeechClarity", "speech_clarity");
+
+/**
+ * Test whether the agent in a voice call `audio` recording takes turns naturally.
+ */
+export const TurnTaking = buildLLMClassifier<{
+  audio: ChatCompletionContentPartInputAudio.InputAudio;
+}>("TurnTaking", "turn_taking");

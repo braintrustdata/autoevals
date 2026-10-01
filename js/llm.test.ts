@@ -8,6 +8,7 @@ import {
   buildClassificationTools,
   LLMClassifierFromTemplate,
   OpenAIClassifier,
+  SpeechClarity,
   templateUsesThreadVariables,
 } from "../js/llm";
 import {
@@ -72,6 +73,57 @@ describe("LLM Tests", () => {
         "Full thread: {{thread_with_system.0.content}}",
       ),
     ).toBe(true);
+  });
+
+  test("SpeechClarity sends the audio to an audio model", async () => {
+    let body: any;
+    server.use(
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json({
+            id: "chatcmpl-test",
+            object: "chat.completion",
+            created: 0,
+            model: body.model,
+            choices: [
+              {
+                index: 0,
+                finish_reason: "tool_calls",
+                message: {
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: JSON.stringify({
+                          reasons: "Clear.",
+                          choice: "A",
+                        }),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+        },
+      ),
+    );
+
+    const audio = { data: "UklGRg==", format: "wav" as const };
+    const score = await SpeechClarity({ output: "", audio });
+
+    expect(score.score).toBe(1);
+    expect(body.model).toBe("gpt-audio");
+    expect(body.messages.at(-1)).toEqual({
+      role: "user",
+      content: [{ type: "input_audio", input_audio: audio }],
+    });
   });
 
   test("openai classifier should evaluate titles", async () => {

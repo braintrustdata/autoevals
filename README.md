@@ -334,6 +334,11 @@ Eval(
 - Translation
 - Fine-tuned binary classifiers
 
+### Voice evaluations
+
+- Speech clarity
+- Turn-taking
+
 ### RAG evaluations
 
 - Context precision

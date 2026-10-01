@@ -9,7 +9,14 @@ from openai import OpenAI
 from pydantic import BaseModel
 
 from autoevals import init
-from autoevals.llm import Battle, Factuality, LLMClassifier, OpenAILLMClassifier, build_classification_tools
+from autoevals.llm import (
+    Battle,
+    Factuality,
+    LLMClassifier,
+    OpenAILLMClassifier,
+    TurnTaking,
+    build_classification_tools,
+)
 from autoevals.oai import OpenAIV1Module, get_default_model
 from autoevals.thread_utils import compute_thread_template_vars, template_uses_thread_variables
 
@@ -327,6 +334,46 @@ def test_factuality_client():
     )
 
     assert result.score == 1
+
+
+@respx.mock
+def test_turn_taking_sends_audio():
+    route = respx.route(method="POST", path__regex=r".*/chat/completions$").respond(
+        json={
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "created": 0,
+            "model": "gpt-audio",
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_test",
+                                "type": "function",
+                                "function": {
+                                    "name": "select_choice",
+                                    "arguments": '{"reasons":"The agent talks over the user.","choice":"C"}',
+                                },
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+
+    audio = {"data": "UklGRg==", "format": "wav"}
+    result = TurnTaking(client=OpenAI(api_key="test")).eval(output=None, audio=audio)
+
+    assert result.score == 0
+    body = json.loads(route.calls.last.request.content)
+    assert body["model"] == "gpt-audio"
+    assert body["messages"][-1] == {"role": "user", "content": [{"type": "input_audio", "input_audio": audio}]}
 
 
 @pytest.fixture(autouse=True)

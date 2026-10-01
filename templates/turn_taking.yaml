@@ -1,0 +1,17 @@
+prompt: |-
+  You are listening to a recording of a voice call between a user and an AI voice agent. Judge only how well the agent takes turns, from the timing of the speech in the audio. Do not judge what the agent says or whether it is correct.
+
+  Listen for:
+  - The agent starting to speak before the user has finished
+  - The agent talking over the user, or continuing after the user interrupts it
+  - Long or awkward silences before the agent responds
+
+  How well does the agent take turns?
+  (A) Natural: the agent waits for the user to finish, responds promptly, and stops when interrupted.
+  (B) Minor problems: there is an occasional overlap or pause, but the conversation flows.
+  (C) Poor: the agent repeatedly talks over the user, ignores interruptions, or leaves long silences.
+choice_scores:
+  "A": 1.0
+  "B": 0.5
+  "C": 0.0
+model: gpt-audio

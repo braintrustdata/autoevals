@@ -225,9 +225,12 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         return self.name
 
     def _build_args(self, output, expected, **kwargs):
+        messages = self._render_messages(output=output, expected=expected, **kwargs)
+        if kwargs.get("audio"):
+            messages.append({"role": "user", "content": [{"type": "input_audio", "input_audio": kwargs["audio"]}]})
         return dict(
             model=self.model,
-            messages=self._render_messages(output=output, expected=expected, **kwargs),
+            messages=messages,
             tools=self.classification_tools,
             tool_choice={"type": "function", "function": {"name": "select_choice"}},
         )
@@ -848,6 +851,52 @@ class Translation(SpecFileClassifier):
         output: Translation to evaluate
         expected: Reference translation
         language: Target language
+    """
+
+    pass
+
+
+class SpeechClarity(SpecFileClassifier):
+    """Judge how clearly the agent speaks in a voice call recording, from the audio itself.
+
+    Example:
+        ```python
+        import base64
+        from openai import OpenAI
+        from autoevals import SpeechClarity
+
+        with open("call.wav", "rb") as f:
+            audio = {"data": base64.b64encode(f.read()).decode(), "format": "wav"}
+
+        result = SpeechClarity(client=OpenAI()).eval(output=None, audio=audio)
+        print(result.score)  # 1 if clear, 0.5 if mostly clear, 0 if unclear
+        ```
+
+    Args:
+        audio: The call recording as OpenAI `input_audio`: base64 `data` and a `format` of "wav" or "mp3"
+    """
+
+    pass
+
+
+class TurnTaking(SpecFileClassifier):
+    """Judge how well the agent takes turns in a voice call recording, from the audio itself.
+
+    Example:
+        ```python
+        import base64
+        from openai import OpenAI
+        from autoevals import TurnTaking
+
+        with open("call.wav", "rb") as f:
+            audio = {"data": base64.b64encode(f.read()).decode(), "format": "wav"}
+
+        result = TurnTaking(client=OpenAI()).eval(output=None, audio=audio)
+        print(result.score)  # 1 if natural, 0.5 if minor problems, 0 if poor
+        ```
+
+    Args:
+        audio: The call recording as OpenAI `input_audio`: base64 `data` and a `format` of "wav" or "mp3"
     """
 
     pass

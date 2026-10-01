@@ -9,7 +9,14 @@ from openai import OpenAI
 from pydantic import BaseModel
 
 from autoevals import init
-from autoevals.llm import Battle, Factuality, LLMClassifier, OpenAILLMClassifier, build_classification_tools
+from autoevals.llm import (
+    DEFAULT_MODEL,
+    Battle,
+    Factuality,
+    LLMClassifier,
+    OpenAILLMClassifier,
+    build_classification_tools,
+)
 from autoevals.oai import OpenAIV1Module, get_default_model
 from autoevals.thread_utils import compute_thread_template_vars, template_uses_thread_variables
 
@@ -17,6 +24,10 @@ from autoevals.thread_utils import compute_thread_template_vars, template_uses_t
 class TestModel(BaseModel):
     foo: str
     num: int
+
+
+def test_default_scorer_model():
+    assert DEFAULT_MODEL == "gpt-6-luna"
 
 
 def test_render_messages():

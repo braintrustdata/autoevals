@@ -304,6 +304,7 @@ class ModelGradedSpec:
     use_cot: bool | None = None
     temperature: float | None = None
     max_tokens: int | None = None
+    requires_audio: bool | None = None
 
 
 class LLMClassifier(OpenAILLMClassifier):
@@ -378,9 +379,11 @@ class LLMClassifier(OpenAILLMClassifier):
         api_key=None,
         base_url=None,
         client: Client | None = None,
+        requires_audio=False,
         **extra_render_args,
     ):
         self._template_uses_thread_variables = template_uses_thread_variables(prompt_template)
+        self._requires_audio = requires_audio
         choice_strings = list(choice_scores.keys())
         # Use configured default model if not specified
         if model is None:
@@ -412,6 +415,11 @@ class LLMClassifier(OpenAILLMClassifier):
             render_args={"__choices": choice_strings, **extra_render_args},
             client=client,
         )
+
+    def _build_args(self, output, expected, **kwargs):
+        if self._requires_audio and not kwargs.get("audio"):
+            raise ValueError(f"{self.name} needs the call recording as `audio`")
+        return super()._build_args(output, expected, **kwargs)
 
     @staticmethod
     def _get_trace_thread_method(trace) -> Callable[..., object] | None:
@@ -487,6 +495,8 @@ class LLMClassifier(OpenAILLMClassifier):
             spec_kwargs["temperature"] = spec.temperature
         if spec.max_tokens is not None:
             spec_kwargs["max_tokens"] = spec.max_tokens
+        if spec.requires_audio is not None:
+            spec_kwargs["requires_audio"] = spec.requires_audio
         # kwargs can override spec values
         return cls(name, spec.prompt, spec.choice_scores, client=client, **spec_kwargs, **kwargs)
 
@@ -869,7 +879,7 @@ class SpeechClarity(SpecFileClassifier):
             audio = {"data": base64.b64encode(f.read()).decode(), "format": "wav"}
 
         result = SpeechClarity(client=OpenAI()).eval(output=None, audio=audio)
-        print(result.score)  # 1 if clear, 0.5 if mostly clear, 0 if unclear
+        print(result.score)  # 1 if clear, 0.5 if flaws are audible, 0 if words are lost
         ```
 
     Args:
@@ -892,11 +902,31 @@ class TurnTaking(SpecFileClassifier):
             audio = {"data": base64.b64encode(f.read()).decode(), "format": "wav"}
 
         result = TurnTaking(client=OpenAI()).eval(output=None, audio=audio)
-        print(result.score)  # 1 if natural, 0.5 if minor problems, 0 if poor
+        print(result.score)  # 1 if smooth, 0.5 if brief overlaps, 0 if caller words are lost
         ```
 
     Args:
         audio: The call recording as OpenAI `input_audio`: base64 `data` and a `format` of "wav" or "mp3"
+    """
+
+    pass
+
+
+class VoiceTaskSuccess(SpecFileClassifier):
+    """Judge whether a voice agent correctly completed the caller's request, from the trace's thread.
+
+    The thread comes from `trace` and includes the agent's instructions, tool calls, and tool results.
+
+    Example:
+        ```python
+        from autoevals import VoiceTaskSuccess
+
+        async def voice_task_success(output, trace):
+            return await VoiceTaskSuccess().eval_async(output=output, trace=trace)
+        ```
+
+    Args:
+        trace: The voice call's trace
     """
 
     pass

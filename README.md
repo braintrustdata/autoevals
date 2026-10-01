@@ -338,6 +338,7 @@ Eval(
 
 - Speech clarity
 - Turn-taking
+- Voice task success
 
 ### RAG evaluations
 

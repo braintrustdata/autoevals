@@ -126,6 +126,12 @@ describe("LLM Tests", () => {
     });
   });
 
+  test("SpeechClarity requires audio", async () => {
+    await expect(SpeechClarity({ output: "" } as any)).rejects.toThrow(
+      "SpeechClarity needs the call recording",
+    );
+  });
+
   test("openai classifier should evaluate titles", async () => {
     let callCount = -1;
     server.use(

@@ -11,6 +11,7 @@ import {
   Summary,
   Translation,
   TurnTaking,
+  VoiceTaskSuccess,
 } from "./llm";
 import { NumericDiff } from "./number";
 import { EmbeddingSimilarity, Levenshtein } from "./string";
@@ -112,11 +113,19 @@ export const Evaluators: {
         method: SpeechClarity,
         description:
           "Test whether the agent in a voice call recording speaks clearly.",
+        template: templates.speech_clarity,
       },
       {
         method: TurnTaking,
         description:
-          "Test whether the agent in a voice call recording takes turns naturally.",
+          "Test whether the agent in a voice call recording takes turns smoothly.",
+        template: templates.turn_taking,
+      },
+      {
+        method: VoiceTaskSuccess,
+        description:
+          "Test whether a voice agent correctly completed the caller's request, from the trace's thread.",
+        template: templates.voice_task_success,
       },
     ],
   },

@@ -1,17 +1,14 @@
 prompt: |-
-  You are listening to a recording of a voice call between a user and an AI voice agent. Judge only how clearly the agent speaks, from the audio itself. Do not judge what the agent says or whether it is correct.
+  Listen to the attached recording of a conversation between an agent and a caller. Judge only the agent's speech.
 
-  Listen for:
-  - Words that are mispronounced, slurred, clipped, or garbled
-  - Pacing that is too fast, too slow, or uneven
-  - Problems in the agent's audio, such as distortion, robotic artifacts, dropouts, or volume that is too low or too loud
+  How easily can a listener on a phone call understand every word on first hearing? Consider garbled or cut-off words, distortion, dropouts, echo, and background noise. Do not fill in unclear words from context, and ignore accent unless it makes words hard to understand.
 
-  How clearly does the agent speak?
-  (A) Clear: every agent word is easy to understand, with natural pacing and no audio problems.
-  (B) Mostly clear: there are minor problems, but no words are lost.
-  (C) Unclear: some agent words are hard or impossible to understand.
+  (A) Words are clear and understandable without effort.
+  (B) Some flaws are audible, but the message remains easy to understand.
+  (C) Important words are unclear or lost.
 choice_scores:
   "A": 1.0
   "B": 0.5
   "C": 0.0
 model: gpt-audio
+requires_audio: true

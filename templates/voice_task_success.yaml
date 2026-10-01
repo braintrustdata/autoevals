@@ -1,0 +1,17 @@
+prompt: |-
+  You are judging a voice agent's conversation with a caller from its transcript. The transcript may include the agent's instructions, tool calls, and tool results. Here is the data:
+  [BEGIN DATA]
+  ************
+  [Conversation]: {{thread_with_system}}
+  ************
+  [END DATA]
+
+  Judge whether the agent correctly understood and completed what the caller asked for. Check that it followed its instructions, used the right tools with the right arguments, and told the caller only what the tool results support. Saying an action succeeded is not proof that it did. If the request could not or should not be done, a clear refusal or handoff counts as completing it. Weigh correctness above conversational polish, and ignore speech quality and timing.
+
+  (A) The agent completed the request correctly, followed its instructions, and everything it told the caller is supported.
+  (B) The agent completed the request, but with minor problems that did not change the outcome, such as unneeded steps or repeated questions.
+  (C) The agent did not complete the request, took a wrong or unauthorized action, broke its instructions, or told the caller something false or unsupported.
+choice_scores:
+  "A": 1.0
+  "B": 0.5
+  "C": 0.0

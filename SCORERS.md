@@ -196,11 +196,11 @@ Evaluates translation quality.
 
 ## Voice scorers
 
-These scorers listen to a voice call recording, not a transcript. They default to `gpt-audio`, which accepts WAV and MP3 audio.
+`SpeechClarity` and `TurnTaking` listen to a voice call recording, not a transcript. They default to `gpt-audio`, which accepts WAV and MP3 audio. `VoiceTaskSuccess` reads the call's transcript from the trace.
 
 ### SpeechClarity
 
-Evaluates how clearly the agent speaks: pronunciation, pacing, and audio problems such as distortion or dropouts.
+Evaluates how easily a listener on a phone call can understand every word the agent says: garbled or cut-off words, distortion, dropouts, echo, and background noise.
 
 **Parameters:**
 
@@ -209,13 +209,13 @@ Evaluates how clearly the agent speaks: pronunciation, pacing, and audio problem
 
 **Score Range:** 0-1
 
-- `1.0` = Clear
-- `0.5` = Mostly clear
-- `0.0` = Unclear
+- `1.0` = Clear and understandable without effort
+- `0.5` = Audible flaws, but easy to understand
+- `0.0` = Important words are unclear or lost
 
 ### TurnTaking
 
-Evaluates how well the agent takes turns: talking over the user, ignoring interruptions, or leaving long silences.
+Evaluates how the agent handles turn-taking: talking over the caller, cutting them off, or not stopping when interrupted. Response latency is ignored.
 
 **Parameters:**
 
@@ -224,9 +224,24 @@ Evaluates how well the agent takes turns: talking over the user, ignoring interr
 
 **Score Range:** 0-1
 
-- `1.0` = Natural
-- `0.5` = Minor problems
-- `0.0` = Poor
+- `1.0` = Smooth turn-taking
+- `0.5` = Brief overlaps or a slow yield, but no caller words are lost
+- `0.0` = Caller words are lost
+
+### VoiceTaskSuccess
+
+Evaluates whether the agent correctly completed the caller's request, from the trace's `{{thread_with_system}}`: its instructions, tool calls, tool results, and replies.
+
+**Parameters:**
+
+- `trace` (Trace, required): The voice call's trace
+- `model` (string, optional): Model to use
+
+**Score Range:** 0-1
+
+- `1.0` = Completed correctly, and everything told to the caller is supported
+- `0.5` = Completed, with minor problems that did not change the outcome
+- `0.0` = Not completed, a wrong or unauthorized action, or false or unsupported claims
 
 ---
 

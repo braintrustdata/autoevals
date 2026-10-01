@@ -315,6 +315,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   reasoningEnabled,
   reasoningBudget,
   useResponsesApi,
+  requiresAudio,
 }: {
   name: string;
   promptTemplate: string;
@@ -327,6 +328,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   reasoningEnabled?: boolean;
   reasoningBudget?: number;
   useResponsesApi?: boolean;
+  requiresAudio?: boolean;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
   const ret = async (
@@ -385,6 +387,10 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       useCoT,
     };
 
+    if (requiresAudio && !classifierArgs.audio) {
+      throw new Error(`${name} needs the call recording as \`audio\``);
+    }
+
     return await OpenAIClassifier(classifierArgs);
   };
   Object.defineProperty(ret, "name", {
@@ -407,6 +413,7 @@ export function LLMClassifierFromSpec<RenderArgs>(
     useCoT: spec.use_cot,
     temperature: spec.temperature,
     maxTokens: spec.max_tokens,
+    requiresAudio: spec.requires_audio,
   });
 }
 
@@ -510,8 +517,16 @@ export const SpeechClarity = buildLLMClassifier<{
 }>("SpeechClarity", "speech_clarity");
 
 /**
- * Test whether the agent in a voice call `audio` recording takes turns naturally.
+ * Test whether the agent in a voice call `audio` recording takes turns smoothly.
  */
 export const TurnTaking = buildLLMClassifier<{
   audio: ChatCompletionContentPartInputAudio.InputAudio;
 }>("TurnTaking", "turn_taking");
+
+/**
+ * Test whether a voice agent completed the caller's request, from the trace's thread.
+ */
+export const VoiceTaskSuccess = buildLLMClassifier<{}>(
+  "VoiceTaskSuccess",
+  "voice_task_success",
+);

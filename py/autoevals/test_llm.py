@@ -14,7 +14,9 @@ from autoevals.llm import (
     Factuality,
     LLMClassifier,
     OpenAILLMClassifier,
+    SpeechClarity,
     TurnTaking,
+    VoiceTaskSuccess,
     build_classification_tools,
 )
 from autoevals.oai import OpenAIV1Module, get_default_model
@@ -357,7 +359,7 @@ def test_turn_taking_sends_audio():
                                 "type": "function",
                                 "function": {
                                     "name": "select_choice",
-                                    "arguments": '{"reasons":"The agent talks over the user.","choice":"C"}',
+                                    "arguments": '{"reasons":"The agent talks over the caller.","choice":"C"}',
                                 },
                             }
                         ],
@@ -374,6 +376,25 @@ def test_turn_taking_sends_audio():
     body = json.loads(route.calls.last.request.content)
     assert body["model"] == "gpt-audio"
     assert body["messages"][-1] == {"role": "user", "content": [{"type": "input_audio", "input_audio": audio}]}
+
+
+def test_voice_task_success_reads_thread_with_system():
+    trace = _FakeTrace(
+        [
+            {"role": "system", "content": "Only book tables for parties up to 8."},
+            {"role": "user", "content": "Book a table for 12."},
+        ]
+    )
+
+    request_args = VoiceTaskSuccess()._request_args(output=None, expected=None, trace=trace)
+
+    assert "Only book tables for parties up to 8." in request_args["messages"][0]["content"]
+    assert len(request_args["messages"]) == 1
+
+
+def test_audio_scorers_require_audio():
+    with pytest.raises(ValueError, match="SpeechClarity needs the call recording"):
+        SpeechClarity(client=OpenAI(api_key="test")).eval(output=None)
 
 
 @pytest.fixture(autouse=True)

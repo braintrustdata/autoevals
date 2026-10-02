@@ -492,3 +492,32 @@ export const Translation = buildLLMClassifier<{
   language: string;
   input: string;
 }>("Translation", "translation");
+
+type VoiceTaskSuccessArgs = {
+  thread_with_system?: unknown[];
+};
+
+const voiceTaskSuccessClassifier = LLMClassifierFromSpecFile<{
+  thread_with_system: string;
+}>("VoiceTaskSuccess", "voice_task_success");
+
+/**
+ * Test whether a voice agent correctly completed the caller's request, from the call in
+ * `thread_with_system` or, if that's missing, the conversation in the `trace`.
+ * Returns a null score when there is no conversation.
+ */
+export const VoiceTaskSuccess = makePartial<
+  string,
+  LLMClassifierArgs<VoiceTaskSuccessArgs>
+>(async ({ thread_with_system, trace, ...args }) => {
+  const messages = thread_with_system ?? (await trace?.getThread());
+
+  if (!messages?.length) {
+    return { name: "VoiceTaskSuccess", score: null };
+  }
+
+  return voiceTaskSuccessClassifier({
+    ...args,
+    thread_with_system: JSON.stringify(messages),
+  });
+}, "VoiceTaskSuccess");

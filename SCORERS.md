@@ -192,6 +192,24 @@ Evaluates translation quality.
 - `1.0` = Excellent translation
 - `0.0` = Poor translation
 
+### VoiceTaskSuccess
+
+Evaluates whether a voice agent correctly completed the caller's request, from the whole call.
+
+**Parameters:**
+
+- `thread_with_system` (array, optional): The call's messages
+- `trace` (Trace, optional): The voice call's trace. Used when `thread_with_system` is missing; the conversation comes from `trace.getThread()` / `trace.get_thread()`
+- `model` (string, optional): Model to use
+
+The judge sees the messages as JSON, including tool calls and results. With no conversation, the score is `null`.
+
+**Score Range:** 0-1
+
+- `1.0` = Completed correctly
+- `0.5` = Completed with minor problems
+- `0.0` = Not completed, or wrong or unsupported
+
 ---
 
 ## RAG (Retrieval-Augmented Generation) scorers

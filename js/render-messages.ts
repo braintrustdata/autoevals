@@ -13,7 +13,7 @@ import {
  * - Single messages are formatted with role and content
  * - Other values are JSON-stringified
  */
-function escapeValue(v: unknown): string {
+export function escapeValue(v: unknown): string {
   if (typeof v === "string") {
     return v;
   }

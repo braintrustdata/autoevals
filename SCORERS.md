@@ -9,6 +9,7 @@ Complete reference for all scorers available in Autoevals, including parameters,
 - [Heuristic scorers](#heuristic-scorers)
 - [JSON scorers](#json-scorers)
 - [List scorers](#list-scorers)
+- [Voice scorers](#voice-scorers)
 
 ---
 
@@ -586,6 +587,91 @@ result = scorer.eval(
     expected=["apple", "banana"]
 )
 # Score: 1.0 (both expected items present)
+```
+
+---
+
+## Voice scorers
+
+Deterministic scorers for the timing of a voice call. They take `utterances`, a list of `{ speaker, start_unix_ms, end_unix_ms, interrupted }` objects, where `speaker` is `"user"` or `"agent"`, times are Unix epoch milliseconds, and `interrupted` (optional) means the user cut the agent off. Build the list from your own traces.
+
+Both scorers group the user's speech into turns the same way:
+
+- Consecutive user utterances merge into one turn until the agent starts speaking.
+- User speech wholly inside the agent's, like "mm-hmm", isn't a turn.
+- The agent talks over a turn when it starts speaking during the turn and overlaps it by more than `minOverlapMs` (default 300).
+- The agent's reply to a turn is the first agent utterance that starts after the turn starts and runs past its end.
+
+Utterances with a missing or invalid time, or another speaker, are skipped and counted in `skipped`.
+
+Timestamps should mark audible speech, on one clock: the user's end is when they stopped speaking (not when the transcript was finalized), and the agent's start is when its first audio played (not when text-to-speech was requested). Times taken on the server leave out network delay, so callers hear slightly longer gaps.
+
+Limits:
+
+- If the agent cuts in while the user pauses mid-sentence and the user carries on, it counts as a fast reply plus a barge-in, not as talking over the user.
+- If the agent says nothing and the user speaks again ("hello?"), both utterances merge into one turn.
+- Drop intentional agent backchannels when you build the list, or they count as talking over the user.
+- The defaults (1500 ms, 300 ms) follow [Hamming's published bands](https://hamming.ai/resources/conversational-flow-measurement-voice-agents), not a standard.
+
+### VoiceLatency
+
+Measures how quickly the agent replies after the user finishes a turn.
+
+**Parameters:**
+
+- `utterances` (Utterance[], required): The call's utterances
+- `maxGapMs` / `max_gap_ms` (number, optional): Longest acceptable gap before a reply (default: 1500)
+- `minOverlapMs` / `min_overlap_ms` (number, optional): Overlap needed to count as talking over the user (default: 300)
+
+**Score Range:** 0-1, the share of replies that start within `maxGapMs`. `null` when the call has no replies.
+
+Turns the agent talked over aren't counted. A reply that starts slightly before the user stops counts as a gap of 0. Metadata has `replies`, `unanswered_turns`, `p50_ms`, `p95_ms`, `gaps_ms` and `skipped`; pool `gaps_ms` to get percentiles across a dataset.
+
+**Example:**
+
+```typescript
+import { VoiceLatency } from "autoevals";
+
+const result = await VoiceLatency({
+  output: null,
+  utterances: [
+    { speaker: "user", start_unix_ms: 0, end_unix_ms: 2000 },
+    { speaker: "agent", start_unix_ms: 2800, end_unix_ms: 5000 },
+    { speaker: "user", start_unix_ms: 6000, end_unix_ms: 7000 },
+    { speaker: "agent", start_unix_ms: 10000, end_unix_ms: 11000 },
+  ],
+});
+// Score: 0.5 (replies after 0.8 s and 3 s)
+```
+
+### VoiceInterruptions
+
+Measures how often the agent talks over the user.
+
+**Parameters:**
+
+- `utterances` (Utterance[], required): The call's utterances
+- `minOverlapMs` / `min_overlap_ms` (number, optional): Overlap needed to count as talking over the user (default: 300)
+
+**Score Range:** 0-1, the share of user turns the agent didn't talk over. `null` unless the call has timed user and agent utterances.
+
+Metadata has `user_turns`, `talk_overs`, `skipped`, and `barge_ins`: agent utterances marked `interrupted`, where the user cut the agent off. Barge-ins don't affect the score.
+
+**Example:**
+
+```python
+from autoevals import VoiceInterruptions
+
+result = VoiceInterruptions().eval(
+    output=None,
+    utterances=[
+        {"speaker": "user", "start_unix_ms": 0, "end_unix_ms": 3000},
+        {"speaker": "agent", "start_unix_ms": 2000, "end_unix_ms": 4000},
+        {"speaker": "user", "start_unix_ms": 5000, "end_unix_ms": 6000},
+        {"speaker": "agent", "start_unix_ms": 6500, "end_unix_ms": 8000, "interrupted": False},
+    ],
+)
+# Score: 0.5 (the agent talked over the first user turn)
 ```
 
 ---

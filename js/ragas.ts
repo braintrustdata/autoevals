@@ -253,6 +253,15 @@ export const ContextRelevancy: ScorerWithPartial<string, RagasArgs> =
       "ContextRelevancy",
     );
 
+    // An empty retrieval cannot contain relevant sentences.
+    if (context.length === 0) {
+      return {
+        name: "ContextRelevancy",
+        score: 0,
+        metadata: { relevantSentences: [] },
+      };
+    }
+
     const response = await client.chat.completions.create({
       ...chatArgs,
       messages: [

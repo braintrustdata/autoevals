@@ -1,5 +1,6 @@
 import asyncio
 import json
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 import respx
@@ -50,6 +51,25 @@ def test_ragas_retrieval(metric: OpenAILLMScorer, expected_score: float, is_asyn
             pytest.xfail(f"Expected score {expected_score} but got {score}")
         else:
             raise e
+
+
+@pytest.mark.parametrize("context", ["", [], [""]])
+@pytest.mark.parametrize("is_async", [False, True])
+def test_context_relevancy_empty_context(context, is_async, monkeypatch):
+    request = Mock(side_effect=AssertionError("Empty context should not call the judge"))
+    async_request = AsyncMock(side_effect=AssertionError("Empty context should not call the judge"))
+    monkeypatch.setattr(ragas_module, "run_cached_request", request)
+    monkeypatch.setattr(ragas_module, "arun_cached_request", async_request)
+    scorer = ContextRelevancy()
+    args = dict(input="What is hello?", output="Hello world", context=context)
+
+    result = asyncio.run(scorer.eval_async(**args)) if is_async else scorer.eval(**args)
+
+    assert result.name == "ContextRelevancy"
+    assert result.score == 0
+    assert result.metadata == {"relevant_sentences": []}
+    request.assert_not_called()
+    async_request.assert_not_called()
 
 
 def test_context_relevancy_score_clamping():

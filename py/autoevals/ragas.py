@@ -364,6 +364,8 @@ def extract_sentences_request(question, context, **extra_args):
 class ContextRelevancy(OpenAILLMScorer):
     """Evaluates how relevant the context is to the input question.
 
+    An empty context scores zero without calling the LLM judge.
+
     Example:
         ```python
         from openai import OpenAI
@@ -414,6 +416,9 @@ class ContextRelevancy(OpenAILLMScorer):
         if isinstance(context, list):
             context = "\n".join(context)
 
+        if not context:
+            return Score(name=self._name(), score=0, metadata={"relevant_sentences": []})
+
         return self._postprocess(
             context,
             await arun_cached_request(
@@ -427,6 +432,9 @@ class ContextRelevancy(OpenAILLMScorer):
 
         if isinstance(context, list):
             context = "\n".join(context)
+
+        if not context:
+            return Score(name=self._name(), score=0, metadata={"relevant_sentences": []})
 
         return self._postprocess(
             context,

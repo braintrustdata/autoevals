@@ -851,3 +851,52 @@ class Translation(SpecFileClassifier):
     """
 
     pass
+
+
+class VoiceTaskSuccess(ScorerWithPartial):
+    """Rate whether a voice agent correctly completed the caller's request, from the whole call.
+
+    The call comes from `thread_with_system` when given, else `trace.get_thread()`.
+    The score is None when there is no conversation.
+
+    Example:
+        ```python
+        from autoevals import VoiceTaskSuccess
+
+        result = await VoiceTaskSuccess().eval_async(output=None, trace=trace)
+        print(result.score)  # 1 if done correctly, 0.5 if done with minor problems, 0 if not done or wrong
+        ```
+
+    Args:
+        thread_with_system: Optional list of the call's messages
+        trace: Trace of the voice conversation, used when `thread_with_system` is missing
+    """
+
+    def __init__(self, **kwargs):
+        template_path = os.path.join(SCRIPT_DIR, "templates", "voice_task_success.yaml")
+        self._classifier = LLMClassifier.from_spec_file("VoiceTaskSuccess", template_path, **kwargs)
+
+    def _run_eval_sync(self, output, expected=None, thread_with_system=None, trace=None, **kwargs):
+        messages = thread_with_system
+        if messages is None and trace is not None:
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                messages = list(asyncio.run(trace.get_thread()))
+            else:
+                raise RuntimeError("trace.get_thread() is async; use eval_async() when already inside an event loop")
+
+        if not messages:
+            return Score(name="VoiceTaskSuccess", score=None)
+        conversation = json.dumps(messages, separators=(",", ":"), ensure_ascii=False)
+        return self._classifier.eval(output, expected, thread_with_system=conversation, **kwargs)
+
+    async def _run_eval_async(self, output, expected=None, thread_with_system=None, trace=None, **kwargs):
+        messages = thread_with_system
+        if messages is None and trace is not None:
+            messages = list(await trace.get_thread())
+
+        if not messages:
+            return Score(name="VoiceTaskSuccess", score=None)
+        conversation = json.dumps(messages, separators=(",", ":"), ensure_ascii=False)
+        return await self._classifier.eval_async(output, expected, thread_with_system=conversation, **kwargs)

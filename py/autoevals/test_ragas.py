@@ -171,6 +171,45 @@ def test_faithfulness_extracts_statements_from_output(monkeypatch):
     assert captured_answer == "Paris is the capital of France."
 
 
+@pytest.mark.parametrize("is_async", [False, True])
+def test_faithfulness_scores_zero_when_judge_finds_no_statements(monkeypatch, is_async):
+    """A judge that finds no statements scores 0 instead of dividing by zero.
+
+    The TypeScript scorer already handles this: ``faithfulness.length ? ... : 0``
+    in ``js/ragas.ts``. The Python scorer divides by ``len(faithfulness)``
+    unguarded, so an empty verdict list aborts the whole eval run with a
+    ZeroDivisionError instead of reporting an unfaithful answer.
+    """
+
+    def fake_extract_statements(*args, **kwargs):
+        return {"statements": []}
+
+    def fake_extract_faithfulness(*args, **kwargs):
+        return {"faithfulness": []}
+
+    async def fake_aextract_statements(*args, **kwargs):
+        return {"statements": []}
+
+    async def fake_aextract_faithfulness(*args, **kwargs):
+        return {"faithfulness": []}
+
+    monkeypatch.setattr(ragas_module, "extract_statements", fake_extract_statements)
+    monkeypatch.setattr(ragas_module, "extract_faithfulness", fake_extract_faithfulness)
+    monkeypatch.setattr(ragas_module, "aextract_statements", fake_aextract_statements)
+    monkeypatch.setattr(ragas_module, "aextract_faithfulness", fake_aextract_faithfulness)
+
+    scorer = Faithfulness()
+    args = {
+        "input": "What is the capital of France?",
+        "output": "",
+        "context": "Paris is the capital of France.",
+    }
+    score = asyncio.run(scorer.eval_async(**args)) if is_async else scorer.eval(**args)
+
+    assert score.score == 0
+    assert score.metadata["faithfulness"] == []
+
+
 @respx.mock
 def test_answer_correctness_uses_custom_embedding_model():
     """Test that AnswerCorrectness passes embedding_model parameter through to embeddings API."""

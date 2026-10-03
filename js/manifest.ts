@@ -7,6 +7,7 @@ import {
   Possible,
   Security,
   Sql,
+  StatusEvidence,
   Summary,
   Translation,
 } from "./llm";
@@ -87,6 +88,12 @@ export const Evaluators: {
         description:
           "Test whether a SQL query is semantically the same as a reference (output) query.",
         template: templates.sql,
+      },
+      {
+        method: StatusEvidence,
+        description:
+          "Test whether an agent's reported task status (the `output`) is backed by the task log (the `input`). A status of done is only correct when a line in the log shows that the final check passed.",
+        template: templates.status_evidence,
       },
       {
         method: Summary,

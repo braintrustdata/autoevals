@@ -477,6 +477,17 @@ export const Security = buildLLMClassifier<{}>("Security", "security");
 export const Sql = buildLLMClassifier<{ input: string }>("Sql", "sql");
 
 /**
+ * Test whether an agent's reported task status (the `output`) is backed by the task log (the `input`).
+ * A status of "done" is only correct when a line in the log shows that the final check passed.
+ * If the final check failed, the correct status is "failed". If it never ran or is not shown, the
+ * correct status is "not shown", not "done".
+ */
+export const StatusEvidence = buildLLMClassifier<{ input: string }>(
+  "StatusEvidence",
+  "status_evidence",
+);
+
+/**
  * Test whether an output is a better summary of the `input` than the original (`expected`) value.
  */
 export const Summary = buildLLMClassifier<{ input: string }>(

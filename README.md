@@ -332,6 +332,7 @@ Eval(
 - Summarization
 - SQL
 - Translation
+- Status evidence
 - Fine-tuned binary classifiers
 
 ### RAG evaluations

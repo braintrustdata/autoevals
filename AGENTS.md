@@ -54,7 +54,7 @@ The library maintains parallel implementations in TypeScript (`js/`) and Python 
 
 ### Key Modules (both languages)
 
-- `llm.ts` / `llm.py` - LLM-as-a-judge scorers (Factuality, Battle, ClosedQA, Humor, Security, Sql, Summary, Translation)
+- `llm.ts` / `llm.py` - LLM-as-a-judge scorers (Factuality, Battle, ClosedQA, Humor, Security, Sql, StatusEvidence, Summary, Translation)
 - `ragas.ts` / `ragas.py` - RAG evaluation metrics (ContextRelevancy, Faithfulness, AnswerRelevancy, etc.)
 - `string.ts` / `string.py` - Text similarity (Levenshtein, EmbeddingSimilarity)
 - `json.ts` / `json.py` - JSON validation and diff

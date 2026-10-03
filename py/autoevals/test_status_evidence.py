@@ -52,7 +52,7 @@ RESPONSE_DONE = "Done. app-11 can connect to db-05 on port 5432."
 RESPONSE_FAILED = "Failed. The connection from app-11 to db-05 on port 5432 was refused."
 RESPONSE_NOT_SHOWN = "Not shown. The firewall rule was pushed, but the log does not show a connection test."
 
-CHOICE_SCORES = {"A": 1, "B": 0, "C": 0, "D": 1, "E": 0}
+CHOICE_SCORES = {"A": 1, "B": 0, "C": 0, "D": 1, "E": 0, "F": 0}
 
 # One case per choice. The model reply is mocked, so the choice is fixed by the test; the log and
 # the response show the situation that choice describes.
@@ -63,6 +63,7 @@ CASES = [
     pytest.param(LOG_FINAL_CHECK_FAILED, RESPONSE_FAILED, "D", 1, id="D-failed-matches-the-log"),
     pytest.param(LOG_FINAL_CHECK_NEVER_RAN, RESPONSE_NOT_SHOWN, "D", 1, id="D-not-shown-matches-the-log"),
     pytest.param(LOG_FINAL_CHECK_PASSED, RESPONSE_NOT_SHOWN, "E", 0, id="E-not-done-but-final-check-passed"),
+    pytest.param(LOG_FINAL_CHECK_NEVER_RAN, RESPONSE_FAILED, "F", 0, id="F-failed-but-final-check-never-ran"),
 ]
 
 
@@ -102,7 +103,7 @@ def test_scorer_loads_choice_scores_from_the_template():
 
     # The model may only pick a lettered choice, and chain of thought is on by default.
     parameters = scorer.classification_tools[0]["function"]["parameters"]
-    assert parameters["properties"]["choice"]["enum"] == ["A", "B", "C", "D", "E"]
+    assert parameters["properties"]["choice"]["enum"] == ["A", "B", "C", "D", "E", "F"]
     assert parameters["required"] == ["reasons", "choice"]
 
 
@@ -124,7 +125,7 @@ def test_prompt_renders_input_and_output():
     assert prompt.index(LOG_FINAL_CHECK_FAILED) < prompt.index(RESPONSE_DONE)
     assert "{{" not in prompt
     # The chain-of-thought suffix names the lettered choices.
-    assert "['A', 'B', 'C', 'D', 'E']" in prompt
+    assert "['A', 'B', 'C', 'D', 'E', 'F']" in prompt
 
 
 @respx.mock

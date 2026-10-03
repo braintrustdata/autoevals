@@ -46,7 +46,7 @@ const RESPONSE_FAILED =
 const RESPONSE_NOT_SHOWN =
   "Not shown. The firewall rule was pushed, but the log does not show a connection test.";
 
-const CHOICE_SCORES = { A: 1, B: 0, C: 0, D: 1, E: 0 };
+const CHOICE_SCORES = { A: 1, B: 0, C: 0, D: 1, E: 0, F: 0 };
 const RATIONALE = "Compared the status in the response with the log.";
 
 // One case per choice. The model reply is mocked, so the choice is fixed by the
@@ -92,6 +92,13 @@ const CASES = [
     log: LOG_FINAL_CHECK_PASSED,
     response: RESPONSE_NOT_SHOWN,
     choice: "E",
+    score: 0,
+  },
+  {
+    id: "F: failed, but the final check never ran",
+    log: LOG_FINAL_CHECK_NEVER_RAN,
+    response: RESPONSE_FAILED,
+    choice: "F",
     score: 0,
   },
 ];
@@ -202,6 +209,7 @@ describe("StatusEvidence", () => {
         "C",
         "D",
         "E",
+        "F",
       ]);
     },
   );

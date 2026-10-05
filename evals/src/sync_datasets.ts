@@ -134,7 +134,11 @@ async function coqaClosedQA(): Promise<ClosedQACase[]> {
 }
 
 function saveFile(cases: unknown[], fname: string) {
-  fs.writeFileSync(path.join(dataDir, fname), JSON.stringify(cases, null, 2));
+  if (!/^[\w-]+\.json$/.test(fname)) {
+    throw new Error(`Invalid output file name: ${fname}`);
+  }
+  const outPath = `${dataDir}${path.sep}${fname}`;
+  fs.writeFileSync(outPath, JSON.stringify(cases, null, 2));
 }
 
 async function main() {

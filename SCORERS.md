@@ -211,6 +211,35 @@ The judge sees the messages as JSON, including tool calls and results. With no c
 - `0.5` = Completed with minor problems
 - `0.0` = Not completed, or wrong or unsupported
 
+### SpeechClarity
+
+Evaluates how clearly the agent speaks, from a recording of the whole call.
+
+**Parameters:**
+
+- `input.audio` (object): The recording, as `{ data, content_type }`, where `data` is the bytes (`Uint8Array` in TypeScript, `bytes` in Python) and `content_type` is an `audio/*` type such as `audio/ogg`
+- `model` (string, optional): Model to use (default: `gemini-3.8-flash`). It must accept audio as a Chat Completions `file` part.
+
+Without `input.audio`, the score is `null`.
+
+**Score Range:** 0-1
+
+- `1.0` = Clear and understandable without effort
+- `0.5` = Audible flaws, but easy to understand
+- `0.0` = Important words unclear or lost
+
+**Example:**
+
+```python
+from pathlib import Path
+from autoevals import SpeechClarity
+
+audio = {"data": Path("call.ogg").read_bytes(), "content_type": "audio/ogg"}
+result = SpeechClarity().eval(input={"audio": audio}, output=None)
+```
+
+To build your own audio judge, set `audio` to the recording's path in the scorer's arguments: `audio: input.audio` in a template, `audio="input.audio"` for `LLMClassifier`, or `audio: "input.audio"` for `LLMClassifierFromTemplate`.
+
 ---
 
 ## RAG (Retrieval-Augmented Generation) scorers

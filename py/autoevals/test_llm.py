@@ -844,7 +844,7 @@ def test_speech_clarity_sends_audio_as_a_file_to_chat_completions():
             ],
         }
     )
-    result = SpeechClarity(base_url="https://api.openai.com/v1/", api_key="test").eval(
+    result = SpeechClarity(client=OpenAI(api_key="test", base_url="https://api.openai.com/v1")).eval(
         input={"audio": {"data": b"\x01\x02\x03", "content_type": "audio/ogg"}}, output=None
     )
 
@@ -856,7 +856,7 @@ def test_speech_clarity_sends_audio_as_a_file_to_chat_completions():
 
 
 def test_speech_clarity_accepts_model_override():
-    assert SpeechClarity(model="gpt-4o-audio-preview").model == "gpt-4o-audio-preview"
+    assert SpeechClarity(model="gemini-2.5-pro").model == "gemini-2.5-pro"
 
 
 def test_speech_clarity_skips_without_audio():

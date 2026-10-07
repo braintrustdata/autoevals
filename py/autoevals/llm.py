@@ -134,14 +134,14 @@ def build_classification_tools(useCoT, choice_strings):
     ]
 
 
-def get_path(args, path):
+def _get_path(args, path):
     value = args
     for key in path.split("."):
         value = value.get(key) if isinstance(value, dict) else None
     return value
 
 
-def audio_part(audio):
+def _audio_part(audio):
     if not isinstance(audio, dict) or not isinstance(audio.get("data"), (bytes, bytearray)):
         raise TypeError("Audio must be a dict with `data` bytes and a `content_type`")
     content_type = str(audio.get("content_type", "")).split(";")[0].strip().lower()
@@ -263,12 +263,12 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         ]
         if self.audio:
             text = messages[-1]["content"]
-            messages[-1]["content"] = [{"type": "text", "text": text}, audio_part(get_path(kwargs, self.audio))]
+            messages[-1]["content"] = [{"type": "text", "text": text}, _audio_part(_get_path(kwargs, self.audio))]
         return messages
 
     def _missing_audio(self, output, expected, **kwargs):
         args = {"output": output, "expected": expected, **kwargs, **self.render_args}
-        return self.audio and get_path(args, self.audio) is None
+        return self.audio and _get_path(args, self.audio) is None
 
     def _request_args(self, output, expected, **kwargs):
         ret = {

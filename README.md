@@ -333,6 +333,7 @@ Eval(
 - SQL
 - Translation
 - Voice task success
+- Speech clarity
 - Fine-tuned binary classifiers
 
 ### RAG evaluations

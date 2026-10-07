@@ -727,7 +727,7 @@ describe("VoiceTaskSuccess", () => {
 });
 
 describe("SpeechClarity", () => {
-  test("sends audio as a file to gemini-3.8-flash through chat completions", async () => {
+  test("sends each audio as a file to gemini-3.8-flash through chat completions", async () => {
     let body: any;
     server.use(
       http.post(
@@ -759,10 +759,10 @@ describe("SpeechClarity", () => {
 
     const score = await SpeechClarity({
       input: {
-        audio: {
-          data: new Uint8Array([1, 2, 3]),
-          content_type: "audio/ogg",
-        },
+        audio: [
+          { data: new Uint8Array([1, 2, 3]), content_type: "audio/ogg" },
+          { data: new Uint8Array([4, 5, 6]), content_type: "audio/ogg" },
+        ],
       },
       output: undefined,
       openAiApiKey: "test-api-key",
@@ -771,9 +771,9 @@ describe("SpeechClarity", () => {
     expect(score.score).toBe(1);
     expect(body.model).toBe("gemini-3.8-flash");
     expect(body.messages[0].content[0].type).toBe("text");
-    expect(body.messages[0].content[1].file.file_data).toBe(
-      "data:audio/ogg;base64,AQID",
-    );
+    expect(
+      body.messages[0].content.slice(1).map((p: any) => p.file.file_data),
+    ).toEqual(["data:audio/ogg;base64,AQID", "data:audio/ogg;base64,BAUG"]);
   });
 
   test("skips when there is no audio", async () => {

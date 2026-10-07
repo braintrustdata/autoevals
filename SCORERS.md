@@ -217,10 +217,10 @@ Evaluates how clearly the agent speaks, from a recording of the whole call.
 
 **Parameters:**
 
-- `input.audio` (object): The recording, as `{ data, content_type }`, where `data` is the bytes (`Uint8Array` in TypeScript, `bytes` in Python) and `content_type` is an `audio/*` type such as `audio/ogg`
+- `input.audio` (object or list): The recording, as `{ data, content_type }`, where `data` is the bytes (`Uint8Array` in TypeScript, `bytes` in Python) and `content_type` is an `audio/*` type such as `audio/ogg`. A list of these, such as a recording split into chunks, is sent as separate files in list order.
 - `model` (string, optional): Model to use (default: `gemini-3.8-flash`). It must accept audio as a Chat Completions `file` part.
 
-Without `input.audio`, the score is `null`.
+Without `input.audio`, or with an empty list, the score is `null`.
 
 **Score Range:** 0-1
 

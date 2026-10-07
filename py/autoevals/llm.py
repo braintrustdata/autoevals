@@ -141,6 +141,13 @@ def _get_path(args, path):
     return value
 
 
+def _get_audio(args, path):
+    audio = _get_path(args, path)
+    if audio is None:
+        return []
+    return audio if isinstance(audio, list) else [audio]
+
+
 def _audio_part(audio):
     if not isinstance(audio, dict) or not isinstance(audio.get("data"), (bytes, bytearray)):
         raise TypeError("Audio must be a dict with `data` bytes and a `content_type`")
@@ -263,12 +270,13 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         ]
         if self.audio:
             text = messages[-1]["content"]
-            messages[-1]["content"] = [{"type": "text", "text": text}, _audio_part(_get_path(kwargs, self.audio))]
+            files = [_audio_part(a) for a in _get_audio(kwargs, self.audio)]
+            messages[-1]["content"] = [{"type": "text", "text": text}, *files]
         return messages
 
     def _missing_audio(self, output, expected, **kwargs):
         args = {"output": output, "expected": expected, **kwargs, **self.render_args}
-        return self.audio and _get_path(args, self.audio) is None
+        return self.audio and not _get_audio(args, self.audio)
 
     def _request_args(self, output, expected, **kwargs):
         ret = {
@@ -377,7 +385,7 @@ class LLMClassifier(OpenAILLMClassifier):
         reasoning_effort: Controls reasoning depth for o-series models (e.g., "low", "medium", "high").
         reasoning_enabled: Enable extended thinking for supported models (e.g., Claude). Defaults to None.
         reasoning_budget: Token allocation for model's internal reasoning. Defaults to None.
-        audio: Path in the arguments (e.g. `input.audio`) to a dict with `data` bytes and an audio `content_type`, such as `audio/ogg`. Missing audio skips the score.
+        audio: Path in the arguments (e.g. `input.audio`) to a dict with `data` bytes and an audio `content_type`, such as `audio/ogg`, or a list of these dicts, each sent as its own file in order. Missing audio or an empty list skips the score.
         engine: Deprecated by OpenAI. Use model instead.
         api_key: Deprecated. Use client instead.
         base_url: Deprecated. Use client instead.
@@ -955,7 +963,7 @@ class SpeechClarity(SpecFileClassifier):
         ```
 
     Args:
-        input: Dict whose `audio` is the recording, as `{"data": bytes, "content_type": "audio/ogg"}`
+        input: Dict whose `audio` is the recording, as `{"data": bytes, "content_type": "audio/ogg"}`, or a list of them in recording order
     """
 
     pass

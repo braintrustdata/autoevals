@@ -179,7 +179,7 @@ export type OpenAIClassifierArgs<RenderArgs> = {
   messages: ChatCompletionMessageParam[];
   choiceScores: Record<string, number>;
   classificationTools: ChatCompletionTool[];
-  audioFile?: ChatCompletionContentPart.File;
+  audioFiles?: ChatCompletionContentPart.File[];
   cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
@@ -212,7 +212,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     reasoningEnabled,
     reasoningBudget,
     useResponsesApi,
-    audioFile,
+    audioFiles,
     cache,
     ...remainingRenderArgs
   } = remaining;
@@ -251,11 +251,11 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   };
 
   const messages = renderMessages(messagesArg, renderArgs);
-  if (audioFile) {
+  if (audioFiles) {
     const last = messages[messages.length - 1];
     messages[messages.length - 1] = {
       role: "user",
-      content: [{ type: "text", text: String(last.content) }, audioFile],
+      content: [{ type: "text", text: String(last.content) }, ...audioFiles],
     };
   }
 
@@ -372,7 +372,13 @@ export function LLMClassifierFromTemplate<RenderArgs>({
     runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>,
   ) => {
     const audioValue = audio ? getPath(runtimeArgs, audio) : undefined;
-    if (audio && audioValue == null) {
+    const audioList =
+      audioValue == null
+        ? []
+        : Array.isArray(audioValue)
+          ? audioValue
+          : [audioValue];
+    if (audio && audioList.length === 0) {
       return { name, score: null };
     }
 
@@ -427,7 +433,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       // Since the logic is a bit funky for computing this, include
       // it at the end to prevent overrides
       useCoT,
-      audioFile: audio ? audioPart(audioValue) : undefined,
+      audioFiles: audio ? audioList.map(audioPart) : undefined,
     };
 
     return await OpenAIClassifier(classifierArgs);
@@ -578,9 +584,9 @@ export const VoiceTaskSuccess = makePartial<
 }, "VoiceTaskSuccess");
 
 /**
- * Test how clearly an agent speaks, from a recording of the whole conversation (`input.audio`).
+ * Test how clearly an agent speaks, from a recording of the whole conversation (`input.audio`), given as one audio or a list of chunks in recording order.
  */
 export const SpeechClarity = buildLLMClassifier<
-  { input: { audio?: Audio; [key: string]: unknown } },
+  { input: { audio?: Audio | Audio[]; [key: string]: unknown } },
   unknown
 >("SpeechClarity", "speech_clarity");

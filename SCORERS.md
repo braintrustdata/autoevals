@@ -600,7 +600,7 @@ Both scorers group the user's speech into turns the same way:
 - Consecutive user utterances merge into one turn until the agent starts speaking.
 - User speech wholly inside the agent's, like "mm-hmm", isn't a turn.
 - The agent talks over a turn when it starts speaking during the turn and overlaps it by more than `minOverlapMs` (default 300).
-- The agent's reply to a turn is the first agent utterance that starts after the turn starts and runs past its end.
+- The agent's reply to a turn is the first agent utterance that starts after the turn starts and before the next turn, and runs past the turn's end.
 
 Utterances with a missing or invalid time, or another speaker, are skipped and counted in `skipped`.
 
@@ -625,7 +625,7 @@ Measures how quickly the agent replies after the user finishes a turn.
 
 **Score Range:** 0-1, the share of replies that start within `maxGapMs`. `null` when the call has no replies.
 
-Turns the agent talked over aren't counted. A reply that starts slightly before the user stops counts as a gap of 0. Metadata has `replies`, `unanswered_turns`, `p50_ms`, `p95_ms`, `gaps_ms` and `skipped`; pool `gaps_ms` to get percentiles across a dataset.
+Turns the agent talked over aren't counted. A reply that starts slightly before the user stops counts as a gap of 0. Metadata has `replies`, `unanswered_turns`, `max_gap_ms`, `p50_ms`, `p95_ms`, `gaps_ms` and `skipped`; pool `gaps_ms` to get percentiles across a dataset.
 
 **Example:**
 
@@ -655,7 +655,7 @@ Measures how often the agent talks over the user.
 
 **Score Range:** 0-1, the share of user turns the agent didn't talk over. `null` unless the call has timed user and agent utterances.
 
-Metadata has `user_turns`, `talk_overs`, `skipped`, and `barge_ins`: agent utterances marked `interrupted`, where the user cut the agent off. Barge-ins don't affect the score.
+Metadata has `user_turns`, `talk_overs`, `min_overlap_ms`, `skipped`, and `barge_ins`: agent utterances marked `interrupted`, where the user cut the agent off. Barge-ins don't affect the score.
 
 **Example:**
 

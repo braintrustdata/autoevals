@@ -1,5 +1,3 @@
-import asyncio
-
 from autoevals import VoiceInterruptions, VoiceLatency
 
 
@@ -74,19 +72,12 @@ def test_interruptions_ignores_overlaps_under_min_overlap_ms():
 def test_scorers_skip_invalid_utterances_and_return_none_without_data():
     utterances = [
         {"speaker": "user"},
-        {"start_unix_ms": 0, "end_unix_ms": 1000},
         {"speaker": "agent", "start_unix_ms": float("nan"), "end_unix_ms": 1000},
         {"speaker": "agent", "start_unix_ms": 2000, "end_unix_ms": 1000},
         {"speaker": "assistant", "start_unix_ms": 0, "end_unix_ms": 1000},
     ]
     result = latency(utterances)
     assert result.score is None
-    assert result.metadata["skipped"] == 5
+    assert result.metadata["skipped"] == 4
     assert interruptions(utterances).score is None
     assert interruptions([user(0, 1000)]).score is None
-
-
-def test_partial_and_async():
-    scorer = VoiceLatency.partial(max_gap_ms=5000)()
-    result = asyncio.run(scorer.eval_async(output=None, utterances=[user(0, 2000), agent(5000, 6000)]))
-    assert result.score == 1

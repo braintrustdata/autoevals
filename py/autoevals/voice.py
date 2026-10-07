@@ -147,11 +147,11 @@ class VoiceInterruptions(ScorerWithPartial):
 
     def _run_eval_sync(self, output, expected=None, utterances=None, min_overlap_ms=300, **kwargs):
         utterances = utterances or []
-        turns, agents, skipped = _user_turns(utterances, min_overlap_ms)
+        turns, agent_count, skipped = _user_turns(utterances, min_overlap_ms)
         talk_overs = sum(t["talk_over"] for t in turns)
         return Score(
             name=self._name(),
-            score=1 - talk_overs / len(turns) if turns and agents else None,
+            score=1 - talk_overs / len(turns) if turns and agent_count else None,
             metadata={
                 "user_turns": len(turns),
                 "talk_overs": talk_overs,

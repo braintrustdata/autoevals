@@ -41,7 +41,7 @@ function isTimed(u: Utterance): u is TimedUtterance {
 function userTurns(
   utterances: Utterance[],
   minOverlapMs: number,
-): { turns: Turn[]; agents: number; skipped: number } {
+): { turns: Turn[]; agentCount: number; skipped: number } {
   const timed = utterances
     .filter(isTimed)
     .sort((a, b) => a.start_unix_ms - b.start_unix_ms);
@@ -100,7 +100,7 @@ function userTurns(
 
   return {
     turns,
-    agents: agents.length,
+    agentCount: agents.length,
     skipped: utterances.length - timed.length,
   };
 }
@@ -167,11 +167,11 @@ export const VoiceInterruptions: ScorerWithPartial<
   unknown,
   VoiceInterruptionsArgs
 > = makePartial(async ({ utterances = [], minOverlapMs = 300 }) => {
-  const { turns, agents, skipped } = userTurns(utterances, minOverlapMs);
+  const { turns, agentCount, skipped } = userTurns(utterances, minOverlapMs);
   const talkOvers = turns.filter((t) => t.talkOver).length;
   return {
     name: "VoiceInterruptions",
-    score: turns.length && agents ? 1 - talkOvers / turns.length : null,
+    score: turns.length && agentCount ? 1 - talkOvers / turns.length : null,
     metadata: {
       user_turns: turns.length,
       talk_overs: talkOvers,

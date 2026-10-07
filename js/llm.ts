@@ -507,7 +507,7 @@ const voiceTaskSuccessClassifier = LLMClassifierFromSpecFile<{
  * Returns a null score when there is no conversation.
  */
 export const VoiceTaskSuccess = makePartial<
-  string,
+  unknown,
   LLMClassifierArgs<VoiceTaskSuccessArgs>
 >(async ({ thread_with_system, trace, ...args }) => {
   const messages = thread_with_system ?? (await trace?.getThread());

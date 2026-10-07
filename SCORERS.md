@@ -406,6 +406,18 @@ Binary scorer that checks for exact string equality.
 - `1` = Values are exactly equal
 - `0` = Values differ
 
+**Example:**
+
+```python
+from autoevals import ExactMatch
+
+scorer = ExactMatch()
+result = scorer.eval(output="hello", expected="hello")
+
+print(result.name)   # ExactMatch
+print(result.score)  # 1
+```
+
 ### NumericDiff
 
 Evaluates numeric differences with configurable thresholds.

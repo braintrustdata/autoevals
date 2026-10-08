@@ -84,6 +84,7 @@ Example 2: Custom scorer for API response validation
 """
 
 import json
+from typing import Any
 
 from jsonschema import ValidationError, validate
 
@@ -92,6 +93,16 @@ from autoevals.partial import ScorerWithPartial
 from .number import NumericDiff
 from .score import Score, Scorer
 from .string import Levenshtein
+
+
+def _is_number(value: Any) -> bool:
+    # `bool` is a subclass of `int`, so a bare isinstance check treats `True` as
+    # the number 1 and `True`/`1` as an exact match. The TypeScript
+    # implementation tests `typeof value === "number"`, which is false for
+    # booleans, so it compares them as the strings "true"/"false" instead. A
+    # boolean and an integer are different JSON values, so exclude them here to
+    # keep both implementations in agreement.
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 class JSONDiff(ScorerWithPartial):
@@ -180,7 +191,7 @@ class JSONDiff(ScorerWithPartial):
             return sum(base_scores) / max(len(o1), len(o2))
         elif isinstance(o1, str) and isinstance(o2, str):
             return self.string_scorer.eval(o1, o2).score
-        elif (isinstance(o1, int) or isinstance(o1, float)) and (isinstance(o2, int) or isinstance(o2, float)):
+        elif _is_number(o1) and _is_number(o2):
             return self.number_scorer.eval(o1, o2).score
         elif o1 is None and o2 is None:
             return 1

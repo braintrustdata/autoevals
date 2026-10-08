@@ -327,3 +327,80 @@ describe("AnswerCorrectness custom embedding model", () => {
     expect(capturedEmbeddingModel).toBe("text-embedding-3-large");
   });
 });
+
+describe("AnswerCorrectness empty classification", () => {
+  const server = setupServer();
+
+  beforeAll(() => {
+    server.listen({
+      onUnhandledRequest: (req) => {
+        throw new Error(`Unhandled request ${req.method}, ${req.url}`);
+      },
+    });
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+    init();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  test("scores 0 when the judge classifies nothing", async () => {
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", async () => {
+        return HttpResponse.json({
+          id: "test-id",
+          object: "chat.completion",
+          created: Date.now(),
+          model: "gpt-5-mini",
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    id: "call_test",
+                    type: "function",
+                    function: {
+                      name: "classify_statements",
+                      arguments: JSON.stringify({
+                        TP: [],
+                        FP: [],
+                        FN: [],
+                      }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: "tool_calls",
+            },
+          ],
+        });
+      }),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    // Regression test: computeF1Score divided by tp + 0.5 * (fp + fn)
+    // unguarded, so an empty classification returned NaN, which serializes
+    // to null and reads as a skipped score. answerSimilarityWeight 0 keeps
+    // the test off the embeddings API.
+    const result = await AnswerCorrectness({
+      input: "What is the capital of France?",
+      output: "I don't know.",
+      expected: "Paris is the capital of France",
+      answerSimilarityWeight: 0,
+    });
+
+    expect(result.score).toBe(0);
+  });
+});

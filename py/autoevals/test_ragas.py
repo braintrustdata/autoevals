@@ -262,3 +262,47 @@ def test_answer_correctness_uses_custom_embedding_model():
     )
 
     assert captured_embedding_model == "text-embedding-3-large"
+
+
+def test_compute_f1_score_empty_classification():
+    """An empty classification has no correct statements, so it scores 0.
+
+    Regression test: compute_f1_score divided by tp + 0.5 * (fp + fn)
+    unguarded, so a judge that classified nothing raised ZeroDivisionError.
+    """
+    assert ragas_module.compute_f1_score({"TP": [], "FP": [], "FN": []}) == 0
+    # Normal cases are unchanged.
+    assert ragas_module.compute_f1_score({"TP": ["a", "b"], "FP": ["c"], "FN": []}) == 0.8
+    assert ragas_module.compute_f1_score({"TP": [], "FP": ["a"], "FN": ["b"]}) == 0
+
+
+@pytest.mark.parametrize("is_async", [False, True])
+def test_answer_correctness_empty_classification_scores_zero(monkeypatch, is_async):
+    """A judge that classifies nothing scores 0 instead of crashing.
+
+    The TypeScript scorer returned NaN for the same input, which serializes
+    to null and reads as a skipped score.
+    """
+
+    def fake_load_function_call_request(client=None, **kwargs):
+        return {"TP": [], "FP": [], "FN": []}
+
+    async def fake_aload_function_call_request(client=None, **kwargs):
+        return {"TP": [], "FP": [], "FN": []}
+
+    monkeypatch.setattr(ragas_module, "load_function_call_request", fake_load_function_call_request)
+    monkeypatch.setattr(ragas_module, "aload_function_call_request", fake_aload_function_call_request)
+
+    # answer_similarity_weight=0 keeps the test off the embeddings API.
+    metric = AnswerCorrectness(answer_similarity_weight=0)
+    kwargs = dict(
+        input="What is the capital of France?",
+        output="I don't know.",
+        expected="Paris is the capital of France",
+    )
+    if is_async:
+        score = asyncio.run(metric.eval_async(**kwargs))
+    else:
+        score = metric.eval(**kwargs)
+
+    assert score.score == 0

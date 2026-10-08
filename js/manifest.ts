@@ -26,6 +26,7 @@ import { ListContains } from "./list";
 import { ScorerWithPartial } from "./partial";
 import { Moderation } from "./moderation";
 import { ExactMatch } from "./value";
+import { VoiceInterruptions, VoiceLatency } from "./voice";
 import { ModelGradedSpec, templates } from "./templates";
 
 interface AutoevalMethod {
@@ -202,6 +203,21 @@ export const Evaluators: {
       {
         method: NumericDiff,
         description: "Compares numbers by normalizing their difference.",
+      },
+    ],
+  },
+  {
+    label: "Voice",
+    methods: [
+      {
+        method: VoiceLatency,
+        description:
+          "Test how quickly a voice agent replies after the user finishes speaking. Run it with trace scope.",
+      },
+      {
+        method: VoiceInterruptions,
+        description:
+          "Test how often a voice agent talks over the user. Run it with trace scope.",
       },
     ],
   },

@@ -58,6 +58,7 @@ The library maintains parallel implementations in TypeScript (`js/`) and Python 
 - `ragas.ts` / `ragas.py` - RAG evaluation metrics (ContextRelevancy, Faithfulness, AnswerRelevancy, etc.)
 - `string.ts` / `string.py` - Text similarity (Levenshtein, EmbeddingSimilarity)
 - `json.ts` / `json.py` - JSON validation and diff
+- `voice.ts` / `voice.py` - Voice call timing (VoiceLatency, VoiceInterruptions)
 - `oai.ts` / `oai.py` - OpenAI client wrapper with caching
 - `score.ts` / `score.py` - Core Score type and Scorer base class
 

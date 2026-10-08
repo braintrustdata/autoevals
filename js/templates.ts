@@ -8,6 +8,7 @@ import humor from "../templates/humor.yaml";
 import possible from "../templates/possible.yaml";
 import security from "../templates/security.yaml";
 import sql from "../templates/sql.yaml";
+import status_evidence from "../templates/status_evidence.yaml";
 import summary from "../templates/summary.yaml";
 import translation from "../templates/translation.yaml";
 
@@ -30,6 +31,7 @@ const templateStrings = {
   possible,
   security,
   sql,
+  status_evidence,
   summary,
   translation,
 } as const;

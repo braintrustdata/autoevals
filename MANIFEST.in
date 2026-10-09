@@ -1,1 +1,2 @@
 recursive-include py/autoevals/templates *
+include py/autoevals/py.typed

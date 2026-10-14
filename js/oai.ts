@@ -159,8 +159,8 @@ const isWrapped = (
     dangerouslyAllowBrowser,
   });
   return (
-    String(client.chat.completions.create) !==
-    String(clean.chat.completions.create)
+    String(client.chat?.completions?.create) !==
+    String(clean.chat?.completions?.create)
   );
 };
 

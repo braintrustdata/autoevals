@@ -323,6 +323,8 @@ class LLMClient:
                 # Copy supported parameters
                 if "temperature" in kwargs:
                     responses_params["temperature"] = kwargs["temperature"]
+                if "max_tokens" in kwargs:
+                    responses_params["max_output_tokens"] = kwargs["max_tokens"]
                 # The Responses API nests this under reasoning.effort, unlike Chat Completions.
                 if "reasoning_effort" in kwargs:
                     responses_params["reasoning"] = {"effort": kwargs["reasoning_effort"]}

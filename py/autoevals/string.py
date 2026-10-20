@@ -133,7 +133,11 @@ class EmbeddingSimilarity(ScorerWithPartial):
         self.client = client
 
     def _cache_key(self, value):
-        return (self.extra_args["model"], self.prefix, value)
+        # The cache is shared across scorer instances, so include every setting that
+        # can select a different embedding provider. A custom client may route to a
+        # different provider even when the model and base URL match.
+        client_key = id(self.client) if self.client is not None else None
+        return (self.extra_args["model"], self.prefix, self.extra_args.get("base_url"), client_key, value)
 
     async def _a_embed(self, value):
         value = normalize_value(value, maybe_object=False)

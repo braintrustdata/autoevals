@@ -1,5 +1,8 @@
 import asyncio
 
+import pytest
+
+import autoevals.string as string_module
 from autoevals import EmbeddingSimilarity
 
 SYNONYMS = [
@@ -9,6 +12,60 @@ SYNONYMS = [
 ]
 
 UNRELATED = ["water", "The quick brown fox jumps over the lazy dog", "I like to eat apples"]
+
+
+@pytest.fixture(autouse=True)
+def reset_embedding_cache():
+    with EmbeddingSimilarity._CACHE_LOCK:
+        EmbeddingSimilarity._CACHE.clear()
+    yield
+    with EmbeddingSimilarity._CACHE_LOCK:
+        EmbeddingSimilarity._CACHE.clear()
+
+
+@pytest.mark.parametrize("run_async", [False, True])
+@pytest.mark.asyncio
+async def test_embedding_cache_isolated_by_configuration(monkeypatch, run_async):
+    calls = []
+
+    def fake_run_cached_request(**kwargs):
+        calls.append((kwargs["model"], kwargs["input"], kwargs.get("base_url"), kwargs.get("client")))
+        return {"data": [{"embedding": [1.0, 0.0]}]}
+
+    async def fake_arun_cached_request(**kwargs):
+        calls.append((kwargs["model"], kwargs["input"], kwargs.get("base_url"), kwargs.get("client")))
+        return {"data": [{"embedding": [1.0, 0.0]}]}
+
+    if run_async:
+        monkeypatch.setattr(string_module, "arun_cached_request", fake_arun_cached_request)
+    else:
+        monkeypatch.setattr(string_module, "run_cached_request", fake_run_cached_request)
+
+    value = {"topic": "cache"}
+    client_a = object()
+    client_b = object()
+    evaluators = [
+        EmbeddingSimilarity(model="model-a", prefix="query: ", base_url="https://one.example", client=client_a),
+        EmbeddingSimilarity(model="model-a", prefix="query: ", base_url="https://one.example", client=client_a),
+        EmbeddingSimilarity(model="model-b", prefix="query: ", base_url="https://one.example", client=client_a),
+        EmbeddingSimilarity(model="model-a", prefix="document: ", base_url="https://one.example", client=client_a),
+        EmbeddingSimilarity(model="model-a", prefix="query: ", base_url="https://two.example", client=client_a),
+        EmbeddingSimilarity(model="model-a", prefix="query: ", base_url="https://one.example", client=client_b),
+    ]
+
+    for evaluator in evaluators:
+        if run_async:
+            await evaluator.eval_async(value, value)
+        else:
+            evaluator.eval(value, value)
+
+    assert calls == [
+        ("model-a", 'query: {"topic": "cache"}', "https://one.example", client_a),
+        ("model-b", 'query: {"topic": "cache"}', "https://one.example", client_a),
+        ("model-a", 'document: {"topic": "cache"}', "https://one.example", client_a),
+        ("model-a", 'query: {"topic": "cache"}', "https://two.example", client_a),
+        ("model-a", 'query: {"topic": "cache"}', "https://one.example", client_b),
+    ]
 
 
 def test_embeddings():

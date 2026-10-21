@@ -850,7 +850,11 @@ function computeF1Score(classification: AnswerCorrectnessClassification) {
   const tp = classification.TP.length;
   const fp = classification.FP.length;
   const fn = classification.FN.length;
-  return tp / (tp + 0.5 * (fp + fn));
+  const denominator = tp + 0.5 * (fp + fn);
+  // A judge can classify nothing at all (an answer with no checkable claims,
+  // or an empty classification). Score that 0 rather than dividing by zero
+  // and returning NaN, matching the guard in ContextRecall.
+  return denominator > 0 ? tp / denominator : 0;
 }
 
 /**

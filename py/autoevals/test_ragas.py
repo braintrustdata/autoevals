@@ -262,3 +262,18 @@ def test_answer_correctness_uses_custom_embedding_model():
     )
 
     assert captured_embedding_model == "text-embedding-3-large"
+
+
+def test_answer_relevancy_does_not_send_a_default_temperature():
+    # Claude 4.7+ and 5.x reject a non-default temperature, so the request only carries one the caller asked for.
+    scorer = AnswerRelevancy(model="claude-opus-5-5", client=object())
+    request = ragas_module.extract_question_gen_request(
+        answer="Paris", context="France", model=scorer.model, **scorer.extra_args
+    )
+    assert "temperature" not in request
+
+    scorer = AnswerRelevancy(model="gpt-4o", temperature=0.2, client=object())
+    request = ragas_module.extract_question_gen_request(
+        answer="Paris", context="France", model=scorer.model, **scorer.extra_args
+    )
+    assert request["temperature"] == 0.2

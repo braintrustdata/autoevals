@@ -408,44 +408,32 @@ Binary scorer that checks for exact string equality.
 
 ### NumericDiff
 
-Evaluates numeric differences with configurable thresholds.
+Compares two numbers by their difference, normalized by their magnitudes.
 
 **Parameters:**
 
 - `output` (number, required): The generated number
 - `expected` (number, required): The expected number
-- `max_diff` (number, optional): Maximum acceptable difference (default: 0)
-- `relative` (boolean, optional): Use relative difference (default: false)
 
 **Score Range:** 0-1
 
-- `1.0` = Numbers are equal (within threshold)
-- `0.0` = Numbers differ significantly
+- `1.0` = Numbers are equal (including both `0`)
+- `0.0` = Numbers have opposite signs, or one of them is `0` and the other is not
 
-**Formula (absolute):** `score = max(0, 1 - |output - expected| / max_diff)` (when max_diff > 0)
+**Formula:** `score = 1 - |output - expected| / (|output| + |expected|)`
 
-**Formula (relative):** `score = max(0, 1 - |output - expected| / |expected|)`
+The difference is relative to the size of the numbers, so 10.5 vs 10.0 and 105 vs 100 get the same score.
 
 **Example:**
 
 ```typescript
 import { NumericDiff } from "autoevals";
 
-// Absolute difference
-const result1 = await NumericDiff({
+const result = await NumericDiff({
   output: 10.5,
   expected: 10.0,
-  maxDiff: 1.0,
 });
-// Score: 0.5 (difference of 0.5 out of max 1.0)
-
-// Relative difference
-const result2 = await NumericDiff({
-  output: 100,
-  expected: 110,
-  relative: true,
-});
-// Score: ~0.91 (10% difference)
+// Score: ~0.976 (1 - 0.5 / 20.5)
 ```
 
 ### EmbeddingSimilarity

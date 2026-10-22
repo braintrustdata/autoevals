@@ -250,10 +250,15 @@ class ValidJSON(ScorerWithPartial):
     def __init__(self, schema=None):
         self.schema = schema
 
-    def _run_eval_sync(self, output, schema=None, **kwargs):
+    def _run_eval_sync(self, output, expected=None, schema=None, **kwargs):
+        # Preserve the existing second-positional-argument schema convention.
+        if schema is None:
+            schema = expected
         return Score(name=self._name(), score=self.valid_json(output, schema))
 
     def valid_json(self, output, schema=None):
+        if schema is None:
+            schema = self.schema
         try:
             parsed = json.loads(output) if isinstance(output, str) else output
 

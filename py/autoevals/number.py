@@ -26,7 +26,7 @@ class NumericDiff(ScorerWithPartial):
             output=105,
             expected=100
         )
-        print(result.score)  # 0.95 (normalized similarity)
+        print(result.score)  # 0.9756... (1 - 5 / 205)
         ```
 
     Args:

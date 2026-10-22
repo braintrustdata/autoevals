@@ -13,6 +13,7 @@ import {
   Faithfulness,
 } from "./ragas";
 import { init } from "./oai";
+import { renderMessages } from "./render-messages";
 
 const data = {
   input: "Can starred docs from different workspaces be accessed in one place?",
@@ -325,5 +326,169 @@ describe("AnswerCorrectness custom embedding model", () => {
     });
 
     expect(capturedEmbeddingModel).toBe("text-embedding-3-large");
+  });
+});
+
+// Mustache HTML-escapes `{{...}}` interpolations by default, so a value
+// containing <, >, &, " or / used to reach the judge model as HTML entities
+// instead of the text the caller supplied. Every other prompt path in the
+// library (`render-messages`, used by the LLMClassifier scorers) already
+// renders values verbatim; the ragas scorers must send the same text.
+describe("Ragas prompt rendering", () => {
+  const server = setupServer();
+
+  // Contains every character mustache escapes: < > & " and /.
+  const TEXT = 'Is 3 < 5 & 2 > 1? "q"';
+  const ESCAPED = ["&lt;", "&gt;", "&amp;", "&quot;", "&#x2F;"];
+
+  let prompts: string[] = [];
+
+  beforeAll(() => {
+    server.listen({
+      onUnhandledRequest: (req) => {
+        throw new Error(`Unhandled request ${req.method}, ${req.url}`);
+      },
+    });
+  });
+
+  afterEach(() => {
+    server.resetHandlers();
+    prompts = [];
+    init();
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  // Records every user message sent to the model and answers with a tool call
+  // for whichever tool the scorer asked for.
+  const capturePrompts = (
+    toolArgs: (toolName: string) => Record<string, unknown>,
+  ) => {
+    server.use(
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          const body = (await request.json()) as {
+            messages: { role: string; content: string }[];
+            tools?: { function: { name: string } }[];
+          };
+          prompts.push(body.messages[0].content);
+          const name = body.tools?.[0]?.function.name ?? "";
+          return HttpResponse.json({
+            id: "chatcmpl-test",
+            object: "chat.completion",
+            created: Date.now(),
+            model: "gpt-5-mini",
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name,
+                        arguments: JSON.stringify(toolArgs(name)),
+                      },
+                    },
+                  ],
+                },
+                finish_reason: "tool_calls",
+              },
+            ],
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+              total_tokens: 30,
+            },
+          });
+        },
+      ),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+  };
+
+  const expectVerbatim = (prompt: string) => {
+    expect(prompt).toContain(TEXT);
+    for (const entity of ESCAPED) {
+      expect(prompt).not.toContain(entity);
+    }
+  };
+
+  test("ContextEntityRecall sends `text` to the model verbatim", async () => {
+    capturePrompts(() => ({ entities: ["5"] }));
+
+    await ContextEntityRecall({
+      input: "Is three less than five?",
+      output: "5",
+      expected: TEXT,
+      context: TEXT,
+      // Avoid the embeddings endpoint; the entity lists match either way.
+      pairwiseScorer: async () => ({ name: "exact", score: 1 }),
+    });
+
+    // Once for `expected`, once for `context`.
+    expect(prompts).toHaveLength(2);
+    for (const prompt of prompts) {
+      expectVerbatim(prompt);
+    }
+  });
+
+  test("ContextRelevancy sends `question` and `context` verbatim", async () => {
+    capturePrompts(() => ({ sentences: [] }));
+
+    await ContextRelevancy({
+      input: TEXT,
+      output: "5",
+      context: TEXT,
+    });
+
+    expect(prompts).toHaveLength(1);
+    // Both are interpolated into the one prompt.
+    expect(prompts[0]).toContain(`question: ${TEXT}`);
+    expect(prompts[0]).toContain(`context: ${TEXT}`);
+  });
+
+  test("Faithfulness sends `context` verbatim and `statements` as JSON", async () => {
+    capturePrompts((name) =>
+      name === "extract_statements"
+        ? { statements: ["The answer is <b>5</b>"] }
+        : { faithfulness: [{ statement: "x", verdict: 1, reason: "y" }] },
+    );
+
+    await Faithfulness({
+      input: "Is three less than five?",
+      output: "5",
+      context: TEXT,
+    });
+
+    // First call extracts statements from the answer, second judges them.
+    expect(prompts).toHaveLength(2);
+    expectVerbatim(prompts[1]);
+    // `statements` is a string[]; render-messages stringifies non-strings as
+    // JSON, and the scorers follow the same rule.
+    expect(prompts[1]).toContain(
+      `statements: ${JSON.stringify(["The answer is <b>5</b>"])}`,
+    );
+  });
+
+  test("agrees with renderMessages, the library's other prompt path", () => {
+    const rendered = renderMessages(
+      [{ role: "user", content: "text: {{text}}" }],
+      { text: TEXT },
+    )[0].content;
+
+    expect(rendered).toBe(`text: ${TEXT}`);
   });
 });

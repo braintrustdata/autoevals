@@ -84,7 +84,7 @@ def normalize_value(value: Any, maybe_object: bool) -> str:
     try:
         if maybe_object:
             return json.dumps(json.loads(value))
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, TypeError):
         pass
 
     return str(value)

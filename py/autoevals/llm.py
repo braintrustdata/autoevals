@@ -460,7 +460,8 @@ class LLMClassifier(OpenAILLMClassifier):
             thread_vars = self._compute_thread_vars_sync(trace)
 
         # Thread vars come first so explicit render args can override.
-        return super()._request_args(output, expected, **thread_vars, **kwargs)
+        render_args = {**thread_vars, **kwargs}
+        return super()._request_args(output, expected, **render_args)
 
     async def _request_args_async(self, output, expected, **kwargs):
         trace = kwargs.get("trace")
@@ -469,7 +470,8 @@ class LLMClassifier(OpenAILLMClassifier):
             thread_vars = await self._compute_thread_vars_async(trace)
 
         # Thread vars come first so explicit render args can override.
-        return super()._request_args(output, expected, **thread_vars, **kwargs)
+        render_args = {**thread_vars, **kwargs}
+        return super()._request_args(output, expected, **render_args)
 
     @classmethod
     def from_spec(cls, name: str, spec: ModelGradedSpec, client: Client | None = None, **kwargs):

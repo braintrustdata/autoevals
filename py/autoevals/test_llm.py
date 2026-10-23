@@ -188,6 +188,93 @@ async def test_llm_classifier_request_args_async_keep_thread_filtered_and_thread
     assert system_marker in full_thread
 
 
+def test_llm_classifier_request_args_explicit_thread_overrides():
+    system_marker = "PY_AUTOEVALS_SYSTEM_MARKER"
+    trace = _FakeTrace(
+        [
+            {"role": "system", "content": system_marker},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+    )
+    classifier = LLMClassifier(
+        "test",
+        "Thread:\n{{thread}}\nCount: {{thread_count}}\n\nFull thread:\n{{thread_with_system}}",
+        {"Yes": 1, "No": 0},
+        use_cot=False,
+    )
+
+    request_args = classifier._request_args(
+        output="",
+        expected="",
+        trace=trace,
+        thread=[{"role": "user", "content": "EXPLICIT_THREAD_SENTINEL"}],
+        thread_count=99,
+    )
+    rendered_prompt = request_args["messages"][0]["content"]
+
+    overridden_thread, full_thread = rendered_prompt.split("\n\nFull thread:\n", 1)
+    assert "EXPLICIT_THREAD_SENTINEL" in overridden_thread
+    assert "Count: 99" in overridden_thread
+    assert "Hello" not in overridden_thread
+    assert system_marker in full_thread
+
+
+@pytest.mark.asyncio
+async def test_llm_classifier_request_args_async_explicit_thread_overrides():
+    system_marker = "PY_AUTOEVALS_SYSTEM_MARKER_ASYNC"
+    trace = _FakeTrace(
+        [
+            {"role": "system", "content": system_marker},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+    )
+    classifier = LLMClassifier(
+        "test",
+        "Thread:\n{{thread}}\nCount: {{thread_count}}\n\nFull thread:\n{{thread_with_system}}",
+        {"Yes": 1, "No": 0},
+        use_cot=False,
+    )
+
+    request_args = await classifier._request_args_async(
+        output="",
+        expected="",
+        trace=trace,
+        thread=[{"role": "user", "content": "EXPLICIT_THREAD_SENTINEL"}],
+        thread_count=99,
+    )
+    rendered_prompt = request_args["messages"][0]["content"]
+
+    overridden_thread, full_thread = rendered_prompt.split("\n\nFull thread:\n", 1)
+    assert "EXPLICIT_THREAD_SENTINEL" in overridden_thread
+    assert "Count: 99" in overridden_thread
+    assert "Hello" not in overridden_thread
+    assert system_marker in full_thread
+
+
+def test_llm_classifier_request_args_explicit_thread_count_overrides():
+    trace = _FakeTrace(
+        [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+    )
+    classifier = LLMClassifier(
+        "test",
+        "Thread:\n{{thread}}\nCount: {{thread_count}}",
+        {"Yes": 1, "No": 0},
+        use_cot=False,
+    )
+
+    request_args = classifier._request_args(output="", expected="", trace=trace, thread_count=99)
+    rendered_prompt = request_args["messages"][0]["content"]
+
+    assert "Count: 99" in rendered_prompt
+    assert "Hello" in rendered_prompt
+    assert "Hi there" in rendered_prompt
+
+
 def test_openai():
     e = OpenAILLMClassifier(
         "title",

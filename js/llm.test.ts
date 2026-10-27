@@ -10,6 +10,7 @@ import {
   LLMClassifierFromTemplate,
   OpenAIClassifier,
   templateUsesThreadVariables,
+  VoiceTaskSuccess,
 } from "../js/llm";
 import {
   openaiClassifierShouldEvaluateArithmeticExpressions,
@@ -665,5 +666,61 @@ Issue Description: {{page_content}}
 
     // Reset for other tests
     init({ client });
+  });
+});
+
+describe("VoiceTaskSuccess", () => {
+  test("sends the trace's conversation as JSON", async () => {
+    const thread = [
+      { role: "user", content: "Cancel my order" },
+      { role: "assistant", content: "It's cancelled." },
+    ];
+    let body: any;
+    server.use(
+      http.post(
+        "https://api.openai.com/v1/chat/completions",
+        async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json({
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: "call_test",
+                      type: "function",
+                      function: {
+                        name: "select_choice",
+                        arguments: '{"reasons":"Done.","choice":"A"}',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+        },
+      ),
+    );
+
+    const score = await VoiceTaskSuccess({
+      output: null,
+      model: "gpt-4o",
+      openAiApiKey: "test-api-key",
+      trace: { getThread: async () => thread },
+    });
+
+    expect(score.score).toBe(1);
+    expect(body.messages[0].content).toContain(JSON.stringify(thread));
+  });
+
+  test("skips when there is no conversation", async () => {
+    const score = await VoiceTaskSuccess({
+      output: null,
+      openAiApiKey: "test-api-key",
+      trace: { getThread: async () => [] },
+    });
+    expect(score.score).toBeNull();
   });
 });

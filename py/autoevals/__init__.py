@@ -137,3 +137,4 @@ from .score import Score, Scorer, SerializableDataClass
 from .string import *
 from .thread_utils import *
 from .value import ExactMatch
+from .voice import *

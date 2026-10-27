@@ -262,11 +262,11 @@ def test_prepare_openai_v0_with_client(mock_openai_v0: OpenAIV0Module):
     assert prepared_client.complete.__name__ == "acreate"
 
 
-def test_get_default_model_returns_gpt_4o_by_default():
-    """Test that get_default_model returns gpt-5-mini when no default is configured."""
+def test_get_default_model_returns_gpt_5_6_terra_by_default():
+    """Test that get_default_model returns gpt-5.6-terra when no default is configured."""
     # Reset init to clear any previous default model
     init(None)
-    assert get_default_model() == "gpt-5-mini"
+    assert get_default_model() == "gpt-5.6-terra"
 
 
 def test_init_sets_default_model():
@@ -284,7 +284,7 @@ def test_init_can_reset_default_model():
     assert get_default_model() == "claude-3-5-sonnet-20241022"
 
     init(None, default_model=None)
-    assert get_default_model() == "gpt-5-mini"
+    assert get_default_model() == "gpt-5.6-terra"
 
 
 def test_init_can_set_both_client_and_default_model():

@@ -46,6 +46,7 @@ print(result.score)  # 1 if correct, 0 if incorrect
 """
 
 import asyncio
+import base64
 import inspect
 import json
 import os
@@ -133,6 +134,30 @@ def build_classification_tools(useCoT, choice_strings):
     ]
 
 
+def _get_path(args, path):
+    value = args
+    for key in path.split("."):
+        value = value.get(key) if isinstance(value, dict) else None
+    return value
+
+
+def _get_audio(args, path):
+    audio = _get_path(args, path)
+    if audio is None:
+        return []
+    return audio if isinstance(audio, list) else [audio]
+
+
+def _audio_part(audio):
+    if not isinstance(audio, dict) or not isinstance(audio.get("data"), (bytes, bytearray)):
+        raise TypeError("Audio must be a dict with `data` bytes and a `content_type`")
+    content_type = str(audio.get("content_type", "")).split(";")[0].strip().lower()
+    if not content_type.startswith("audio/"):
+        raise ValueError(f"Audio must have an audio/* content type, got {content_type!r}")
+    data = base64.b64encode(audio["data"]).decode()
+    return {"type": "file", "file": {"file_data": f"data:{content_type};base64,{data}"}}
+
+
 class OpenAIScorer(ScorerWithPartial):
     def __init__(
         self,
@@ -181,6 +206,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         reasoning_enabled=None,
         reasoning_budget=None,
         use_responses_api=None,
+        audio=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -198,6 +224,7 @@ class OpenAILLMClassifier(OpenAILLMScorer):
         self.model = model
         self.engine = engine
         self.messages = messages
+        self.audio = audio
 
         if max_tokens is not None:
             self.extra_args["max_tokens"] = max(max_tokens, 5)
@@ -234,13 +261,22 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
     def _render_messages(self, **kwargs):
         kwargs.update(self.render_args)
-        return [
+        messages = [
             {
                 **m,
                 "content": chevron.render(m["content"].strip(), kwargs, warn=True),
             }
             for m in self.messages
         ]
+        if self.audio:
+            text = messages[-1]["content"]
+            files = [_audio_part(a) for a in _get_audio(kwargs, self.audio)]
+            messages[-1]["content"] = [{"type": "text", "text": text}, *files]
+        return messages
+
+    def _missing_audio(self, output, expected, **kwargs):
+        args = {"output": output, "expected": expected, **kwargs, **self.render_args}
+        return self.audio and not _get_audio(args, self.audio)
 
     def _request_args(self, output, expected, **kwargs):
         ret = {
@@ -284,11 +320,15 @@ class OpenAILLMClassifier(OpenAILLMScorer):
             raise ValueError("Empty response from OpenAI")
 
     async def _run_eval_async(self, output, expected, **kwargs):
+        if self._missing_audio(output, expected, **kwargs):
+            return Score(name=self.name, score=None)
         return self._postprocess_response(
             await arun_cached_request(**(await self._request_args_async(output, expected, **kwargs)))
         )
 
     def _run_eval_sync(self, output, expected, **kwargs):
+        if self._missing_audio(output, expected, **kwargs):
+            return Score(name=self.name, score=None)
         return self._postprocess_response(run_cached_request(**self._request_args(output, expected, **kwargs)))
 
 
@@ -301,6 +341,7 @@ class ModelGradedSpec:
     use_cot: bool | None = None
     temperature: float | None = None
     max_tokens: int | None = None
+    audio: str | None = None
 
 
 class LLMClassifier(OpenAILLMClassifier):
@@ -344,6 +385,7 @@ class LLMClassifier(OpenAILLMClassifier):
         reasoning_effort: Controls reasoning depth for o-series models (e.g., "low", "medium", "high").
         reasoning_enabled: Enable extended thinking for supported models (e.g., Claude). Defaults to None.
         reasoning_budget: Token allocation for model's internal reasoning. Defaults to None.
+        audio: Path in the arguments (e.g. `input.audio`) to a dict with `data` bytes and an audio `content_type`, such as `audio/ogg`, or a list of these dicts, each sent as its own file in order. Missing audio or an empty list skips the score.
         engine: Deprecated by OpenAI. Use model instead.
         api_key: Deprecated. Use client instead.
         base_url: Deprecated. Use client instead.
@@ -371,6 +413,7 @@ class LLMClassifier(OpenAILLMClassifier):
         reasoning_enabled=None,
         reasoning_budget=None,
         use_responses_api=None,
+        audio=None,
         engine=None,
         api_key=None,
         base_url=None,
@@ -403,6 +446,7 @@ class LLMClassifier(OpenAILLMClassifier):
             reasoning_enabled=reasoning_enabled,
             reasoning_budget=reasoning_budget,
             use_responses_api=use_responses_api,
+            audio=audio,
             engine=engine,
             api_key=api_key,
             base_url=base_url,
@@ -484,8 +528,11 @@ class LLMClassifier(OpenAILLMClassifier):
             spec_kwargs["temperature"] = spec.temperature
         if spec.max_tokens is not None:
             spec_kwargs["max_tokens"] = spec.max_tokens
+        if spec.audio is not None:
+            spec_kwargs["audio"] = spec.audio
         # kwargs can override spec values
-        return cls(name, spec.prompt, spec.choice_scores, client=client, **spec_kwargs, **kwargs)
+        spec_kwargs.update(kwargs)
+        return cls(name, spec.prompt, spec.choice_scores, client=client, **spec_kwargs)
 
     @classmethod
     def from_spec_file(cls, name: str, path: str, client: Client | None = None, **kwargs):
@@ -900,3 +947,23 @@ class VoiceTaskSuccess(ScorerWithPartial):
             return Score(name="VoiceTaskSuccess", score=None)
         conversation = json.dumps(messages, separators=(",", ":"), ensure_ascii=False)
         return await self._classifier.eval_async(output, expected, thread_with_system=conversation, **kwargs)
+
+
+class SpeechClarity(SpecFileClassifier):
+    """Rate how clearly an agent speaks in a recording of the whole conversation.
+
+    Example:
+        ```python
+        from pathlib import Path
+        from autoevals import SpeechClarity
+
+        audio = {"data": Path("call.ogg").read_bytes(), "content_type": "audio/ogg"}
+        result = SpeechClarity().eval(input={"audio": audio}, output=None)
+        print(result.score)  # 1 if clear, 0.5 if flawed but easy to follow, 0 if words are lost
+        ```
+
+    Args:
+        input: Dict whose `audio` is the recording, as `{"data": bytes, "content_type": "audio/ogg"}`, or a list of them in recording order
+    """
+
+    pass

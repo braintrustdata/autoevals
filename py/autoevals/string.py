@@ -24,7 +24,7 @@ from polyleven import levenshtein as distance
 from autoevals.partial import ScorerWithPartial
 from autoevals.value import normalize_value
 
-from .oai import LLMClient, arun_cached_request, get_default_embedding_model, run_cached_request
+from .oai import LLMClient, _client_var, arun_cached_request, get_default_embedding_model, run_cached_request
 from .score import Score
 
 
@@ -101,6 +101,8 @@ class EmbeddingSimilarity(ScorerWithPartial):
         expected_min: Minimum similarity threshold (default: 0.7)
         client: Optional AsyncOpenAI/OpenAI client. If not provided, uses global client from init()
 
+    Cached embeddings are isolated by the explicit or currently configured default client.
+
     Returns:
         Score object with:
         - score: Normalized similarity (0-1)
@@ -133,10 +135,14 @@ class EmbeddingSimilarity(ScorerWithPartial):
         self.client = client
 
     def _cache_key(self, value):
-        # The cache is shared across scorer instances, so include every setting that
-        # can select a different embedding provider. A custom client may route to a
-        # different provider even when the model and base URL match.
-        client_key = id(self.client) if self.client is not None else None
+        # Include the effective client as well as the request configuration because
+        # the cache is shared across scorer instances and default client contexts.
+        client = self.client or _client_var.get(None)
+        if isinstance(client, LLMClient):
+            # A token stays unique even after a replaced default client is collected.
+            client_key = client._embedding_cache_key
+        else:
+            client_key = id(client) if client is not None else None
         return (self.extra_args["model"], self.prefix, self.extra_args.get("base_url"), client_key, value)
 
     async def _a_embed(self, value):

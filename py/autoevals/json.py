@@ -157,6 +157,42 @@ class JSONDiff(ScorerWithPartial):
     def _run_eval_sync(self, output, expected=None, **kwargs):
         return Score(name=self._name(), score=self.json_diff(output, expected))
 
+    async def _run_eval_async(self, output, expected=None, **kwargs):
+        return Score(name=self._name(), score=await self._json_diff_async(output, expected))
+
+    async def _json_diff_async(self, o1, o2):
+        if not self.preserve_strings:
+            if isinstance(o1, str) and self._valid_json.valid_json(o1) == 1:
+                o1 = json.loads(o1)
+            if isinstance(o2, str) and self._valid_json.valid_json(o2) == 1:
+                o2 = json.loads(o2)
+
+        if isinstance(o1, dict) and isinstance(o2, dict):
+            if len(o1) == 0 and len(o2) == 0:
+                return 1
+
+            all_keys = set(o1.keys()).union(set(o2.keys()))
+            base_scores = [await self._json_diff_async(o1.get(k), o2.get(k)) for k in all_keys]
+            base_scores = [s for s in base_scores if s is not None]
+            return sum(base_scores) / len(base_scores)
+        elif isinstance(o1, list) and isinstance(o2, list):
+            if len(o1) == 0 and len(o2) == 0:
+                return 1
+            base_scores = [await self._json_diff_async(e1, e2) for (e1, e2) in zip(o1, o2)]
+            base_scores = [s for s in base_scores if s is not None]
+            return sum(base_scores) / max(len(o1), len(o2))
+        elif isinstance(o1, str) and isinstance(o2, str):
+            return (await self.string_scorer.eval_async(o1, o2)).score
+        elif (isinstance(o1, int) or isinstance(o1, float)) and (isinstance(o2, int) or isinstance(o2, float)):
+            return (await self.number_scorer.eval_async(o1, o2)).score
+        elif o1 is None and o2 is None:
+            return 1
+        elif o1 is None or o2 is None:
+            return 0
+        else:
+            kwargs = {"separators": (",", ":"), "sort_keys": True}
+            return (await self.string_scorer.eval_async(json.dumps(o1, **kwargs), json.dumps(o2, **kwargs))).score
+
     def json_diff(self, o1, o2):
         if not self.preserve_strings:
             if isinstance(o1, str) and self._valid_json.valid_json(o1) == 1:

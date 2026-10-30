@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git+https://github.com/braintrustdata/autoevals.git"
   },
-  "homepage": "https://www.braintrust.dev/docs",
+  "homepage": "https://docs.braintrust.dev",
   "main": "./jsdist/index.js",
   "module": "./jsdist/index.mjs",
   "types": "./jsdist/index.d.ts",

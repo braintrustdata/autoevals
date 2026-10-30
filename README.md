@@ -101,7 +101,7 @@ import { Factuality } from "autoevals";
 
 ## Using other AI providers
 
-When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI-compatible API. If `OPENAI_BASE_URL` is not set, it will look for a `BRAINTRUST_AI_GATEWAY_URL` environment variable and then default to the [Braintrust Gateway](https://www.braintrust.dev/docs/deploy/gateway).
+When you use Autoevals, it will look for an `OPENAI_BASE_URL` environment variable to use as the base for requests to an OpenAI-compatible API. If `OPENAI_BASE_URL` is not set, it will look for a `BRAINTRUST_AI_GATEWAY_URL` environment variable and then default to the [Braintrust Gateway](https://docs.braintrust.dev/deploy/gateway).
 
 When you use the Braintrust Gateway, you'll also get:
 
@@ -266,7 +266,7 @@ import { Factuality } from "autoevals";
 
 ## Using Braintrust with Autoevals (optional)
 
-Once you grade an output using Autoevals, you can optionally use [Braintrust](https://www.braintrust.dev/docs/libs/python) to log and compare your evaluation results. This integration is completely optional and not required for using Autoevals.
+Once you grade an output using Autoevals, you can optionally use [Braintrust](https://docs.braintrust.dev/sdks/python/versions/latest) to log and compare your evaluation results. This integration is completely optional and not required for using Autoevals.
 
 <div className="tabs">
 
@@ -536,7 +536,7 @@ There is nothing particularly novel about the evaluation methods in this library
 
 ## Documentation
 
-The full docs are available [for your reference](https://www.braintrust.dev/docs/reference/autoevals).
+The full docs are available [for your reference](https://docs.braintrust.dev/sdks/typescript/related/autoevals/overview).
 
 ## Contributing
 

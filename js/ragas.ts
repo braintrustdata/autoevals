@@ -111,6 +111,7 @@ import { ListContains } from "./list";
 import { EmbeddingSimilarity } from "./string";
 import { z } from "zod/v3";
 import { makePartial, ScorerWithPartial } from "./partial";
+import { escapeValue } from "./render-messages";
 
 type RagasArgs = {
   input?: string;
@@ -184,7 +185,9 @@ export const ContextEntityRecall: ScorerWithPartial<
     messages: [
       {
         role: "user",
-        content: mustache.render(ENTITY_PROMPT, { text }),
+        content: mustache.render(ENTITY_PROMPT, { text }, undefined, {
+          escape: escapeValue,
+        }),
       },
     ],
     tools: [
@@ -258,10 +261,15 @@ export const ContextRelevancy: ScorerWithPartial<string, RagasArgs> =
       messages: [
         {
           role: "user",
-          content: mustache.render(SENTENCE_PROMPT, {
-            question: input,
-            context,
-          }),
+          content: mustache.render(
+            SENTENCE_PROMPT,
+            {
+              question: input,
+              context,
+            },
+            undefined,
+            { escape: escapeValue },
+          ),
         },
       ],
       tools: [
@@ -357,11 +365,16 @@ export const ContextRecall: ScorerWithPartial<string, RagasArgs> = makePartial(
       messages: [
         {
           role: "user",
-          content: mustache.render(CONTEXT_RECALL_PROMPT, {
-            question: input,
-            answer: expected,
-            context,
-          }),
+          content: mustache.render(
+            CONTEXT_RECALL_PROMPT,
+            {
+              question: input,
+              answer: expected,
+              context,
+            },
+            undefined,
+            { escape: escapeValue },
+          ),
         },
       ],
       tools: [
@@ -456,11 +469,16 @@ export const ContextPrecision: ScorerWithPartial<string, RagasArgs> =
       messages: [
         {
           role: "user",
-          content: mustache.render(CONTEXT_PRECISION_PROMPT, {
-            question: input,
-            answer: expected,
-            context,
-          }),
+          content: mustache.render(
+            CONTEXT_PRECISION_PROMPT,
+            {
+              question: input,
+              answer: expected,
+              context,
+            },
+            undefined,
+            { escape: escapeValue },
+          ),
         },
       ],
       tools: [
@@ -580,10 +598,15 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
       messages: [
         {
           role: "user",
-          content: mustache.render(LONG_FORM_ANSWER_PROMPT, {
-            question: input,
-            answer: output,
-          }),
+          content: mustache.render(
+            LONG_FORM_ANSWER_PROMPT,
+            {
+              question: input,
+              answer: output,
+            },
+            undefined,
+            { escape: escapeValue },
+          ),
         },
       ],
       tools: [
@@ -608,10 +631,15 @@ export const Faithfulness: ScorerWithPartial<string, RagasArgs> = makePartial(
       messages: [
         {
           role: "user",
-          content: mustache.render(NLI_STATEMENTS_PROMPT, {
-            context,
-            statements,
-          }),
+          content: mustache.render(
+            NLI_STATEMENTS_PROMPT,
+            {
+              context,
+              statements,
+            },
+            undefined,
+            { escape: escapeValue },
+          ),
         },
       ],
       tools: [
@@ -715,10 +743,15 @@ export const AnswerRelevancy: ScorerWithPartial<
         messages: [
           {
             role: "user",
-            content: mustache.render(QUESTION_GEN_PROMPT, {
-              answer: output,
-              context,
-            }),
+            content: mustache.render(
+              QUESTION_GEN_PROMPT,
+              {
+                answer: output,
+                context,
+              },
+              undefined,
+              { escape: escapeValue },
+            ),
           },
         ],
         tools: [
@@ -890,11 +923,16 @@ export const AnswerCorrectness: ScorerWithPartial<
       messages: [
         {
           role: "user",
-          content: mustache.render(CORRECTNESS_PROMPT, {
-            question: input,
-            answer: output,
-            ground_truth: expected,
-          }),
+          content: mustache.render(
+            CORRECTNESS_PROMPT,
+            {
+              question: input,
+              answer: output,
+              ground_truth: expected,
+            },
+            undefined,
+            { escape: escapeValue },
+          ),
         },
       ],
       tools: [

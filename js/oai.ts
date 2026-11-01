@@ -203,7 +203,7 @@ export interface InitOptions {
    *
    * Can be either:
    * - A string (for backward compatibility): Sets the default completion model only.
-   *   Defaults to "gpt-5-mini" if not set.
+   *   Defaults to "gpt-5.6-terra" if not set.
    * - An object with `completion` and/or `embedding` properties: Allows setting
    *   default models for different evaluation types. Only the specified models
    *   are updated; others remain unchanged.
@@ -237,7 +237,7 @@ export interface InitOptions {
     | {
         /**
          * Default model for LLM-as-a-judge evaluations (completion).
-         * Defaults to "gpt-5-mini" if not set.
+         * Defaults to "gpt-5.6-terra" if not set.
          */
         completion?: string;
         /**
@@ -300,10 +300,10 @@ export const init = ({ client, defaultModel }: InitOptions = {}) => {
 };
 
 /**
- * Get the configured default completion model, or "gpt-5-mini" if not set.
+ * Get the configured default completion model, or "gpt-5.6-terra" if not set.
  */
 export const getDefaultModel = (): string => {
-  return globalThis.__defaultModel ?? "gpt-5-mini";
+  return globalThis.__defaultModel ?? "gpt-5.6-terra";
 };
 
 /**

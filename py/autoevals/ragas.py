@@ -1127,7 +1127,8 @@ class AnswerRelevancy(OpenAILLMScorer):
         output: The generated answer to evaluate
         context: The context document(s) to evaluate against
         strictness: Optional float between 0-1, higher values enforce stricter relevancy
-        temperature: Optional float between 0-1, lower values make evaluation more deterministic
+        temperature: Optional float between 0-1, lower values make evaluation more deterministic.
+            If not specified, uses the model's default
         embedding_model: Optional model to use for embeddings, defaults to text-embedding-3-small
     """
 
@@ -1135,7 +1136,7 @@ class AnswerRelevancy(OpenAILLMScorer):
         self,
         model: str | None = None,
         strictness=3,
-        temperature=0.5,
+        temperature=None,
         embedding_model=None,
         client: Client | None = None,
         **kwargs,

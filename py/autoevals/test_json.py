@@ -1,3 +1,4 @@
+import pytest
 from pytest import approx
 
 from autoevals.json import JSONDiff, ValidJSON
@@ -123,6 +124,38 @@ def test_valid_json():
     for output, expected, schema in cases:
         print(f"[{output}]", expected)
         assert evaluator(output, schema).score == expected
+
+
+@pytest.mark.parametrize(
+    "output, expected_score", [({}, 0), ({"answer": "yes"}, 1), ("{}", 0), ('{"answer":"yes"}', 1)]
+)
+@pytest.mark.parametrize("schema_source", ["constructor", "keyword", "positional", "partial"])
+@pytest.mark.asyncio
+async def test_valid_json_schema_calling_conventions(output, expected_score, schema_source):
+    schema = {"type": "object", "required": ["answer"]}
+    scorer = ValidJSON()
+    args = ()
+    kwargs = {}
+    if schema_source == "constructor":
+        scorer = ValidJSON(schema=schema)
+    elif schema_source == "keyword":
+        kwargs["schema"] = schema
+    elif schema_source == "positional":
+        args = (schema,)
+    else:
+        scorer = ValidJSON.partial(schema=schema)()
+
+    assert scorer.eval(output, *args, **kwargs).score == expected_score
+    assert scorer(output, *args, **kwargs).score == expected_score
+    assert (await scorer.eval_async(output, *args, **kwargs)).score == expected_score
+
+
+@pytest.mark.parametrize("schema", [{}, True, False])
+def test_valid_json_call_schema_overrides_constructor(schema):
+    scorer = ValidJSON(schema={"type": "object", "required": ["answer"]})
+    assert scorer.eval({}, schema=schema).score == (0 if schema is False else 1)
+    assert scorer.eval({}).score == 0
+    assert scorer.valid_json({}) == 0
 
 
 def test_semantic_json():

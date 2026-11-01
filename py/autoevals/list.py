@@ -26,10 +26,7 @@ class ListContains(ScorerWithPartial):
             raise ValueError("ListContains requires an expected value")
 
         similarities_futures = [
-            [
-                self.pairwise_scorer._run_eval_async(output=output_item, expected=expected_item)
-                for expected_item in expected
-            ]
+            [self.pairwise_scorer.eval_async(output=output_item, expected=expected_item) for expected_item in expected]
             for output_item in output
         ]
 
@@ -45,7 +42,7 @@ class ListContains(ScorerWithPartial):
             raise ValueError("ListContains requires an expected value")
 
         similarities = [
-            [self.pairwise_scorer._run_eval_sync(output_item, expected_item).score for expected_item in expected]
+            [self.pairwise_scorer.eval(output_item, expected_item).score for expected_item in expected]
             for output_item in output
         ]
 

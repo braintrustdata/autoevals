@@ -47,7 +47,10 @@ class NumericDiff(ScorerWithPartial):
         if expected == 0 and output == 0:
             score = 1
         else:
-            score = 1 - abs(expected - output) / (abs(expected) + abs(output))
+            # Scale first so finite inputs cannot overflow the difference or sum.
+            scale = max(abs(expected), abs(output))
+            expected_scaled, output_scaled = expected / scale, output / scale
+            score = 1 - abs(expected_scaled - output_scaled) / (abs(expected_scaled) + abs(output_scaled))
         return Score(name=self._name(), score=score)
 
 

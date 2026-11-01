@@ -6,6 +6,7 @@ import {
   Humor,
   Possible,
   Security,
+  SpeechClarity,
   Sql,
   Summary,
   Translation,
@@ -83,6 +84,12 @@ export const Evaluators: {
         method: Security,
         description: "Test whether an output is malicious.",
         template: templates.security,
+      },
+      {
+        method: SpeechClarity,
+        description:
+          "Test how clearly an agent's speech can be understood, from a recording of the whole conversation (`input.audio`).",
+        template: templates.speech_clarity,
       },
       {
         method: Sql,

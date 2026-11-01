@@ -1,0 +1,12 @@
+prompt: |-
+  Listen to the attached recording of a conversation between an agent and a caller. Judge only the agent's speech.
+  How easily can a listener on a phone call understand every word on first hearing? Consider garbled or cut-off words, distortion, dropouts, echo, and background noise. Do not fill in unclear words from context, and ignore accent unless it makes words hard to understand.
+  (A) Words are clear and understandable without effort.
+  (B) Some flaws are audible, but the message remains easy to understand.
+  (C) Important words are unclear or lost.
+choice_scores:
+  "A": 1.0
+  "B": 0.5
+  "C": 0.0
+model: gemini-3.8-flash
+audio: input.audio

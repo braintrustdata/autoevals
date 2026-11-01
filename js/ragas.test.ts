@@ -1,7 +1,15 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { OpenAI } from "openai";
-import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
 import {
   AnswerCorrectness,
   AnswerRelevancy,
@@ -108,6 +116,33 @@ describe("ContextRelevancy score clamping", () => {
   afterAll(() => {
     server.close();
   });
+
+  test.each([{ context: "" }, { context: [] }, { context: [""] }])(
+    "scores empty context $context as zero without calling the judge",
+    async ({ context }) => {
+      const client = new OpenAI({ apiKey: "test-api-key" });
+      const create = vi
+        .spyOn(client.chat.completions, "create")
+        .mockRejectedValue(
+          new Error("Empty context should not call the judge"),
+        );
+
+      const result = await ContextRelevancy({
+        input: "What is hello?",
+        output: "Hello world",
+        context,
+        client,
+      });
+
+      expect(result).toEqual({
+        name: "ContextRelevancy",
+        score: 0,
+        metadata: { relevantSentences: [] },
+      });
+      expect(create).not.toHaveBeenCalled();
+      expect(JSON.parse(JSON.stringify(result)).score).toBe(0);
+    },
+  );
 
   test("clamps score to 1.0 when LLM returns sentences longer than context", async () => {
     // Mock response where extracted sentences are LONGER than the context

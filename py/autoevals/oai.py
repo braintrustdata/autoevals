@@ -6,7 +6,7 @@ import time
 import warnings
 from collections.abc import Callable
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional, Protocol, TypedDict, TypeVar, Union, cast, runtime_checkable
 
 GATEWAY_URL = "https://gateway.braintrust.dev"
@@ -194,6 +194,7 @@ class LLMClient:
     RateLimitError: type[Exception] = None  # type: ignore # Set in __post_init__
     is_async: bool = False
     _is_wrapped: bool = False
+    _embedding_cache_key: object = field(default_factory=object, init=False, repr=False, compare=False)
 
     def __post_init__(self):
         NamedWrapper, wrap_openai = get_openai_wrappers()

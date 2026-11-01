@@ -105,3 +105,4 @@ Tests require:
 - TypeScript tests use `vitest` with `msw` for HTTP mocking
 - Tests that call real LLM APIs need valid API keys
 - Test files are colocated: `test_*.py` (Python), `*.test.ts` (TypeScript)
+- Python `JSONDiff.eval_async()` recursively awaits custom string and number scorers; keep its aggregation behavior aligned with `json_diff()` when changing either path.

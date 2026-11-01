@@ -981,6 +981,9 @@ class Faithfulness(OpenAILLMScorer):
     async def _run_eval_async(self, output, expected=None, input=None, context=None, **kwargs):
         check_required("Faithfulness", input=input, output=output, context=context)
 
+        if isinstance(context, list):
+            context = "\n".join(context)
+
         statements = (
             await aextract_statements(
                 client=self.client, question=input, answer=output, model=self.model, **self.extra_args
@@ -1004,6 +1007,9 @@ class Faithfulness(OpenAILLMScorer):
 
     def _run_eval_sync(self, output, expected=None, input=None, context=None, **kwargs):
         check_required("Faithfulness", input=input, output=output, context=context)
+
+        if isinstance(context, list):
+            context = "\n".join(context)
 
         statements = (
             extract_statements(client=self.client, question=input, answer=output, model=self.model, **self.extra_args)

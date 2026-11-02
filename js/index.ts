@@ -34,6 +34,7 @@ export type { InitOptions } from "./oai";
 export * from "./string";
 export * from "./list";
 export * from "./moderation";
+export * from "./drex";
 export * from "./number";
 export * from "./json";
 export * from "./templates";

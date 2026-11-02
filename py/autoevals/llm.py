@@ -485,7 +485,8 @@ class LLMClassifier(OpenAILLMClassifier):
         if spec.max_tokens is not None:
             spec_kwargs["max_tokens"] = spec.max_tokens
         # kwargs can override spec values
-        return cls(name, spec.prompt, spec.choice_scores, client=client, **spec_kwargs, **kwargs)
+        spec_kwargs.update(kwargs)
+        return cls(name, spec.prompt, spec.choice_scores, client=client, **spec_kwargs)
 
     @classmethod
     def from_spec_file(cls, name: str, path: str, client: Client | None = None, **kwargs):

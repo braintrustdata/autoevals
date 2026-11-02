@@ -333,6 +333,7 @@ Eval(
 - SQL
 - Translation
 - Fine-tuned binary classifiers
+- Drex decision-model judge (`DrexClassifier`; probabilities, not verdicts)
 
 ### RAG evaluations
 

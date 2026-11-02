@@ -41,7 +41,7 @@ on:
   workflow_dispatch:
     inputs:
       _instructions:
-        description: "⚠️ Before starting: merge a version-bump PR (package.json + py/autoevals/version.py, matching). The release publishes the version at the SHA — it can't be overridden here."
+        description: "⚠️ Before starting: merge a version-bump PR (package.json + py/autoevals/version.py + js/version.ts, matching). The release publishes the version at the SHA — it can't be overridden here."
         type: string
         default: "I have merged a version bump PR"
         required: false

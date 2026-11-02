@@ -90,7 +90,7 @@ type Scorer<Output, Extra> = (
 ## CI and Releases
 
 - Publishing is handled by trusted publishing workflows documented in `docs/PUBLISHING.md`.
-- JavaScript and Python package versions must stay in sync between `package.json` and `py/autoevals/version.py`; CI enforces this via `.github/workflows/version-sync.yaml` and `.github/scripts/check_version_sync.py`.
+- JavaScript and Python package versions must stay in sync between `package.json`, `py/autoevals/version.py` and `js/version.ts`; CI enforces this via `.github/workflows/version-sync.yaml` and `.github/scripts/check_version_sync.py`.
 
 ## Environment Variables
 
@@ -98,6 +98,7 @@ Tests require:
 
 - `OPENAI_API_KEY` or `BRAINTRUST_API_KEY` - For LLM-based evaluations
 - `OPENAI_BASE_URL` (optional) - Custom API endpoint
+- `NACE_API_KEY` - Only for the Drex scorer (`DrexClassifier`) and its live tests, which skip without it; `NACE_BASE_URL` (optional) points it elsewhere than Nace direct
 
 ## Testing Notes
 

@@ -14,6 +14,7 @@ from autoevals.llm import (
     Battle,
     Factuality,
     LLMClassifier,
+    ModelGradedSpec,
     OpenAILLMClassifier,
     build_classification_tools,
 )
@@ -778,3 +779,63 @@ def test_llm_classifier_does_not_fetch_thread_when_template_does_not_use_it():
     classifier.eval(output="x", expected="y", trace=trace)
 
     assert trace.calls == 0
+
+
+@pytest.mark.parametrize(
+    "option,saved,override",
+    [
+        ("model", "saved-model", "requested-model"),
+        ("engine", "saved-engine", "requested-engine"),
+        ("use_cot", True, False),
+        ("temperature", 0.7, 0.0),
+        ("max_tokens", 50, 17),
+    ],
+)
+def test_from_spec_explicit_options_override_saved_values(option, saved, override):
+    spec = ModelGradedSpec(prompt="Grade {{output}}", choice_scores={"A": 1, "B": 0}, **{option: saved})
+    classifier = LLMClassifier.from_spec("fixture-spec", spec, **{option: override})
+    if option == "use_cot":
+        assert "reasons" not in classifier.classification_tools[0]["function"]["parameters"]["properties"]
+    elif option in {"temperature", "max_tokens"}:
+        assert classifier.extra_args[option] == override
+    else:
+        assert getattr(classifier, option) == override
+    assert getattr(spec, option) == saved
+
+
+def test_from_spec_preserves_saved_defaults_and_other_arguments():
+    client = OpenAI(api_key="fixture-key")
+    spec = ModelGradedSpec(
+        prompt="Grade {{output}} with {{rubric}}",
+        choice_scores={"A": 1, "B": 0},
+        model="saved-model",
+        temperature=0.7,
+        max_tokens=50,
+        use_cot=False,
+    )
+    unchanged = LLMClassifier.from_spec("fixture-unchanged", spec, client=client, rubric="concise")
+    assert unchanged.model == "saved-model"
+    assert unchanged.extra_args == {"temperature": 0.7, "max_tokens": 50}
+    assert unchanged.client is client
+    assert unchanged.render_args["rubric"] == "concise"
+    changed = LLMClassifier.from_spec(
+        "fixture-mixed", spec, client=client, model="requested-model", temperature=0, max_tokens=None
+    )
+    assert changed.model == "requested-model"
+    assert changed.extra_args == {"temperature": 0}
+    assert changed.choice_scores == spec.choice_scores
+    assert changed.client is client
+
+
+def test_from_spec_file_allows_saved_option_overrides(tmp_path):
+    path = tmp_path / "fixture.yaml"
+    path.write_text(
+        'prompt: "Grade {{output}}"\nchoice_scores: {"A": 1, "B": 0}\nmodel: saved-model\ntemperature: 0.7\n'
+    )
+    name = str(path)
+    try:
+        classifier = LLMClassifier.from_spec_file(name, str(path), model="requested-model", temperature=0)
+        assert classifier.model == "requested-model"
+        assert classifier.extra_args["temperature"] == 0
+    finally:
+        LLMClassifier._SPEC_FILE_CONTENTS.pop(name, None)

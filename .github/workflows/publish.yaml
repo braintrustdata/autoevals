@@ -30,8 +30,7 @@
 # version (release_type only suppresses the GitHub release / sets the npm rc channel) — bump to an
 # rc version in a PR if you want a prerelease.
 #
-# sdk-actions pinned @f9201aff (branch release_multi_package, PR #64). RE-PIN to the
-# merged main SHA before merging this PR.
+# sdk-actions pinned @9d481f6 (main).
 name: publish
 
 concurrency:
@@ -86,7 +85,7 @@ jobs:
     steps:
       - name: Configure release
         id: configure
-        uses: braintrustdata/sdk-actions/actions/release/lang/js/configure@f9201aff8c0aad3fa147924ac595824934c7c441
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/configure@9d481f601e62e149777259d2a0f8088b1a5f54fb
         with:
           sha: ${{ inputs.sha }}
           working_directory: .
@@ -105,7 +104,7 @@ jobs:
       contents: read
     steps:
       - name: Validate release
-        uses: braintrustdata/sdk-actions/actions/release/lang/js/validate@f9201aff8c0aad3fa147924ac595824934c7c441
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/validate@9d481f601e62e149777259d2a0f8088b1a5f54fb
         with:
           sha: ${{ inputs.sha }}
           dry_run: ${{ inputs.dry_run }}
@@ -135,7 +134,7 @@ jobs:
     steps:
       - name: Pack + attest
         id: pack
-        uses: braintrustdata/sdk-actions/actions/release/lang/js/pack-pnpm@f9201aff8c0aad3fa147924ac595824934c7c441
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/pack-pnpm@9d481f601e62e149777259d2a0f8088b1a5f54fb
         with:
           sha: ${{ inputs.sha }}
           working_directory: .
@@ -178,7 +177,7 @@ jobs:
     steps:
       - name: Configure release
         id: configure
-        uses: braintrustdata/sdk-actions/actions/release/lang/py/configure@f9201aff8c0aad3fa147924ac595824934c7c441
+        uses: braintrustdata/sdk-actions/actions/release/lang/py/configure@9d481f601e62e149777259d2a0f8088b1a5f54fb
         with:
           version_file: py/autoevals/version.py
           sha: ${{ inputs.sha }}
@@ -198,7 +197,7 @@ jobs:
       contents: read
     steps:
       - name: Validate release
-        uses: braintrustdata/sdk-actions/actions/release/lang/py/validate@f9201aff8c0aad3fa147924ac595824934c7c441
+        uses: braintrustdata/sdk-actions/actions/release/lang/py/validate@9d481f601e62e149777259d2a0f8088b1a5f54fb
         with:
           sha: ${{ inputs.sha }}
           dry_run: ${{ inputs.dry_run }}
@@ -225,7 +224,7 @@ jobs:
       attestations: write
     steps:
       - name: Pack + attest
-        uses: braintrustdata/sdk-actions/actions/release/lang/py/pack@f9201aff8c0aad3fa147924ac595824934c7c441
+        uses: braintrustdata/sdk-actions/actions/release/lang/py/pack@9d481f601e62e149777259d2a0f8088b1a5f54fb
         with:
           sha: ${{ inputs.sha }}
           working_directory: .
@@ -255,7 +254,7 @@ jobs:
     permissions: {}
     steps:
       - name: Request release approval
-        uses: braintrustdata/sdk-actions/actions/release/request-approval@f9201aff8c0aad3fa147924ac595824934c7c441
+        uses: braintrustdata/sdk-actions/actions/release/request-approval@9d481f601e62e149777259d2a0f8088b1a5f54fb
         with:
           packages: '{"packages":[${{ needs.configure-js.outputs.package }}, ${{ needs.configure-py.outputs.package }}]}'
           title: autoevals
@@ -278,6 +277,12 @@ jobs:
       id-token: write # OIDC trusted publishing + provenance
       attestations: read # gh attestation verify
     steps:
+      # ship-package uses `gh release create`, which needs the repository checkout.
+      - name: Checkout release commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.sha }}
+
       - name: Download artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -289,7 +294,7 @@ jobs:
         run: echo "tarball=$(ls dl/*.tgz)" >> "$GITHUB_OUTPUT"
 
       - name: Ship package
-        uses: braintrustdata/sdk-actions/actions/release/lang/js/ship-package@f9201aff8c0aad3fa147924ac595824934c7c441
+        uses: braintrustdata/sdk-actions/actions/release/lang/js/ship-package@9d481f601e62e149777259d2a0f8088b1a5f54fb
         with:
           tarball: ${{ steps.art.outputs.tarball }}
           working_directory: dl
@@ -322,6 +327,12 @@ jobs:
       id-token: write # OIDC trusted publishing + PEP 740
       attestations: read # gh attestation verify
     steps:
+      # ship-package uses `gh release create`, which needs the repository checkout.
+      - name: Checkout release commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.sha }}
+
       - name: Download artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -329,7 +340,7 @@ jobs:
           path: dl
 
       - name: Ship package
-        uses: braintrustdata/sdk-actions/actions/release/lang/py/ship-package@f9201aff8c0aad3fa147924ac595824934c7c441
+        uses: braintrustdata/sdk-actions/actions/release/lang/py/ship-package@9d481f601e62e149777259d2a0f8088b1a5f54fb
         with:
           working_directory: dl # holds dist/ (whl + sdist) + sbom.json
           sha: ${{ inputs.sha }}

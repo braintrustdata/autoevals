@@ -80,7 +80,7 @@ Answer the question by calling `select_choice` with a single choice from {{__cho
 )
 
 COT_SUFFIX = """\
-Answer the question by calling `select_choice` with your reasoning in a step-by-step matter to be
+Answer the question by calling `select_choice` with your reasoning in a step-by-step manner to be
 sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a
 single choice by setting the `choice` parameter to a single choice from {{__choices}}.
 """.strip().replace(

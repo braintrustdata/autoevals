@@ -188,6 +188,14 @@ async def test_llm_classifier_request_args_async_keep_thread_filtered_and_thread
     assert system_marker in full_thread
 
 
+def test_cot_suffix_wording_matches_js():
+    request_args = Factuality()._request_args(input="question", output="answer", expected="answer")
+    rendered_prompt = request_args["messages"][0]["content"]
+
+    assert "with your reasoning in a step-by-step manner to be sure" in rendered_prompt
+    assert "step-by-step matter" not in rendered_prompt
+
+
 def test_openai():
     e = OpenAILLMClassifier(
         "title",

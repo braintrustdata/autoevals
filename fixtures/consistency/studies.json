@@ -1,0 +1,1054 @@
+[
+  {
+    "name": "complete disagreement",
+    "input": {
+      "format": "autoevals.consistency.input",
+      "version": 1,
+      "plan": {
+        "score_name": "judge",
+        "raters": [
+          "a",
+          "b"
+        ],
+        "categories": [
+          "no",
+          "yes"
+        ]
+      },
+      "ratings": [
+        {
+          "case_id": "0",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "0",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "b",
+          "category": "yes"
+        }
+      ],
+      "references": {}
+    },
+    "expected": {
+      "verdict": "not_evaluated",
+      "groups": [
+        {
+          "statistics": {
+            "raw_agreement": {
+              "value": 0
+            },
+            "fleiss_kappa": {
+              "value": -1
+            },
+            "nominal_alpha": {
+              "value": -0.5
+            }
+          },
+          "consensus": {
+            "decided_cases": 0,
+            "abstained_cases": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "declared missing cohort",
+    "input": {
+      "format": "autoevals.consistency.input",
+      "version": 1,
+      "plan": {
+        "score_name": "judge",
+        "raters": [
+          "a",
+          "b"
+        ],
+        "categories": [
+          "no",
+          "yes"
+        ],
+        "cases": [
+          "0",
+          "1",
+          "2"
+        ],
+        "groups": [
+          {
+            "name": "absent",
+            "cases": [
+              "2"
+            ]
+          }
+        ],
+        "gates": [
+          {
+            "statistic": "raw_agreement",
+            "minimum": 0.9
+          }
+        ]
+      },
+      "ratings": [
+        {
+          "case_id": "0",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "0",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "a",
+          "category": "no"
+        }
+      ],
+      "references": {
+        "0": "yes",
+        "1": "no",
+        "2": "yes"
+      }
+    },
+    "expected": {
+      "verdict": "inconclusive",
+      "groups": [
+        {
+          "coverage": {
+            "expected_cells": 6,
+            "scored_cells": 3,
+            "absent_cells": 3
+          },
+          "consensus": {
+            "reference": {
+              "accuracy": 1,
+              "coverage": 0.3333333333333333
+            }
+          }
+        },
+        {
+          "coverage": {
+            "zero_rating_cases": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "prototype and unicode",
+    "input": {
+      "format": "autoevals.consistency.input",
+      "version": 1,
+      "plan": {
+        "score_name": "judge",
+        "raters": [
+          "__proto__",
+          "constructor"
+        ],
+        "categories": [
+          "no",
+          "yes"
+        ],
+        "cases": [
+          "",
+          "𐀀",
+          "__proto__"
+        ]
+      },
+      "ratings": [
+        {
+          "case_id": "__proto__",
+          "rater_id": "constructor",
+          "category": "yes"
+        },
+        {
+          "case_id": "__proto__",
+          "rater_id": "__proto__",
+          "status": "error"
+        }
+      ],
+      "references": {
+        "__proto__": "yes"
+      }
+    },
+    "expected": {
+      "groups": [
+        {
+          "coverage": {
+            "scored_cells": 1,
+            "error_cells": 1,
+            "absent_cells": 4
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "all unavailable",
+    "input": {
+      "format": "autoevals.consistency.input",
+      "version": 1,
+      "plan": {
+        "score_name": "judge",
+        "raters": [
+          "a",
+          "b"
+        ],
+        "categories": [
+          "no",
+          "yes"
+        ]
+      },
+      "ratings": [
+        {
+          "case_id": "x",
+          "rater_id": "a",
+          "status": "missing"
+        },
+        {
+          "case_id": "x",
+          "rater_id": "b",
+          "status": "error"
+        }
+      ],
+      "references": {}
+    },
+    "expected": {
+      "groups": [
+        {
+          "statistics": {
+            "raw_agreement": {
+              "value": null
+            },
+            "fleiss_kappa": {
+              "value": null
+            },
+            "nominal_alpha": {
+              "value": null
+            }
+          },
+          "coverage": {
+            "rating_coverage": 0
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "seeded repeated cases",
+    "input": {
+      "format": "autoevals.consistency.input",
+      "version": 1,
+      "plan": {
+        "score_name": "judge",
+        "raters": [
+          "a",
+          "b"
+        ],
+        "categories": [
+          "no",
+          "yes"
+        ],
+        "bootstrap": {
+          "resamples": 500,
+          "confidence": 0.8,
+          "minimum_cases": 2,
+          "seed": 17
+        }
+      },
+      "ratings": [
+        {
+          "case_id": "0",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "0",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "2",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "2",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "3",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "3",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "4",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "4",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "5",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "5",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "6",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "6",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "7",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "7",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "8",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "8",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "9",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "9",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "10",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "10",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "11",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "11",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "12",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "12",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "13",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "13",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "14",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "14",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "15",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "15",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "16",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "16",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "17",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "17",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "18",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "18",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "19",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "19",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "20",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "20",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "21",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "21",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "22",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "22",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "23",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "23",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "24",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "24",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "25",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "25",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "26",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "26",
+          "rater_id": "b",
+          "category": "no"
+        },
+        {
+          "case_id": "27",
+          "rater_id": "a",
+          "category": "no"
+        },
+        {
+          "case_id": "27",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "28",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "28",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "29",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "29",
+          "rater_id": "b",
+          "category": "no"
+        }
+      ],
+      "references": {}
+    },
+    "expected": {
+      "groups": [
+        {
+          "coverage": {
+            "complete_cases": 30
+          },
+          "statistics": {
+            "raw_agreement": {
+              "value": 0.3333333333333333
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "zero cohort",
+    "input": {
+      "format": "autoevals.consistency.input",
+      "version": 1,
+      "plan": {
+        "score_name": "judge",
+        "raters": [
+          "a",
+          "b"
+        ],
+        "categories": [
+          "no",
+          "yes"
+        ],
+        "cases": []
+      },
+      "ratings": [],
+      "references": {}
+    },
+    "expected": {
+      "groups": [
+        {
+          "coverage": {
+            "expected_cells": 0,
+            "rating_coverage": null
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "fractional agreement threshold 15",
+    "input": {
+      "format": "autoevals.consistency.input",
+      "version": 1,
+      "plan": {
+        "score_name": "judge",
+        "raters": [
+          "a",
+          "b",
+          "c"
+        ],
+        "categories": [
+          "no",
+          "yes"
+        ],
+        "gates": [
+          {
+            "statistic": "raw_agreement",
+            "minimum": 0.3333333333333333
+          }
+        ]
+      },
+      "ratings": [
+        {
+          "case_id": "0",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "0",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "0",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "2",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "2",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "2",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "3",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "3",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "3",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "4",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "4",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "4",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "5",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "5",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "5",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "6",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "6",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "6",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "7",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "7",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "7",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "8",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "8",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "8",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "9",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "9",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "9",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "10",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "10",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "10",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "11",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "11",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "11",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "12",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "12",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "12",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "13",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "13",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "13",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "14",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "14",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "14",
+          "rater_id": "c",
+          "category": "no"
+        }
+      ]
+    },
+    "expected": {
+      "verdict": "pass"
+    }
+  },
+  {
+    "name": "fractional agreement threshold 10",
+    "input": {
+      "format": "autoevals.consistency.input",
+      "version": 1,
+      "plan": {
+        "score_name": "judge",
+        "raters": [
+          "a",
+          "b",
+          "c"
+        ],
+        "categories": [
+          "no",
+          "yes"
+        ],
+        "gates": [
+          {
+            "statistic": "raw_agreement",
+            "minimum": 0.33333333333333337
+          }
+        ]
+      },
+      "ratings": [
+        {
+          "case_id": "0",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "0",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "0",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "1",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "2",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "2",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "2",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "3",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "3",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "3",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "4",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "4",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "4",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "5",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "5",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "5",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "6",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "6",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "6",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "7",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "7",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "7",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "8",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "8",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "8",
+          "rater_id": "c",
+          "category": "no"
+        },
+        {
+          "case_id": "9",
+          "rater_id": "a",
+          "category": "yes"
+        },
+        {
+          "case_id": "9",
+          "rater_id": "b",
+          "category": "yes"
+        },
+        {
+          "case_id": "9",
+          "rater_id": "c",
+          "category": "no"
+        }
+      ]
+    },
+    "expected": {
+      "verdict": "fail"
+    }
+  }
+]

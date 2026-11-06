@@ -68,7 +68,7 @@ async def test_responses_conversion(is_async, output, content, tool_calls):
         }
     )
     client_class = AsyncOpenAI if is_async else OpenAI
-    client = client_class(api_key="test-api-key", max_retries=0)
+    client = client_class(api_key="test-api-key", base_url="https://api.openai.com/v1", max_retries=0)
     llm_client = LLMClient(openai=client, is_async=is_async)
     params = {"client": llm_client, "model": "gpt-5-mini", "messages": [{"role": "user", "content": "test"}]}
     if tool_calls:

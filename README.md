@@ -18,6 +18,10 @@ their outputs.
 You can also create your own model-graded evaluations with Autoevals. It's easy to add custom prompts, parse outputs,
 and manage exceptions.
 
+To measure whether repeated categorical judgments agree on the same cases, use
+the offline [judge consistency utilities](docs/JUDGE_CONSISTENCY.md). Both Python
+and TypeScript report agreement, missing coverage and optional reference accuracy.
+
 <div className="hidden">
 
 ### Requirements

@@ -18,6 +18,10 @@ import {
   computeThreadTemplateVars,
   type ThreadTemplateVars,
 } from "./thread-utils";
+import {
+  computeTrajectoryTemplateVars,
+  templateUsesTrajectoryVariables,
+} from "./trajectory-utils";
 
 /**
  * Minimal interface for a Trace object that can provide thread data.
@@ -25,6 +29,7 @@ import {
  */
 export interface TraceForScorer {
   getThread(options?: { preprocessor?: string }): Promise<unknown[]>;
+  getTrajectory?(): Promise<unknown[]>;
 }
 
 // Thread-related template variable names that require preprocessor invocation
@@ -341,6 +346,15 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       for (const name of THREAD_VARIABLE_NAMES) {
         threadVars[name] = computed[name as keyof ThreadTemplateVars];
       }
+    }
+    if (runtimeArgs.trace && templateUsesTrajectoryVariables(promptTemplate)) {
+      if (!runtimeArgs.trace.getTrajectory) {
+        throw new Error("Trajectory variables need trace.getTrajectory()");
+      }
+      Object.assign(
+        threadVars,
+        computeTrajectoryTemplateVars(await runtimeArgs.trace.getTrajectory()),
+      );
     }
 
     const prompt =

@@ -67,6 +67,7 @@ from .thread_utils import (
     filter_system_messages_from_thread,
     template_uses_thread_variables,
 )
+from .trajectory_utils import compute_trajectory_template_vars, template_uses_trajectory_variables
 
 # Disable HTML escaping in chevron.
 chevron.renderer._html_escape = lambda x: x  # type: ignore[attr-defined]
@@ -378,6 +379,7 @@ class LLMClassifier(OpenAILLMClassifier):
         **extra_render_args,
     ):
         self._template_uses_thread_variables = template_uses_thread_variables(prompt_template)
+        self._template_uses_trajectory_variables = template_uses_trajectory_variables(prompt_template)
         choice_strings = list(choice_scores.keys())
         # Use configured default model if not specified
         if model is None:
@@ -458,18 +460,22 @@ class LLMClassifier(OpenAILLMClassifier):
         thread_vars: dict[str, object] = {}
         if trace is not None and self._template_uses_thread_variables:
             thread_vars = self._compute_thread_vars_sync(trace)
+        if trace is not None and self._template_uses_trajectory_variables:
+            thread_vars.update(compute_trajectory_template_vars(asyncio.run(trace.get_trajectory())))
 
         # Thread vars come first so explicit render args can override.
-        return super()._request_args(output, expected, **thread_vars, **kwargs)
+        return super()._request_args(output, expected, **{**thread_vars, **kwargs})
 
     async def _request_args_async(self, output, expected, **kwargs):
         trace = kwargs.get("trace")
         thread_vars: dict[str, object] = {}
         if trace is not None and self._template_uses_thread_variables:
             thread_vars = await self._compute_thread_vars_async(trace)
+        if trace is not None and self._template_uses_trajectory_variables:
+            thread_vars.update(compute_trajectory_template_vars(await trace.get_trajectory()))
 
         # Thread vars come first so explicit render args can override.
-        return super()._request_args(output, expected, **thread_vars, **kwargs)
+        return super()._request_args(output, expected, **{**thread_vars, **kwargs})
 
     @classmethod
     def from_spec(cls, name: str, spec: ModelGradedSpec, client: Client | None = None, **kwargs):

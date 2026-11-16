@@ -212,7 +212,7 @@ Please discuss each title briefly (one line for pros, one for cons), and then an
 the select_choice function with "1" or "2".""",
             },
         ],
-        model="gpt-4-turbo",
+        model="gpt-4.1",
         choice_scores={"1": 1, "2": 0},
         classification_tools=build_classification_tools(useCoT=True, choice_strings=["1", "2"]),
         max_tokens=500,

@@ -549,13 +549,15 @@ def prepare_openai(
         openai_module = get_openai_module()
     except Exception as e:
         print(
-            textwrap.dedent(f"""\
+            textwrap.dedent(
+                f"""\
             Unable to import openai: {e}
 
             Please install it, e.g. with
 
             pip install 'openai'
-            """),
+            """
+            ),
             file=sys.stderr,
         )
         raise

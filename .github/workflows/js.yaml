@@ -33,7 +33,7 @@ jobs:
       - name: Force zod 4
         if: matrix.zod == '4'
         run: |
-          printf '\noverrides:\n  zod: ^4\n' >> pnpm-workspace.yaml
+          node -e "const fs = require('fs'); const pkg = require('./package.json'); pkg.pnpm.overrides.zod = '^4'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\\n');"
           pnpm install --no-frozen-lockfile
       - name: Verify resolved zod major
         run: node -e "const v=require('zod/package.json').version; console.log('zod', v); if (!v.startsWith('${{ matrix.zod }}.')) { console.error('expected zod ${{ matrix.zod }}.x'); process.exit(1); }"

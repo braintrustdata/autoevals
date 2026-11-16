@@ -43,7 +43,8 @@
     "typedoc": "^0.25.13",
     "typedoc-plugin-markdown": "^3.17.1",
     "typescript": "^5.9.2",
-    "vitest": "^2.1.9",
+    "vite": "^6.4.5",
+    "vitest": "^4.1.12",
     "zod": "3.25.67"
   },
   "peerDependencies": {
@@ -59,5 +60,32 @@
     "openai": "^6.7.0",
     "zod-to-json-schema": "3.25.0"
   },
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "overrides": {
+      "@tootallnate/once": "2.0.1",
+      "body-parser": "1.20.9",
+      "brace-expansion@1": "1.1.21",
+      "brace-expansion@2": "2.1.7",
+      "fast-uri": "3.1.9",
+      "handlebars": "4.7.10",
+      "js-yaml": "4.3.2",
+      "path-to-regexp@0.1": "0.1.13",
+      "postcss": "8.5.23",
+      "proxy-addr": "2.0.8",
+      "qs": "6.16.1",
+      "source-map-js": "1.2.2",
+      "tar@7": "7.5.21",
+      "tinypool": "2.1.2",
+      "simple-git": "3.36.0",
+      "nanoid@3": "3.3.12",
+      "minimatch@3": "3.1.4",
+      "minimatch@5": "5.1.8",
+      "minimatch@9": "9.0.7",
+      "picomatch": "4.0.7",
+      "rollup": "4.59.0",
+      "ajv": "8.18.0",
+      "glob@10": "10.5.0"
+    }
+  }
 }

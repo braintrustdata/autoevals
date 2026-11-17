@@ -49,3 +49,7 @@ export {
   type LLMMessage,
   type ThreadTemplateVars,
 } from "./thread-utils";
+export {
+  computeTrajectoryTemplateVars,
+  templateUsesTrajectoryVariables,
+} from "./trajectory-utils";

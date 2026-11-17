@@ -10,6 +10,9 @@ import security from "../templates/security.yaml";
 import sql from "../templates/sql.yaml";
 import summary from "../templates/summary.yaml";
 import translation from "../templates/translation.yaml";
+import voice_dead_air from "../templates/voice_dead_air.yaml";
+import voice_task_completion from "../templates/voice_task_completion.yaml";
+import voice_transcription_accuracy from "../templates/voice_transcription_accuracy.yaml";
 
 export const modelGradedSpecSchema = z.object({
   prompt: z.string(),
@@ -32,6 +35,9 @@ const templateStrings = {
   sql,
   summary,
   translation,
+  voice_dead_air,
+  voice_task_completion,
+  voice_transcription_accuracy,
 } as const;
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

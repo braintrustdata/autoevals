@@ -1,0 +1,10 @@
+prompt: |-
+  This is a recording of a phone call between a caller and a voice agent, followed by the call's transcript, including the agent's tool calls and their results.
+  {{recording}}
+  [Transcript with tool calls]: {{trajectory}}
+
+  Did the agent complete what the caller called to do?
+choice_scores:
+  "Y": 1.0
+  "N": 0.0
+model: gemini-4-argon

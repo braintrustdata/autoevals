@@ -1,0 +1,10 @@
+prompt: |-
+  This is a recording of a phone call between a caller and a voice agent, followed by the call's transcript, including the agent's tool calls and their results. The caller's lines are what the agent's speech-to-text produced.
+  {{recording}}
+  [Transcript with tool calls]: {{trajectory}}
+
+  Did speech-to-text change the meaning of what the caller said: wrong words, words they didn't say, or speech that wasn't the caller, such as background voices or a recorded announcement?
+choice_scores:
+  "Y": 0.0
+  "N": 1.0
+model: gemini-4-argon

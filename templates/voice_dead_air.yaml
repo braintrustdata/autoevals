@@ -1,0 +1,10 @@
+prompt: |-
+  This is a recording of a phone call between a caller and a voice agent, followed by the call's transcript, including the agent's tool calls and their results.
+  {{recording}}
+  [Transcript with tool calls]: {{trajectory}}
+
+  Did the caller check whether the agent was still there because it had gone quiet, for example "Hello? Are you still there?"
+choice_scores:
+  "Y": 0.0
+  "N": 1.0
+model: gemini-4-argon

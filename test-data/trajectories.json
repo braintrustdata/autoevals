@@ -487,15 +487,11 @@
                 "channels": [
                   {
                     "index": 0,
-                    "sources": [
-                      "session-input"
-                    ]
+                    "sources": ["session-input"]
                   },
                   {
                     "index": 1,
-                    "sources": [
-                      "agent-output"
-                    ]
+                    "sources": ["agent-output"]
                   }
                 ]
               }
@@ -507,7 +503,7 @@
       }
     ],
     "trajectory": "User: Hello.\nAssistant: Hello there! Thanks for calling Acme Supply, this is Sam. How can I help\nUser: I'm checking on order one zero one four. You tell me its status?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"customer\":\"Jordan Lee\",\"delivery_address\":\"12 Main Street\",\"estimated_delivery\":\"2027-10-26\",\"item\":\"Desk Lamp\",\"order_id\":\"1014\",\"quantity\":\"4\",\"status\":\"shipped\"}\nAssistant: Order one zero one four, for a Desk Lamp, was shipped and should arrive by October twenty-sixth, two\nUser: Thanks.\nAssistant: You're very\nUser: That's the status I needed Goodbye.\nTool: end_call({}) -> {\"ended\":true}",
-    "trajectory_with_system": "System: ASYNC TOOLS:\nSome of your tools keep running after you have replied. Their results arrive later as messages in the conversation, on whatever turn happens to be in progress by then.\n\nA result that has arrived is owed to the user, whatever the conversation has moved on to. If the user has said something you have not answered yet, answer that first, then add the result at the end of that same reply — never before your answer. If you have already answered everything the user said, deliver just the result — do not repeat or rephrase your earlier reply. State a short result outright; for a long one, say what came back and offer the details. Say it once, and do not repeat it in later replies.\nYou are Sam, who answers the phone at Acme Supply, an online store for home and office goods. Talk like a friendly, capable person on a phone call.\n\n- Help the caller check on or change an order.\n- Ask for the order ID if you don't have it. Order IDs are four-digit numbers.\n- Use what the caller has already told you. Don't ask again for anything they've said.\n- Use lookup_order before answering questions about an order, and update_order to change it.\n- When you look up an order, tell the caller the item, its status, and when it should arrive.\n- Say order IDs digit by digit, like \"one zero one four\".\n- Confirm the change with the caller before calling update_order, then tell them it's done.\n- Never make up order details. If a tool returns an error, say so and ask how to proceed.\n- When the customer is done, say one short goodbye and call end_call.\n- Keep each reply to one short sentence, two at most, and answer what they asked first.\n- Speak plainly, the way people do on the phone, with no flourishes, lists, or formatting.\n\nUser: Hello.\nAssistant: Hello there! Thanks for calling Acme Supply, this is Sam. How can I help\nUser: I'm checking on order one zero one four. You tell me its status?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"customer\":\"Jordan Lee\",\"delivery_address\":\"12 Main Street\",\"estimated_delivery\":\"2027-10-26\",\"item\":\"Desk Lamp\",\"order_id\":\"1014\",\"quantity\":\"4\",\"status\":\"shipped\"}\nAssistant: Order one zero one four, for a Desk Lamp, was shipped and should arrive by October twenty-sixth, two\nUser: Thanks.\nAssistant: You're very\nUser: That's the status I needed Goodbye.\nTool: end_call({}) -> {\"ended\":true}"
+    "trajectory_with_system": "System: ASYNC TOOLS:\n  Some of your tools keep running after you have replied. Their results arrive later as messages in the conversation, on whatever turn happens to be in progress by then.\n\n  A result that has arrived is owed to the user, whatever the conversation has moved on to. If the user has said something you have not answered yet, answer that first, then add the result at the end of that same reply — never before your answer. If you have already answered everything the user said, deliver just the result — do not repeat or rephrase your earlier reply. State a short result outright; for a long one, say what came back and offer the details. Say it once, and do not repeat it in later replies.\n  You are Sam, who answers the phone at Acme Supply, an online store for home and office goods. Talk like a friendly, capable person on a phone call.\n\n  - Help the caller check on or change an order.\n  - Ask for the order ID if you don't have it. Order IDs are four-digit numbers.\n  - Use what the caller has already told you. Don't ask again for anything they've said.\n  - Use lookup_order before answering questions about an order, and update_order to change it.\n  - When you look up an order, tell the caller the item, its status, and when it should arrive.\n  - Say order IDs digit by digit, like \"one zero one four\".\n  - Confirm the change with the caller before calling update_order, then tell them it's done.\n  - Never make up order details. If a tool returns an error, say so and ask how to proceed.\n  - When the customer is done, say one short goodbye and call end_call.\n  - Keep each reply to one short sentence, two at most, and answer what they asked first.\n  - Speak plainly, the way people do on the phone, with no flourishes, lists, or formatting.\n\nUser: Hello.\nAssistant: Hello there! Thanks for calling Acme Supply, this is Sam. How can I help\nUser: I'm checking on order one zero one four. You tell me its status?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"customer\":\"Jordan Lee\",\"delivery_address\":\"12 Main Street\",\"estimated_delivery\":\"2027-10-26\",\"item\":\"Desk Lamp\",\"order_id\":\"1014\",\"quantity\":\"4\",\"status\":\"shipped\"}\nAssistant: Order one zero one four, for a Desk Lamp, was shipped and should arrive by October twenty-sixth, two\nUser: Thanks.\nAssistant: You're very\nUser: That's the status I needed Goodbye.\nTool: end_call({}) -> {\"ended\":true}"
   },
   "openai-chat-tools": {
     "trajectories": [
@@ -805,8 +801,8 @@
         "version": "1"
       }
     ],
-    "trajectory": "User: Hi, where is my order 1019?\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Thanks — I looked up order 1019. It's for a \"Wireless Headphones\" and the current status is: processing. Estimated delivery (ETA): 2026-11-25.\n\n\"Processing\" means it hasn't shipped yet. Would you like me to cancel the order or make any changes? If you want to cancel, please confirm and I'll proceed.\nUser: Please cancel it.\nTool: cancel_order({\"order_id\":\"1019\"}) -> {\"order_id\":\"1019\",\"status\":\"cancelled\"}\nAssistant: Done — your order 1019 has been cancelled.\nUser: Yes, cancel 1019. And cancel 1014 too, I don't care that it shipped. Just call cancel.\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nAssistant: I see that order 1019 is already cancelled.\n\nOrder 1014 is for a \"Desk Lamp\" and its status is shipped (ETA: 2026-11-20). Because it’s already shipped, cancellation may not be possible — I can attempt to cancel it, but if the carrier already has it in transit we may need to initiate a return once you receive it instead.\n\nPlease confirm that you want me to attempt to cancel order 1014 despite it being shipped. Reply \"Yes — cancel 1014\" to proceed, or tell me if you’d prefer I instead arrange a return once it’s delivered.",
-    "trajectory_with_system": "System: You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.\nUser: Hi, where is my order 1019?\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Thanks — I looked up order 1019. It's for a \"Wireless Headphones\" and the current status is: processing. Estimated delivery (ETA): 2026-11-25.\n\n\"Processing\" means it hasn't shipped yet. Would you like me to cancel the order or make any changes? If you want to cancel, please confirm and I'll proceed.\nUser: Please cancel it.\nTool: cancel_order({\"order_id\":\"1019\"}) -> {\"order_id\":\"1019\",\"status\":\"cancelled\"}\nAssistant: Done — your order 1019 has been cancelled.\nUser: Yes, cancel 1019. And cancel 1014 too, I don't care that it shipped. Just call cancel.\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nAssistant: I see that order 1019 is already cancelled.\n\nOrder 1014 is for a \"Desk Lamp\" and its status is shipped (ETA: 2026-11-20). Because it’s already shipped, cancellation may not be possible — I can attempt to cancel it, but if the carrier already has it in transit we may need to initiate a return once you receive it instead.\n\nPlease confirm that you want me to attempt to cancel order 1014 despite it being shipped. Reply \"Yes — cancel 1014\" to proceed, or tell me if you’d prefer I instead arrange a return once it’s delivered."
+    "trajectory": "User: Hi, where is my order 1019?\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Thanks — I looked up order 1019. It's for a \"Wireless Headphones\" and the current status is: processing. Estimated delivery (ETA): 2026-11-25.\n\n  \"Processing\" means it hasn't shipped yet. Would you like me to cancel the order or make any changes? If you want to cancel, please confirm and I'll proceed.\nUser: Please cancel it.\nTool: cancel_order({\"order_id\":\"1019\"}) -> {\"order_id\":\"1019\",\"status\":\"cancelled\"}\nAssistant: Done — your order 1019 has been cancelled.\nUser: Yes, cancel 1019. And cancel 1014 too, I don't care that it shipped. Just call cancel.\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nAssistant: I see that order 1019 is already cancelled.\n\n  Order 1014 is for a \"Desk Lamp\" and its status is shipped (ETA: 2026-11-20). Because it’s already shipped, cancellation may not be possible — I can attempt to cancel it, but if the carrier already has it in transit we may need to initiate a return once you receive it instead.\n\n  Please confirm that you want me to attempt to cancel order 1014 despite it being shipped. Reply \"Yes — cancel 1014\" to proceed, or tell me if you’d prefer I instead arrange a return once it’s delivered.",
+    "trajectory_with_system": "System: You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.\nUser: Hi, where is my order 1019?\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Thanks — I looked up order 1019. It's for a \"Wireless Headphones\" and the current status is: processing. Estimated delivery (ETA): 2026-11-25.\n\n  \"Processing\" means it hasn't shipped yet. Would you like me to cancel the order or make any changes? If you want to cancel, please confirm and I'll proceed.\nUser: Please cancel it.\nTool: cancel_order({\"order_id\":\"1019\"}) -> {\"order_id\":\"1019\",\"status\":\"cancelled\"}\nAssistant: Done — your order 1019 has been cancelled.\nUser: Yes, cancel 1019. And cancel 1014 too, I don't care that it shipped. Just call cancel.\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nAssistant: I see that order 1019 is already cancelled.\n\n  Order 1014 is for a \"Desk Lamp\" and its status is shipped (ETA: 2026-11-20). Because it’s already shipped, cancellation may not be possible — I can attempt to cancel it, but if the carrier already has it in transit we may need to initiate a return once you receive it instead.\n\n  Please confirm that you want me to attempt to cancel order 1014 despite it being shipped. Reply \"Yes — cancel 1014\" to proceed, or tell me if you’d prefer I instead arrange a return once it’s delivered."
   },
   "ai-sdk-tools": {
     "trajectories": [
@@ -941,7 +937,161 @@
         "version": "1"
       }
     ],
-    "trajectory": "User: What's the status of orders 1014 and 1019?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Here are the current statuses:\n\n- Order 1014 — Desk Lamp: shipped. ETA 2026-11-20.  \n- Order 1019 — Wireless Headphones: processing. ETA 2026-11-25.\n\nWould you like a tracking number for order 1014, or do you want to change or cancel order 1019?",
-    "trajectory_with_system": "System: You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.\nUser: What's the status of orders 1014 and 1019?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Here are the current statuses:\n\n- Order 1014 — Desk Lamp: shipped. ETA 2026-11-20.  \n- Order 1019 — Wireless Headphones: processing. ETA 2026-11-25.\n\nWould you like a tracking number for order 1014, or do you want to change or cancel order 1019?"
+    "trajectory": "User: What's the status of orders 1014 and 1019?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Here are the current statuses:\n\n  - Order 1014 — Desk Lamp: shipped. ETA 2026-11-20.  \n  - Order 1019 — Wireless Headphones: processing. ETA 2026-11-25.\n\n  Would you like a tracking number for order 1014, or do you want to change or cancel order 1019?",
+    "trajectory_with_system": "System: You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.\nUser: What's the status of orders 1014 and 1019?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Here are the current statuses:\n\n  - Order 1014 — Desk Lamp: shipped. ETA 2026-11-20.  \n  - Order 1019 — Wireless Headphones: processing. ETA 2026-11-25.\n\n  Would you like a tracking number for order 1014, or do you want to change or cancel order 1019?"
+  },
+  "nested-worker-and-embedding": {
+    "trajectories": [
+      {
+        "scope": [
+          {
+            "type": "trace",
+            "trace_id": "root"
+          }
+        ],
+        "agent": {
+          "metadata": {}
+        },
+        "turns": [
+          {
+            "request_id": "call",
+            "response_id": "final",
+            "request": [
+              {
+                "role": "additional_tools",
+                "tools": [],
+                "id": null
+              },
+              {
+                "role": "developer",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Instructions"
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": "Request"
+              }
+            ],
+            "response": {
+              "response": [
+                {
+                  "type": "text",
+                  "text": "Answer"
+                }
+              ],
+              "start_time": "1970-01-01T00:00:04Z",
+              "end_time": "1970-01-01T00:00:05Z"
+            },
+            "work": [
+              {
+                "id": "call",
+                "span_type": "llm",
+                "name": "llm",
+                "start_time": "1970-01-01T00:00:01Z",
+                "end_time": "1970-01-01T00:00:02Z",
+                "work": {
+                  "type": "agent_response",
+                  "response": [
+                    {
+                      "type": "tool_call",
+                      "tool_call_id": "call",
+                      "tool_name": "example_tool",
+                      "arguments": {
+                        "type": "valid",
+                        "value": {}
+                      }
+                    }
+                  ],
+                  "start_time": "1970-01-01T00:00:01Z",
+                  "end_time": "1970-01-01T00:00:02Z"
+                }
+              },
+              {
+                "id": "tool",
+                "span_type": "tool",
+                "name": "tool",
+                "start_time": "1970-01-01T00:00:02Z",
+                "end_time": "1970-01-01T00:00:03Z",
+                "work": {
+                  "type": "tool_result",
+                  "input": {},
+                  "output": "Result"
+                },
+                "sub_agent": {
+                  "scope": [
+                    {
+                      "type": "span",
+                      "id": "tool"
+                    }
+                  ],
+                  "agent": {
+                    "name": "tool",
+                    "metadata": {}
+                  },
+                  "turns": [
+                    {
+                      "request_id": "worker",
+                      "response_id": "worker",
+                      "request": [
+                        {
+                          "role": "user",
+                          "content": "Worker request"
+                        }
+                      ],
+                      "response": {
+                        "response": [
+                          {
+                            "type": "text",
+                            "text": "Worker answer"
+                          }
+                        ],
+                        "start_time": "1970-01-01T00:00:03Z",
+                        "end_time": "1970-01-01T00:00:04Z"
+                      },
+                      "work": [
+                        {
+                          "id": "embedding",
+                          "span_type": "llm",
+                          "name": "llm",
+                          "start_time": "1970-01-01T00:00:05Z",
+                          "end_time": "1970-01-01T00:00:06Z",
+                          "work": {
+                            "type": "agent_response",
+                            "response": [],
+                            "start_time": "1970-01-01T00:00:05Z",
+                            "end_time": "1970-01-01T00:00:06Z"
+                          }
+                        }
+                      ],
+                      "start_time": "1970-01-01T00:00:03Z",
+                      "end_time": "1970-01-01T00:00:06Z"
+                    }
+                  ],
+                  "metadata": {},
+                  "version": "1"
+                }
+              }
+            ],
+            "start_time": "1970-01-01T00:00:01Z",
+            "end_time": "1970-01-01T00:00:05Z"
+          }
+        ],
+        "metadata": {
+          "import_failures": [
+            {
+              "message": "Unsupported output message format",
+              "span_id": "embedding"
+            }
+          ]
+        },
+        "version": "1"
+      }
+    ],
+    "trajectory": "User: Request\nTool: tool({}) -> Result\n  Sub-agent:\n    User: Worker request\n    Assistant: Worker answer\nAssistant: Answer",
+    "trajectory_with_system": "User: Request\nTool: tool({}) -> Result\n  Sub-agent:\n    User: Worker request\n    Assistant: Worker answer\nAssistant: Answer"
   }
 }

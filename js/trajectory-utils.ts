@@ -42,7 +42,7 @@ function renderTrajectory(
       .filter((s) => s.work?.type === "llm_analysis")
       .flatMap((s) => s.work.work ?? []);
     const systemTexts = [...request, ...llmMessages]
-      .filter((m) => m.role === "system")
+      .filter((m) => m.role === "system" || m.role === "developer")
       .map((m) => text(m.content));
     const system = [...new Set(systemTexts)].join("\n");
     if (withSystem && system && system !== lastSystem) {

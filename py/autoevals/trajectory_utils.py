@@ -38,7 +38,9 @@ def _render_trajectory(trajectory: Any, with_system: bool, indent: str, lines: l
         llm_messages = [
             m for s in work if (s.get("work") or {}).get("type") == "llm_analysis" for m in s["work"].get("work") or []
         ]
-        system_texts = [_text(m.get("content")) for m in request + llm_messages if m.get("role") == "system"]
+        system_texts = [
+            _text(m.get("content")) for m in request + llm_messages if m.get("role") in ("system", "developer")
+        ]
         system = "\n".join(dict.fromkeys(system_texts))
         if with_system and system and system != last_system:
             emit("System", system)

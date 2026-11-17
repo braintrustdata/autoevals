@@ -1092,6 +1092,6 @@
       }
     ],
     "trajectory": "User: Request\nTool: tool({}) -> Result\n  Sub-agent:\n    User: Worker request\n    Assistant: Worker answer\nAssistant: Answer",
-    "trajectory_with_system": "User: Request\nTool: tool({}) -> Result\n  Sub-agent:\n    User: Worker request\n    Assistant: Worker answer\nAssistant: Answer"
+    "trajectory_with_system": "System: Instructions\nUser: Request\nTool: tool({}) -> Result\n  Sub-agent:\n    User: Worker request\n    Assistant: Worker answer\nAssistant: Answer"
   }
 }

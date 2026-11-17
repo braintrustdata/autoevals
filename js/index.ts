@@ -50,6 +50,11 @@ export {
   type ThreadTemplateVars,
 } from "./thread-utils";
 export {
+  expandRecording,
+  type Recording,
+  templateUsesRecording,
+} from "./recording-utils";
+export {
   computeTrajectoryTemplateVars,
   templateUsesTrajectoryVariables,
 } from "./trajectory-utils";

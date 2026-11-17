@@ -22,6 +22,7 @@ import {
   computeTrajectoryTemplateVars,
   templateUsesTrajectoryVariables,
 } from "./trajectory-utils";
+import { type Recording, templateUsesRecording } from "./recording-utils";
 
 /**
  * Minimal interface for a Trace object that can provide thread data.
@@ -30,6 +31,7 @@ import {
 export interface TraceForScorer {
   getThread(options?: { preprocessor?: string }): Promise<unknown[]>;
   getTrajectory?(): Promise<unknown[]>;
+  getRecording?(): Promise<Recording | null>;
 }
 
 // Thread-related template variable names that require preprocessor invocation
@@ -355,6 +357,16 @@ export function LLMClassifierFromTemplate<RenderArgs>({
         threadVars,
         computeTrajectoryTemplateVars(await runtimeArgs.trace.getTrajectory()),
       );
+    }
+    if (templateUsesRecording(promptTemplate)) {
+      if (!runtimeArgs.trace?.getRecording) {
+        throw new Error("{{recording}} requires trace.getRecording()");
+      }
+      const recording = await runtimeArgs.trace.getRecording();
+      if (!recording) {
+        return { name, score: null, metadata: { recording_empty: true } };
+      }
+      threadVars.recording = recording;
     }
 
     const prompt =

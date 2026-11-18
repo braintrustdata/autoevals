@@ -5,6 +5,9 @@ import {
   isRoleContentMessage,
   formatMessageArrayAsText,
 } from "./thread-utils";
+import { expandRecording, isRecording } from "./recording-utils";
+
+const RECORDING_MARKER = "\u0000recording\u0000";
 
 /**
  * Smart escape function for Mustache templates.
@@ -55,13 +58,27 @@ export function renderMessages(
     if (!m.content) {
       return { ...m, content: "" };
     }
+    const { recording } = renderArgs;
     try {
-      return {
-        ...m,
-        content: mustache.render(m.content as string, renderArgs, undefined, {
-          escape: escapeValue,
-        }),
-      };
+      const content = mustache.render(
+        m.content as string,
+        isRecording(recording)
+          ? { ...renderArgs, recording: RECORDING_MARKER }
+          : renderArgs,
+        undefined,
+        { escape: escapeValue },
+      );
+      if (
+        m.role === "user" &&
+        isRecording(recording) &&
+        content.includes(RECORDING_MARKER)
+      ) {
+        return {
+          ...m,
+          content: expandRecording(content, RECORDING_MARKER, recording),
+        };
+      }
+      return { ...m, content };
     } catch (e) {
       throw explainMustacheError(e, String(m.content));
     }

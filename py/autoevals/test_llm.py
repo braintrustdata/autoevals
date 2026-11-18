@@ -194,7 +194,9 @@ def test_llm_classifier_request_args_explicit_arg_overrides_trace_var():
 
     request_args = classifier._request_args(output="", expected="", trace=trace, thread="My custom transcript")
 
-    assert request_args["messages"][0]["content"] == "My custom transcript"
+    content = request_args["messages"][0]["content"]
+    assert content.startswith("My custom transcript\n")
+    assert "Hello" not in content
 
 
 def test_openai():

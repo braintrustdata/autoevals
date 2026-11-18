@@ -39,6 +39,7 @@ export * from "./json";
 export * from "./templates";
 export * from "./ragas";
 export * from "./value";
+export * from "./voice";
 export { Evaluators } from "./manifest";
 export { makePartial, ScorerWithPartial } from "./partial";
 export {

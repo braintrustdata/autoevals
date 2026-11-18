@@ -362,6 +362,11 @@ Eval(
 - Numeric difference
 - JSON diff
 
+### Voice evaluations
+
+- Voice latency
+- Voice interruptions
+
 For detailed documentation on all scorers, including parameters, score ranges, and usage examples, see the [**Scorer Reference**](SCORERS.md).
 
 ## Custom evaluation prompts

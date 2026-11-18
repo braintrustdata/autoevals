@@ -188,6 +188,15 @@ async def test_llm_classifier_request_args_async_keep_thread_filtered_and_thread
     assert system_marker in full_thread
 
 
+def test_llm_classifier_request_args_explicit_arg_overrides_trace_var():
+    trace = _FakeTrace([{"role": "user", "content": "Hello"}])
+    classifier = LLMClassifier("test", "{{thread}}", {"Yes": 1, "No": 0}, use_cot=False)
+
+    request_args = classifier._request_args(output="", expected="", trace=trace, thread="My custom transcript")
+
+    assert request_args["messages"][0]["content"] == "My custom transcript"
+
+
 def test_openai():
     e = OpenAILLMClassifier(
         "title",

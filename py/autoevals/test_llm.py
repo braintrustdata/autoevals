@@ -15,6 +15,7 @@ from autoevals.llm import (
     Factuality,
     LLMClassifier,
     OpenAILLMClassifier,
+    VoiceTaskSuccess,
     build_classification_tools,
 )
 from autoevals.oai import OpenAIV1Module, get_default_model
@@ -778,3 +779,42 @@ def test_llm_classifier_does_not_fetch_thread_when_template_does_not_use_it():
     classifier.eval(output="x", expected="y", trace=trace)
 
     assert trace.calls == 0
+
+
+@respx.mock
+def test_voice_task_success_sends_the_traces_conversation_as_json():
+    thread = [
+        {"role": "user", "content": "Cancel my order"},
+        {"role": "assistant", "content": "It's cancelled."},
+    ]
+    route = respx.route(method="POST", path__regex=r".*/chat/completions$").respond(
+        json={
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_test",
+                                "type": "function",
+                                "function": {
+                                    "name": "select_choice",
+                                    "arguments": '{"reasons":"Done.","choice":"A"}',
+                                },
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+    scorer = VoiceTaskSuccess(model="gpt-4o", client=OpenAI(api_key="test", base_url="https://api.openai.com/v1"))
+    result = scorer.eval(output=None, trace=_FakeTrace(thread))
+
+    assert result.score == 1
+    body = json.loads(route.calls.last.request.content)
+    assert json.dumps(thread, separators=(",", ":")) in body["messages"][0]["content"]
+
+
+def test_voice_task_success_skips_without_conversation():
+    assert VoiceTaskSuccess().eval(output=None, trace=_FakeTrace([])).score is None

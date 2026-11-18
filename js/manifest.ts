@@ -9,6 +9,7 @@ import {
   Sql,
   Summary,
   Translation,
+  VoiceTaskSuccess,
 } from "./llm";
 import { NumericDiff } from "./number";
 import { EmbeddingSimilarity, Levenshtein } from "./string";
@@ -100,6 +101,12 @@ export const Evaluators: {
           "Test whether an `output` is as good of a translation of the `input` in the specified `language` as an expert (`expected`) value.",
         template: templates.translation,
         requiresExtraParams: true,
+      },
+      {
+        method: VoiceTaskSuccess,
+        description:
+          "Test whether a voice agent correctly completed the caller's request, from the whole call. Run it with trace scope.",
+        template: templates.voice_task_success,
       },
     ],
   },

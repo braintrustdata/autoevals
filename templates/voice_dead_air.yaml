@@ -1,0 +1,10 @@
+prompt: |-
+  This is a recording of a call between a user and a voice agent, followed by its transcript. `User` lines are what the agent's speech-to-text produced, `Assistant` lines are what the agent said, and `Tool` lines are its tool calls and results. The agent is the voice that speaks the `Assistant` lines. Use the recording for what was actually said and the transcript for what the agent received.
+  {{recording}}
+  [Transcript]: {{trajectory}}
+
+  Did the user have to check that the agent was still there, for example "Hello? Are you still there?", after the agent stayed silent when it was its turn to speak? Count it even if the agent recovered. Do not count a greeting when the call connects, a request to repeat, or words spoken while the agent is talking.
+choice_scores:
+  "Y": 0.0
+  "N": 1.0
+model: gemini-4-argon

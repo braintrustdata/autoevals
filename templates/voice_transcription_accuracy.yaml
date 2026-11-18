@@ -1,0 +1,10 @@
+prompt: |-
+  This is a recording of a call between a user and a voice agent, followed by its transcript. `User` lines are what the agent's speech-to-text produced, `Assistant` lines are what the agent said, and `Tool` lines are its tool calls and results. The agent is the voice that speaks the `Assistant` lines. Use the recording for what was actually said and the transcript for what the agent received.
+  {{recording}}
+  [Transcript]: {{trajectory}}
+
+  Did speech-to-text change the meaning of what the user said in any `User` line: wrong words, words they didn't say, or speech that wasn't the user, such as background voices or a recorded announcement? Count it even if the agent recovered. Judge meaning only: ignore punctuation, fillers, number formats, and turns cut short or split across lines.
+choice_scores:
+  "Y": 0.0
+  "N": 1.0
+model: gemini-4-argon

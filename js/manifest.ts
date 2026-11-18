@@ -107,19 +107,19 @@ export const Evaluators: {
       {
         method: VoiceTaskCompletion,
         description:
-          "Test whether a voice agent completed what the caller called to do, from the call recording and trajectory.",
+          "Test whether a voice agent completed what the user wanted from the call, from the call recording and trajectory.",
         template: templates.voice_task_completion,
       },
       {
         method: VoiceTranscriptionAccuracy,
         description:
-          "Test whether speech-to-text kept the meaning of what the caller said, from the call recording and trajectory.",
+          "Test whether speech-to-text kept the meaning of what the user said, from the call recording and trajectory.",
         template: templates.voice_transcription_accuracy,
       },
       {
         method: VoiceDeadAir,
         description:
-          "Test whether the caller never had to check that the voice agent was still there, from the call recording and trajectory.",
+          "Test whether the user never had to check that the voice agent was still there, from the call recording and trajectory.",
         template: templates.voice_dead_air,
       },
     ],

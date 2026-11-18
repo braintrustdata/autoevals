@@ -520,7 +520,7 @@ export const Translation = buildLLMClassifier<{
 }>("Translation", "translation");
 
 /**
- * Test whether a voice agent completed what the caller called to do.
+ * Test whether a voice agent completed what the user wanted from the call.
  */
 export const VoiceTaskCompletion = buildLLMClassifier<{}>(
   "VoiceTaskCompletion",
@@ -528,7 +528,7 @@ export const VoiceTaskCompletion = buildLLMClassifier<{}>(
 );
 
 /**
- * Test whether speech-to-text kept the meaning of what the caller said.
+ * Test whether speech-to-text kept the meaning of what the user said.
  */
 export const VoiceTranscriptionAccuracy = buildLLMClassifier<{}>(
   "VoiceTranscriptionAccuracy",
@@ -536,7 +536,7 @@ export const VoiceTranscriptionAccuracy = buildLLMClassifier<{}>(
 );
 
 /**
- * Test whether the caller never had to check that the voice agent was still there.
+ * Test whether the user never had to check that the voice agent was still there.
  */
 export const VoiceDeadAir = buildLLMClassifier<{}>(
   "VoiceDeadAir",

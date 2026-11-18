@@ -1,9 +1,9 @@
 prompt: |-
-  This is a recording of a phone call between a caller and a voice agent, followed by the call's transcript, including the agent's tool calls and their results.
+  This is a recording of a call between a user and a voice agent, followed by its transcript. `User` lines are what the agent's speech-to-text produced, `Assistant` lines are what the agent said, `Tool` lines are its tool calls and results, and `System` lines are its instructions. The agent is the voice that speaks the `Assistant` lines. Use the recording for what was actually said and the transcript for what the agent received.
   {{recording}}
-  [Transcript with tool calls]: {{trajectory}}
+  [Transcript]: {{trajectory_with_system}}
 
-  Did the agent complete what the caller called to do?
+  Did the agent complete what the user wanted from the call? Take the request from the recording, since the transcript may have misheard it. For an action, such as a booking, change or transfer, require a tool result showing it succeeded; the agent saying so is not proof. For a question, require an answer consistent with any tool results. A clear refusal or handoff counts when the request could not or should not be done. Answer N if the user gave up or the call ended first.
 choice_scores:
   "Y": 1.0
   "N": 0.0

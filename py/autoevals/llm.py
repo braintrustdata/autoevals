@@ -461,7 +461,15 @@ class LLMClassifier(OpenAILLMClassifier):
         if trace is not None and self._template_uses_thread_variables:
             thread_vars = self._compute_thread_vars_sync(trace)
         if hasattr(trace, "get_trajectory") and self._template_uses_trajectory_variables:
-            thread_vars.update(compute_trajectory_template_vars(asyncio.run(trace.get_trajectory())))
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                trajectory = asyncio.run(trace.get_trajectory())
+            else:
+                raise RuntimeError(
+                    "trace.get_trajectory() is async; use eval_async() when already inside an event loop"
+                )
+            thread_vars.update(compute_trajectory_template_vars(trajectory))
 
         # Thread vars come first so explicit render args can override.
         return super()._request_args(output, expected, **{**thread_vars, **kwargs})

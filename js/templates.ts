@@ -7,6 +7,7 @@ import factuality from "../templates/factuality.yaml";
 import humor from "../templates/humor.yaml";
 import possible from "../templates/possible.yaml";
 import security from "../templates/security.yaml";
+import speech_clarity from "../templates/speech_clarity.yaml";
 import sql from "../templates/sql.yaml";
 import summary from "../templates/summary.yaml";
 import translation from "../templates/translation.yaml";
@@ -19,6 +20,7 @@ export const modelGradedSpecSchema = z.object({
   use_cot: z.boolean().optional(),
   temperature: z.number().optional(),
   max_tokens: z.number().optional(),
+  audio: z.string().optional(),
 });
 
 export type ModelGradedSpec = z.infer<typeof modelGradedSpecSchema>;
@@ -30,6 +32,7 @@ const templateStrings = {
   humor,
   possible,
   security,
+  speech_clarity,
   sql,
   summary,
   translation,

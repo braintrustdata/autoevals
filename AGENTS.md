@@ -54,7 +54,7 @@ The library maintains parallel implementations in TypeScript (`js/`) and Python 
 
 ### Key Modules (both languages)
 
-- `llm.ts` / `llm.py` - LLM-as-a-judge scorers (Factuality, Battle, ClosedQA, Humor, Security, Sql, Summary, Translation, VoiceTaskSuccess)
+- `llm.ts` / `llm.py` - LLM-as-a-judge scorers (Factuality, Battle, ClosedQA, Humor, Security, Sql, Summary, Translation, VoiceTaskSuccess, SpeechClarity)
 - `ragas.ts` / `ragas.py` - RAG evaluation metrics (ContextRelevancy, Faithfulness, AnswerRelevancy, etc.)
 - `string.ts` / `string.py` - Text similarity (Levenshtein, EmbeddingSimilarity)
 - `json.ts` / `json.py` - JSON validation and diff
@@ -69,6 +69,7 @@ YAML templates in `templates/` define LLM classifier prompts. Templates use Must
 - Prompt rendering with chain-of-thought (CoT) suffix
 - Tool-based response parsing via `select_choice` function
 - Score mapping from choice letters to numeric scores
+- An optional `audio:` path (e.g. `input.audio`) to `{data, content_type}` bytes, sent as a file part; missing audio gives a `null` score
 
 ### Python Scorer Pattern
 

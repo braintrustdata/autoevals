@@ -7,6 +7,7 @@ import {
 } from "./oai";
 import { ModelGradedSpec, templates } from "./templates";
 import {
+  ChatCompletionContentPart,
   ChatCompletionMessage,
   ChatCompletionMessageParam,
   ChatCompletionTool,
@@ -60,6 +61,42 @@ function filterSystemMessagesFromThread(thread: unknown[]): unknown[] {
     const role = Reflect.get(message, "role");
     return role !== "system";
   });
+}
+
+function getPath(args: unknown, path: string): unknown {
+  let value = args;
+  for (const key of path.split(".")) {
+    value =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? Reflect.get(value, key)
+        : undefined;
+  }
+  return value;
+}
+
+export type Audio = { data: Uint8Array; content_type: string };
+
+function audioPart(audio: unknown): ChatCompletionContentPart.File {
+  const data = Reflect.get(Object(audio), "data");
+  if (!(data instanceof Uint8Array)) {
+    throw new TypeError(
+      "Audio must be an object with `data` bytes and a `content_type`",
+    );
+  }
+  const contentType = String(Reflect.get(Object(audio), "content_type") ?? "")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
+  if (!contentType.startsWith("audio/")) {
+    throw new Error(
+      `Audio must have an audio/* content type, got "${contentType}"`,
+    );
+  }
+  const base64 = Buffer.from(data).toString("base64");
+  return {
+    type: "file",
+    file: { file_data: `data:${contentType};base64,${base64}` },
+  };
 }
 
 const NO_COT_SUFFIX =
@@ -142,6 +179,7 @@ export type OpenAIClassifierArgs<RenderArgs> = {
   messages: ChatCompletionMessageParam[];
   choiceScores: Record<string, number>;
   classificationTools: ChatCompletionTool[];
+  audioFiles?: ChatCompletionContentPart.File[];
   cache?: ChatCache;
 } & LLMArgs &
   RenderArgs;
@@ -174,6 +212,7 @@ export async function OpenAIClassifier<RenderArgs, Output>(
     reasoningEnabled,
     reasoningBudget,
     useResponsesApi,
+    audioFiles,
     cache,
     ...remainingRenderArgs
   } = remaining;
@@ -212,6 +251,13 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   };
 
   const messages = renderMessages(messagesArg, renderArgs);
+  if (audioFiles) {
+    const last = messages[messages.length - 1];
+    messages[messages.length - 1] = {
+      role: "user",
+      content: [{ type: "text", text: String(last.content) }, ...audioFiles],
+    };
+  }
 
   const resp = await cachedChatCompletion(
     {
@@ -306,6 +352,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   reasoningEnabled,
   reasoningBudget,
   useResponsesApi,
+  audio,
 }: {
   name: string;
   promptTemplate: string;
@@ -318,11 +365,23 @@ export function LLMClassifierFromTemplate<RenderArgs>({
   reasoningEnabled?: boolean;
   reasoningBudget?: number;
   useResponsesApi?: boolean;
+  audio?: string;
 }): Scorer<string, LLMClassifierArgs<RenderArgs>> {
   const choiceStrings = Object.keys(choiceScores);
   const ret = async (
     runtimeArgs: ScorerArgs<string, LLMClassifierArgs<RenderArgs>>,
   ) => {
+    const audioValue = audio ? getPath(runtimeArgs, audio) : undefined;
+    const audioList =
+      audioValue == null
+        ? []
+        : Array.isArray(audioValue)
+          ? audioValue
+          : [audioValue];
+    if (audio && audioList.length === 0) {
+      return { name, score: null };
+    }
+
     const useCoT = runtimeArgs.useCoT ?? useCoTArg ?? true;
     // Use runtime model > template model > configured default model
     const model = runtimeArgs.model ?? modelArg ?? getDefaultModel();
@@ -374,6 +433,7 @@ export function LLMClassifierFromTemplate<RenderArgs>({
       // Since the logic is a bit funky for computing this, include
       // it at the end to prevent overrides
       useCoT,
+      audioFiles: audio ? audioList.map(audioPart) : undefined,
     };
 
     return await OpenAIClassifier(classifierArgs);
@@ -398,6 +458,7 @@ export function LLMClassifierFromSpec<RenderArgs>(
     useCoT: spec.use_cot,
     temperature: spec.temperature,
     maxTokens: spec.max_tokens,
+    audio: spec.audio,
   });
 }
 
@@ -409,10 +470,10 @@ export function LLMClassifierFromSpecFile<RenderArgs>(
   return LLMClassifierFromSpec(name, doc);
 }
 
-function buildLLMClassifier<RenderArgs>(
+function buildLLMClassifier<RenderArgs, Output = string>(
   name: string,
   templateName: keyof typeof templates,
-): ScorerWithPartial<string, LLMClassifierArgs<RenderArgs>> {
+): ScorerWithPartial<Output, LLMClassifierArgs<RenderArgs>> {
   if (!(templateName in templates)) {
     throw new Error(`Model template ${name} not found`);
   }
@@ -521,3 +582,11 @@ export const VoiceTaskSuccess = makePartial<
     thread_with_system: JSON.stringify(messages),
   });
 }, "VoiceTaskSuccess");
+
+/**
+ * Test how clearly an agent speaks, from a recording of the whole conversation (`input.audio`), given as one audio or a list of chunks in recording order.
+ */
+export const SpeechClarity = buildLLMClassifier<
+  { input: { audio?: Audio | Audio[]; [key: string]: unknown } },
+  unknown
+>("SpeechClarity", "speech_clarity");

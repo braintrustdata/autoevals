@@ -15,6 +15,7 @@ from autoevals.llm import (
     Factuality,
     LLMClassifier,
     OpenAILLMClassifier,
+    SpeechClarity,
     VoiceTaskSuccess,
     build_classification_tools,
 )
@@ -818,3 +819,54 @@ def test_voice_task_success_sends_the_traces_conversation_as_json():
 
 def test_voice_task_success_skips_without_conversation():
     assert VoiceTaskSuccess().eval(output=None, trace=_FakeTrace([])).score is None
+
+
+@respx.mock
+def test_speech_clarity_sends_each_audio_as_a_file_to_chat_completions():
+    route = respx.route(method="POST", path__regex=r".*/chat/completions$").respond(
+        json={
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_test",
+                                "type": "function",
+                                "function": {
+                                    "name": "select_choice",
+                                    "arguments": '{"reasons":"Clear.","choice":"A"}',
+                                },
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+    result = SpeechClarity(client=OpenAI(api_key="test", base_url="https://api.openai.com/v1")).eval(
+        input={
+            "audio": [
+                {"data": b"\x01\x02\x03", "content_type": "audio/ogg"},
+                {"data": b"\x04\x05\x06", "content_type": "audio/ogg"},
+            ]
+        },
+        output=None,
+    )
+
+    assert result.score == 1
+    body = json.loads(route.calls.last.request.content)
+    assert body["model"] == "gemini-3.8-flash"
+    assert body["messages"][0]["content"][0]["type"] == "text"
+    assert [p["file"]["file_data"] for p in body["messages"][0]["content"][1:]] == [
+        "data:audio/ogg;base64,AQID",
+        "data:audio/ogg;base64,BAUG",
+    ]
+
+
+def test_speech_clarity_accepts_model_override():
+    assert SpeechClarity(model="gemini-2.5-pro").model == "gemini-2.5-pro"
+
+
+def test_speech_clarity_skips_without_audio():
+    assert SpeechClarity().eval(input={"text": "hello"}, output=None).score is None

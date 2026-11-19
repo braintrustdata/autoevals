@@ -11,6 +11,7 @@ import sql from "../templates/sql.yaml";
 import summary from "../templates/summary.yaml";
 import translation from "../templates/translation.yaml";
 import voice_dead_air from "../templates/voice_dead_air.yaml";
+import voice_interruptions from "../templates/voice_interruptions.yaml";
 import voice_task_completion from "../templates/voice_task_completion.yaml";
 import voice_transcription_accuracy from "../templates/voice_transcription_accuracy.yaml";
 
@@ -36,6 +37,7 @@ const templateStrings = {
   summary,
   translation,
   voice_dead_air,
+  voice_interruptions,
   voice_task_completion,
   voice_transcription_accuracy,
 } as const;

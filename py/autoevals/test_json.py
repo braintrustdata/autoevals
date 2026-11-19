@@ -166,3 +166,40 @@ def test_semantic_json():
                 assert abs(score - expected) < 0.0001
             else:
                 assert round(score * 100) <= round(expected * 100)
+
+
+def test_json_booleans_are_not_numbers():
+    # `bool` is a subclass of `int` in Python, so a bare isinstance check sends
+    # booleans to the numeric scorer. The TypeScript implementation tests
+    # `typeof v === "number"`, which is false for booleans, so it compares them
+    # as the strings "true"/"false" instead. A boolean and an integer are
+    # different JSON values, so neither implementation should call them equal.
+    cases = [
+        ({"flag": True}, {"flag": 1}),
+        ({"flag": 1}, {"flag": True}),
+        ({"flag": False}, {"flag": 0}),
+        ({"flag": 0}, {"flag": False}),
+        ([True], [1]),
+        (True, 1),
+    ]
+
+    evaluator = JSONDiff()
+    for output, expected in cases:
+        print(f"[{output}]", f"[{expected}]")
+        assert evaluator(output, expected).score < 1, f"{output!r} scored equal to {expected!r}"
+
+
+def test_json_equal_booleans_still_match():
+    # The fix must not break the case that is genuinely equal.
+    cases = [
+        ({"flag": True}, {"flag": True}),
+        ({"flag": False}, {"flag": False}),
+        (True, True),
+        (False, False),
+        ([True, False], [True, False]),
+    ]
+
+    evaluator = JSONDiff()
+    for output, expected in cases:
+        print(f"[{output}]", f"[{expected}]")
+        assert evaluator(output, expected).score == approx(1, abs=1e-4)

@@ -353,19 +353,29 @@ class LLMClient:
                         return convert_responses_to_chat_completion(response)
                     return chat_complete(**kwargs)
 
-            self.complete = complete_wrapper
-            self.embed = self.openai.embeddings.create
-            self.moderation = self.openai.moderations.create
-            self.RateLimitError = openai_module.RateLimitError
+            if self.complete is None:
+                self.complete = complete_wrapper
+            if self.embed is None:
+                self.embed = self.openai.embeddings.create
+            if self.moderation is None:
+                self.moderation = self.openai.moderations.create
+            if self.RateLimitError is None:
+                self.RateLimitError = openai_module.RateLimitError
         else:
             openai_module = cast(OpenAIV0Module, openai_module)
             self.openai = cast(OpenAIV0Module, self.openai)
 
             # v0
-            self.complete = self.openai.ChatCompletion.acreate if self.is_async else self.openai.ChatCompletion.create
-            self.embed = self.openai.Embedding.acreate if self.is_async else self.openai.Embedding.create
-            self.moderation = self.openai.Moderation.acreate if self.is_async else self.openai.Moderation.create
-            self.RateLimitError = openai_module.error.RateLimitError
+            if self.complete is None:
+                self.complete = (
+                    self.openai.ChatCompletion.acreate if self.is_async else self.openai.ChatCompletion.create
+                )
+            if self.embed is None:
+                self.embed = self.openai.Embedding.acreate if self.is_async else self.openai.Embedding.create
+            if self.moderation is None:
+                self.moderation = self.openai.Moderation.acreate if self.is_async else self.openai.Moderation.create
+            if self.RateLimitError is None:
+                self.RateLimitError = openai_module.error.RateLimitError
 
     @property
     def is_wrapped(self) -> bool:

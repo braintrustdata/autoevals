@@ -1,6 +1,8 @@
 import sys
 from typing import Any, cast
+from unittest.mock import AsyncMock
 
+import httpx
 import openai
 import pytest
 from braintrust.oai import NamedWrapper, wrap_openai
@@ -13,9 +15,11 @@ from autoevals.oai import (  # type: ignore[import]
     OpenAIV1Module,
     _named_wrapper,  # type: ignore[import]  # Accessing private members for testing
     _wrap_openai,  # type: ignore[import]  # Accessing private members for testing
+    arun_cached_request,
     get_default_model,
     get_openai_wrappers,
     prepare_openai,
+    run_cached_request,
 )
 
 
@@ -58,6 +62,128 @@ def test_prepare_openai_uses_unwrapped_global_client():
     assert prepared_client.openai == openai_obj
     assert prepared_client.complete is client.complete
     assert prepared_client.openai.api_key == "api-key"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("is_async", [False, True])
+@pytest.mark.parametrize(
+    "custom_methods", [("complete", "embed", "moderation"), ("complete",), ("embed",), ("moderation",)]
+)
+async def test_custom_v1_methods_are_used_and_other_methods_default(is_async, custom_methods, mocker):
+    request_args = {
+        "complete": {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "hello"}]},
+        "embed": {"model": "text-embedding-3-small", "input": "hello", "encoding_format": "float"},
+        "moderation": {"model": "omni-moderation-latest", "input": "hello"},
+    }
+    responses = {
+        "complete": {
+            "id": "chat-test",
+            "object": "chat.completion",
+            "created": 0,
+            "model": "gpt-4o-mini",
+            "choices": [{"index": 0, "message": {"role": "assistant", "content": "hello"}, "finish_reason": "stop"}],
+        },
+        "embed": {
+            "object": "list",
+            "model": "text-embedding-3-small",
+            "data": [{"object": "embedding", "index": 0, "embedding": [1.0]}],
+            "usage": {"prompt_tokens": 1, "total_tokens": 1},
+        },
+        "moderation": {"id": "mod-test", "model": "omni-moderation-latest", "results": []},
+    }
+    paths = {"/v1/chat/completions": "complete", "/v1/embeddings": "embed", "/v1/moderations": "moderation"}
+    sdk_calls = []
+    custom_calls = {method: [] for method in custom_methods}
+    sleep = mocker.patch("autoevals.oai.time.sleep")
+    async_sleep = mocker.patch("autoevals.oai.asyncio.sleep", new_callable=AsyncMock)
+
+    class CustomRateLimitError(Exception):
+        pass
+
+    def respond(request):
+        method = paths[request.url.path]
+        sdk_calls.append(method)
+        return httpx.Response(200, json=responses[method])
+
+    def make_callback(method):
+        def callback(**kwargs):
+            custom_calls[method].append(kwargs)
+            if len(custom_calls[method]) == 1:
+                raise CustomRateLimitError("try again")
+            return responses[method]
+
+        async def async_callback(**kwargs):
+            return callback(**kwargs)
+
+        return async_callback if is_async else callback
+
+    transport = httpx.MockTransport(respond)
+    http_client = httpx.AsyncClient(transport=transport) if is_async else httpx.Client(transport=transport)
+    sdk_class = openai.AsyncOpenAI if is_async else openai.OpenAI
+    sdk = sdk_class(api_key="test-key", base_url="http://test/v1", http_client=http_client)
+    try:
+        client = LLMClient(
+            openai=sdk,
+            is_async=is_async,
+            RateLimitError=CustomRateLimitError,
+            **{method: make_callback(method) for method in custom_methods},
+        )
+        init(client)
+        for method, kwargs in request_args.items():
+            if is_async:
+                result = await arun_cached_request(request_type=method, **kwargs)
+            else:
+                result = run_cached_request(request_type=method, **kwargs)
+            assert result["model"] == kwargs["model"]
+        assert custom_calls == {method: [request_args[method], request_args[method]] for method in custom_methods}
+        assert sdk_calls == [method for method in request_args if method not in custom_methods]
+        assert (async_sleep.await_count if is_async else sleep.call_count) == len(custom_methods)
+    finally:
+        if is_async:
+            await sdk.close()
+        else:
+            sdk.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("is_async", [False, True])
+@pytest.mark.parametrize(
+    "custom_methods", [("complete", "embed", "moderation"), ("complete",), ("embed",), ("moderation",)]
+)
+async def test_custom_v0_methods_are_used_and_other_methods_default(mock_openai_v0, is_async, custom_methods, mocker):
+    request_args = {
+        "complete": {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "hello"}]},
+        "embed": {"model": "text-embedding-3-small", "input": "hello"},
+        "moderation": {"input": "hello"},
+    }
+
+    class CustomRateLimitError(Exception):
+        pass
+
+    mock_type = AsyncMock if is_async else mocker.Mock
+    defaults = {}
+    for method, resource in (("complete", "ChatCompletion"), ("embed", "Embedding"), ("moderation", "Moderation")):
+        defaults[method] = mock_type(return_value={"method": f"default-{method}"})
+        mocker.patch.object(getattr(mock_openai_v0, resource), "acreate" if is_async else "create", defaults[method])
+    callbacks = {
+        method: mock_type(side_effect=[CustomRateLimitError("try again"), {"method": f"custom-{method}"}])
+        for method in custom_methods
+    }
+    sleep = mocker.patch("autoevals.oai.time.sleep")
+    async_sleep = mocker.patch("autoevals.oai.asyncio.sleep", new_callable=AsyncMock)
+    client = LLMClient(openai=mock_openai_v0, is_async=is_async, RateLimitError=CustomRateLimitError, **callbacks)
+    for method, kwargs in request_args.items():
+        if is_async:
+            result = await arun_cached_request(client=client, request_type=method, **kwargs)
+        else:
+            result = run_cached_request(client=client, request_type=method, **kwargs)
+        assert result == {"method": f"{'custom' if method in custom_methods else 'default'}-{method}"}
+        if method in custom_methods:
+            assert callbacks[method].call_count == 2
+            defaults[method].assert_not_called()
+        else:
+            defaults[method].assert_called_once_with(**kwargs)
+    assert (async_sleep.await_count if is_async else sleep.call_count) == len(custom_methods)
 
 
 def test_init_creates_llmclient_if_needed():

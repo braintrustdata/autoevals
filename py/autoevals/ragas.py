@@ -115,7 +115,6 @@ from .list import ListContains
 from .llm import OpenAILLMScorer
 from .oai import (
     Client,
-    _default_model_var,
     arun_cached_request,
     get_default_embedding_model,
     get_default_model,
@@ -130,28 +129,16 @@ def check_required(name, **kwargs):
             raise ValueError(f"{name} requires {key} value")
 
 
-# Deprecated: Use init(default_model="...") to configure the default model instead.
-# This was previously "gpt-5-nano" but now defaults to the configured model.
-DEFAULT_RAGAS_MODEL = "gpt-5-nano"
-
-
 def _get_model(model: str | None) -> str:
     """Get the model to use, respecting init(default_model=...) configuration.
 
-    Falls back to DEFAULT_RAGAS_MODEL if no model is specified and no custom
-    default has been configured.
+    Falls back to the library-wide default when no model is specified and no
+    custom default has been configured.
     """
     if model is not None:
         return model
 
-    # Check if user configured a custom default via init(default_model=...)
-    # If they did (even if it's "gpt-5-mini"), respect it for consistency
-    configured_default = _default_model_var.get(None)
-    if configured_default is not None:
-        return configured_default
-
-    # Fall back to RAGAS-specific default when user hasn't configured anything
-    return DEFAULT_RAGAS_MODEL
+    return get_default_model()
 
 
 ENTITY_PROMPT = """Given a text, extract unique entities without repetition. Ensure you consider different forms or mentions of the same entity as a single entity.

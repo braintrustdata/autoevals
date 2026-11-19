@@ -101,6 +101,7 @@ Tests require:
 
 ## Testing Notes
 
+- Run any new scorer on real traces before calling it ready, and report how it scored them. Mocked tests check the plumbing, not whether the prompt judges correctly.
 - Python tests use `pytest` with `respx` for HTTP mocking
 - TypeScript tests use `vitest` with `msw` for HTTP mocking
 - Tests that call real LLM APIs need valid API keys

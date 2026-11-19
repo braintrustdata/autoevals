@@ -247,7 +247,11 @@ class LLMClient:
                         output_list = []
                     for item in output_list:
                         item_type = item.get("type")
-                        if item_type in ("output_text", "text"):
+                        if item_type == "message":
+                            for part in item["content"]:
+                                if part["type"] == "output_text":
+                                    content = (content or "") + part["text"]
+                        elif item_type in ("output_text", "text"):
                             content = item.get("content") or item.get("text")
                         elif item_type in ("function_call", "custom_tool_call"):
                             # Convert Responses API tool call format to Chat Completions format

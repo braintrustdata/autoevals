@@ -10,7 +10,12 @@ import {
   test,
   vi,
 } from "vitest";
-import { buildOpenAIClient, init, getDefaultModel } from "./oai";
+import {
+  buildOpenAIClient,
+  cachedChatCompletion,
+  init,
+  getDefaultModel,
+} from "./oai";
 
 import { setupServer } from "msw/node";
 
@@ -74,7 +79,113 @@ const MOCK_OPENAI_COMPLETION_RESPONSE = {
   },
 };
 
+const textMessage = (...texts: string[]) => ({
+  id: "msg-test",
+  type: "message",
+  role: "assistant",
+  status: "completed",
+  content: texts.map((text) => ({
+    type: "output_text",
+    text,
+    annotations: [],
+  })),
+});
+
+const responseToolCalls = [
+  {
+    type: "function_call",
+    id: "fc-test",
+    call_id: "call-0",
+    name: "select_choice",
+    arguments: '{"choice":"A"}',
+  },
+];
+const requestTools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "select_choice",
+      parameters: {
+        type: "object",
+        properties: { choice: { type: "string" } },
+      },
+    },
+  },
+];
+const chatToolCalls = [
+  {
+    id: "call-0",
+    type: "function",
+    function: { name: "select_choice", arguments: '{"choice":"A"}' },
+  },
+];
+
 describe("OAI", () => {
+  test.each([
+    {
+      name: "message text",
+      output: [textMessage("first ", "second"), textMessage(" third")],
+      content: "first second third",
+      toolCalls: [],
+    },
+    {
+      name: "text with tools",
+      output: [textMessage("text with tools"), ...responseToolCalls],
+      content: "text with tools",
+      toolCalls: chatToolCalls,
+    },
+    {
+      name: "tools only",
+      output: responseToolCalls,
+      content: null,
+      toolCalls: chatToolCalls,
+    },
+    {
+      name: "top-level output_text",
+      output: [{ type: "output_text", text: "legacy text" }],
+      content: "legacy text",
+      toolCalls: [],
+    },
+    {
+      name: "top-level text",
+      output: [{ type: "text", content: "legacy text" }],
+      content: "legacy text",
+      toolCalls: [],
+    },
+  ])("converts Responses $name", async ({ output, content, toolCalls }) => {
+    const respond = vi.fn(() =>
+      HttpResponse.json({
+        id: "resp-test",
+        object: "response",
+        created_at: 1234567890,
+        model: "gpt-5-mini",
+        status: "completed",
+        output,
+      }),
+    );
+    server.use(http.post("https://api.openai.com/v1/responses", respond));
+
+    const response = await cachedChatCompletion(
+      {
+        model: "gpt-5-mini",
+        messages: [{ role: "user", content: "test" }],
+        ...(toolCalls.length > 0 ? { tools: requestTools } : {}),
+      },
+      {
+        client: new OpenAI({
+          apiKey: "test-api-key",
+          baseURL: "https://api.openai.com/v1",
+          maxRetries: 0,
+        }),
+      },
+    );
+
+    expect(respond).toHaveBeenCalledTimes(1);
+    const message = response.choices[0].message;
+    expect(message.content).toBe(content);
+    expect(message.tool_calls ?? []).toEqual(toolCalls);
+  });
+
   test("should use Azure OpenAI", async () => {
     server.use(
       http.post(

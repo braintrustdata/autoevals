@@ -409,7 +409,13 @@ export async function cachedChatCompletion(
 
     if (response.output && Array.isArray(response.output)) {
       for (const item of response.output) {
-        if (item.type === "output_text" || item.type === "text") {
+        if (item.type === "message") {
+          for (const part of item.content) {
+            if (part.type === "output_text") {
+              content = (content ?? "") + part.text;
+            }
+          }
+        } else if (item.type === "output_text" || item.type === "text") {
           content = item.content || item.text;
         } else if (
           item.type === "function_call" ||

@@ -3,7 +3,7 @@
 This module provides a collection of pre-built LLM scorers for common evaluation tasks.
 
 All evaluators accept the following common arguments:
-- model: Model to use (defaults to gpt-5-mini)
+- model: Model to use (defaults to gpt-5.6-terra)
 - temperature: Controls randomness (0-1). If not specified, uses the model's default.
 - max_tokens: Maximum tokens to generate. If not specified, uses the model's default.
 - client: OpenAI client (defaults to global client from init())

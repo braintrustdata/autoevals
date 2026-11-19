@@ -25,7 +25,7 @@ Evaluates whether the output is factually consistent with the expected answer.
 - `input` (string): The input question or prompt
 - `output` (string, required): The generated answer to evaluate
 - `expected` (string, required): The ground truth answer
-- `model` (string, optional): Model to use (default: configured via `init()` or "gpt-5-mini")
+- `model` (string, optional): Model to use (default: configured via `init()` or "gpt-5.6-terra")
 - `client` (Client, optional): Custom OpenAI client
 
 **Score Range:** 0-1
@@ -209,7 +209,7 @@ Evaluates how relevant the retrieved context is to the input question.
 - `input` (string, required): The question
 - `output` (string, required): The generated answer
 - `context` (string[] | string, required): Retrieved context passages
-- `model` (string, optional): Model to use (default: "gpt-5-nano")
+- `model` (string, optional): Model to use (default: "gpt-5.6-luna")
 
 **Score Range:** 0-1
 
@@ -600,7 +600,7 @@ Note: Interpretation varies by scorer type. Binary scorers (ExactMatch, ValidJSO
 
 Many scorers share these common parameters:
 
-- `model` (string): LLM model to use for evaluation (default: configured via `init()` or "gpt-5-mini")
+- `model` (string): LLM model to use for evaluation (default: configured via `init()` or "gpt-5.6-terra")
 - `client` (Client): Custom OpenAI-compatible client
 - `use_cot` (boolean): Enable chain-of-thought reasoning for LLM scorers (default: true)
 - `temperature` (number): LLM temperature setting

@@ -332,8 +332,8 @@ describe("OAI", () => {
     expect(Object.is(builtClient, otherClient)).toBe(true);
   });
 
-  test("getDefaultModel returns gpt-5-mini by default", () => {
-    expect(getDefaultModel()).toBe("gpt-5-mini");
+  test("getDefaultModel returns gpt-5.6-terra by default", () => {
+    expect(getDefaultModel()).toBe("gpt-5.6-terra");
   });
 
   test("init sets default model", () => {
@@ -346,7 +346,7 @@ describe("OAI", () => {
     expect(getDefaultModel()).toBe("claude-3-5-sonnet-20241022");
 
     init({ defaultModel: undefined });
-    expect(getDefaultModel()).toBe("gpt-5-mini");
+    expect(getDefaultModel()).toBe("gpt-5.6-terra");
   });
 
   test("init can set both client and default model", () => {

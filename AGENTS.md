@@ -101,7 +101,7 @@ Tests require:
 
 ## Testing Notes
 
-- Before merging a new scorer or prompt change, run it on real traces and put how it scored them in the PR description. Passing mocked tests don't show that the prompt judges correctly.
+- Before merging a new scorer or prompt change, run it on real traces and report how it scored them. Passing mocked tests don't show that the prompt judges correctly.
 - Python tests use `pytest` with `respx` for HTTP mocking
 - TypeScript tests use `vitest` with `msw` for HTTP mocking
 - Tests that call real LLM APIs need valid API keys

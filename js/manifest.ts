@@ -10,6 +10,7 @@ import {
   Summary,
   Translation,
   VoiceDeadAir,
+  VoiceInterruptions,
   VoiceTaskCompletion,
   VoiceTranscriptionAccuracy,
 } from "./llm";
@@ -107,7 +108,7 @@ export const Evaluators: {
       {
         method: VoiceTaskCompletion,
         description:
-          "Test whether a voice agent completed what the user wanted from the call, from the call recording and trajectory.",
+          "Test whether a voice agent completed the task the call was for, from the call recording and trajectory.",
         template: templates.voice_task_completion,
       },
       {
@@ -119,8 +120,14 @@ export const Evaluators: {
       {
         method: VoiceDeadAir,
         description:
-          "Test whether the user never had to check that the voice agent was still there, from the call recording and trajectory.",
+          "Test whether a voice agent avoided silence that left the user unsure it was still there, from the call recording and trajectory.",
         template: templates.voice_dead_air,
+      },
+      {
+        method: VoiceInterruptions,
+        description:
+          "Test whether a voice agent let the user finish speaking and stopped when the user broke in, from the call recording and trajectory.",
+        template: templates.voice_interruptions,
       },
     ],
   },

@@ -171,6 +171,58 @@ def test_faithfulness_extracts_statements_from_output(monkeypatch):
     assert captured_answer == "Paris is the capital of France."
 
 
+@pytest.mark.parametrize("is_async", [False, True])
+@pytest.mark.parametrize(
+    ["context", "expected_context"],
+    [
+        (["Paris is in France.", "It is the capital."], "Paris is in France.\nIt is the capital."),
+        ("Paris is in France.\nIt is the capital.", "Paris is in France.\nIt is the capital."),
+    ],
+)
+def test_faithfulness_joins_list_context(monkeypatch, is_async, context, expected_context):
+    """A list context reaches the judge joined with newlines, not as a list.
+
+    Regression test: Faithfulness passed the context through unjoined, so the
+    judge prompt contained the Python list repr (``['Paris is in France.',
+    'It is the capital.']``). Every other ragas scorer joins list contexts,
+    and the TypeScript scorer flattens them.
+    """
+    captured_context = None
+
+    def fake_extract_statements(question, answer, client=None, **extra_args):
+        return {"statements": ["Paris is the capital of France"]}
+
+    async def fake_aextract_statements(question, answer, client=None, **extra_args):
+        return fake_extract_statements(question, answer, client=client, **extra_args)
+
+    def fake_extract_faithfulness(context, statements, client=None, **extra_args):
+        nonlocal captured_context
+        captured_context = context
+        return {"faithfulness": [{"statement": statements[0], "verdict": 1, "reason": "Supported by context"}]}
+
+    async def fake_aextract_faithfulness(context, statements, client=None, **extra_args):
+        return fake_extract_faithfulness(context, statements, client=client, **extra_args)
+
+    monkeypatch.setattr(ragas_module, "extract_statements", fake_extract_statements)
+    monkeypatch.setattr(ragas_module, "aextract_statements", fake_aextract_statements)
+    monkeypatch.setattr(ragas_module, "extract_faithfulness", fake_extract_faithfulness)
+    monkeypatch.setattr(ragas_module, "aextract_faithfulness", fake_aextract_faithfulness)
+
+    scorer = Faithfulness()
+    kwargs = dict(
+        input="What is the capital of France?",
+        output="Paris is the capital of France.",
+        context=context,
+    )
+    if is_async:
+        score = asyncio.run(scorer.eval_async(**kwargs))
+    else:
+        score = scorer.eval(**kwargs)
+
+    assert captured_context == expected_context
+    assert score.score == 1
+
+
 @respx.mock
 def test_answer_correctness_uses_custom_embedding_model():
     """Test that AnswerCorrectness passes embedding_model parameter through to embeddings API."""

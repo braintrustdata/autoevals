@@ -181,3 +181,49 @@ test("Semantic JSON Test", async () => {
     }
   }
 });
+
+const missingMemberCases: [unknown, unknown, number][] = [
+  [{}, { answer: null }, 0],
+  [{ answer: null }, {}, 0],
+  [{ answer: "ok" }, { answer: "ok", evidence: null }, 0.5],
+  [{ answer: "ok", evidence: null }, { answer: "ok" }, 0.5],
+  [{ record: {} }, { record: { source: null } }, 0],
+  [[{}], [{ answer: null }], 0],
+  ["{}", '{"answer":null}', 0],
+  [{ answer: null }, { answer: null }, 1],
+  [{}, {}, 1],
+  [{ answer: 0 }, {}, 0],
+  [{}, { answer: false }, 0],
+  [{ answer: 0 }, { answer: 0 }, 1],
+  [{ answer: false }, { answer: false }, 1],
+  [{}, JSON.parse('{"toString":null}'), 0],
+  [{}, JSON.parse('{"__proto__":null}'), 0],
+];
+
+test.each(missingMemberCases)(
+  "missing object members differ from null: %j / %j",
+  async (output, expected, score) => {
+    expect((await JSONDiff({ output, expected })).score).toBe(score);
+  },
+);
+
+test("missing members preserve the scorer for shared values", async () => {
+  expect(
+    (
+      await JSONDiff({
+        output: { answer: 1 },
+        expected: { answer: 1, evidence: null },
+        numberScorer: ExactMatch,
+      })
+    ).score,
+  ).toBe(0.5);
+  expect(
+    (
+      await JSONDiff({
+        output: { answer: 1 },
+        expected: { answer: 2, evidence: null },
+        numberScorer: ExactMatch,
+      })
+    ).score,
+  ).toBe(0);
+});

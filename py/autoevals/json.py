@@ -169,7 +169,7 @@ class JSONDiff(ScorerWithPartial):
                 return 1
 
             all_keys = set(o1.keys()).union(set(o2.keys()))
-            base_scores = [self.json_diff(o1.get(k), o2.get(k)) for k in all_keys]
+            base_scores = [self.json_diff(o1[k], o2[k]) if k in o1 and k in o2 else 0 for k in all_keys]
             base_scores = [s for s in base_scores if s is not None]
             return sum(base_scores) / len(base_scores)
         elif isinstance(o1, list) and isinstance(o2, list):

@@ -1,3 +1,4 @@
+import pytest
 from pytest import approx
 
 from autoevals.json import JSONDiff, ValidJSON
@@ -166,3 +167,34 @@ def test_semantic_json():
                 assert abs(score - expected) < 0.0001
             else:
                 assert round(score * 100) <= round(expected * 100)
+
+
+@pytest.mark.parametrize(
+    "output,expected,score",
+    [
+        ({}, {"answer": None}, 0),
+        ({"answer": None}, {}, 0),
+        ({"answer": "ok"}, {"answer": "ok", "evidence": None}, 0.5),
+        ({"answer": "ok", "evidence": None}, {"answer": "ok"}, 0.5),
+        ({"record": {}}, {"record": {"source": None}}, 0),
+        ([{}], [{"answer": None}], 0),
+        ("{}", '{"answer":null}', 0),
+        ({"answer": None}, {"answer": None}, 1),
+        ({}, {}, 1),
+        ({"answer": 0}, {}, 0),
+        ({}, {"answer": False}, 0),
+        ({"answer": 0}, {"answer": 0}, 1),
+        ({"answer": False}, {"answer": False}, 1),
+    ],
+)
+@pytest.mark.asyncio
+async def test_missing_object_members_are_not_null(output, expected, score):
+    scorer = JSONDiff()
+    assert scorer.eval(output, expected).score == score
+    assert (await scorer.eval_async(output, expected)).score == score
+
+
+def test_missing_member_preserves_custom_shared_scorer():
+    scorer = JSONDiff(number_scorer=ExactMatch())
+    assert scorer.eval({"answer": 1}, {"answer": 1, "evidence": None}).score == 0.5
+    assert scorer.eval({"answer": 1}, {"answer": 2, "evidence": None}).score == 0

@@ -241,7 +241,16 @@ async function jsonDiff(
     const baseScores = (
       await Promise.all(
         allKeys.map((k) =>
-          jsonDiff(o1[k], o2[k], stringScorer, numberScorer, preserveStrings),
+          Object.prototype.hasOwnProperty.call(o1, k) &&
+          Object.prototype.hasOwnProperty.call(o2, k)
+            ? jsonDiff(
+                o1[k],
+                o2[k],
+                stringScorer,
+                numberScorer,
+                preserveStrings,
+              )
+            : 0,
         ),
       )
     ).filter((s) => s !== null) as number[];

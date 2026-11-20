@@ -5,6 +5,7 @@ Complete reference for all scorers available in Autoevals, including parameters,
 ## Table of contents
 
 - [LLM-as-a-judge scorers](#llm-as-a-judge-scorers)
+- [Drex decision-model scorer](#drex-decision-model-scorer)
 - [RAG (Retrieval-Augmented Generation) scorers](#rag-retrieval-augmented-generation-scorers)
 - [Heuristic scorers](#heuristic-scorers)
 - [JSON scorers](#json-scorers)
@@ -191,6 +192,64 @@ Evaluates translation quality.
 
 - `1.0` = Excellent translation
 - `0.0` = Poor translation
+
+---
+
+## Drex decision-model scorer
+
+### DrexClassifier
+
+Asks a [Drex](https://console.nace.ai/docs) decision model one typed question (`noul` yes/no, `choice` or `score`) about a case and returns the probability mass on the outcomes you call a pass. Drex answers with probabilities, not a verdict, so the full distribution stays in `metadata`.
+
+No extra package is needed: the scorer calls `POST {base_url}/v1/systemone` itself, with `httpx` when it is installed (it ships with `openai`) and the standard library otherwise, and with the global `fetch` in TypeScript. It works on Python 3.10 and later. Set `NACE_API_KEY` (and `NACE_BASE_URL` if you do not use Nace direct).
+
+**Parameters:**
+
+- `question` (required): `DrexQuestion.noul(instructions=None, *, true=None, false=None, yes_is="pass"|"fail")`, `DrexQuestion.choice(choices, *, scores={label: 0..1}, instructions=None)` or `DrexQuestion.score(levels, *, instructions=None, reverse=False)`. TypeScript: `drexQuestion.noul(...)`, `.choice(...)`, `.score(...)`. A criteria-only `noul` (`true=`/`false=` without instructions) is supported. Python also accepts a dict `{name: DrexQuestion}`: with more than one question the scorer must be called with `eval_many(output, expected, **case)` / `eval_many_async(...)`, which returns one `Score` per question in order, and `.eval()` raises (a one-entry dict behaves like a single question, named after its key). TypeScript: `DrexClassifierMany({ questions, output, ... })` returns `Score[]` and is not a `.partial` scorer
+- `output` (required), `expected`, `input`, `context`: the case. Drex reads the fields in `state_fields` (default all four; `output` alone is sent as plain text)
+- `model` (string, optional): any Drex model id, passed through. Default `drex-max`, which also reads `images`. Use `drex-v2.0` for large text-only rubrics if Drex rejects the question count
+- `images` (optional, `drex-max` only): bytes (PNG, JPEG or WebP), a base64 string, a data URL, or a `{"type": "workspace_file", "workspace_id": ..., "file_id": ...}` reference. Images sent to a text-only model are refused, never dropped. Through OpenRouter only inline images work; uploaded files are refused
+- `threshold` (float, optional): turn the 0-1 score into 1 or 0
+- `api_key` (optional): defaults to `NACE_API_KEY` (`OPENROUTER_API_KEY` for OpenRouter)
+- `base_url` (string, optional): defaults to `NACE_BASE_URL`, then Nace direct. Drex can also run on your own infrastructure under your own domain: set `base_url` (or `NACE_BASE_URL`) to that host, for example `https://drex.example.com`, and the scorer works as it does against Nace, with your Nace key from `api_key` or `NACE_API_KEY`. A 402 then points to `<base_url>/dashboard/billing`. `https://openrouter.ai/api/v1` runs the same scorer through OpenRouter: pass the OpenRouter key as `api_key` or in `OPENROUTER_API_KEY` (it is never taken from `NACE_API_KEY`, and a Nace host never uses `OPENROUTER_API_KEY`) and use namespaced model ids (`nace-ai/drex-max`, `nace-ai/drex-v2.0`). The default model there is `nace-ai/drex-max`; a bare id such as `drex-max` does not exist on OpenRouter, so it is refused with a clear error. `nace-ai/drex-latest` stays text-only like `drex-latest`. OpenRouter is recognized by its host (`openrouter.ai` or a subdomain)
+- `timeout` (seconds per attempt, default 60; keep it at 60 or more) and `max_retries` (default 2; retries 408, 429 and 5xx including 529, and connection errors, honouring `retry-after-ms`, then `retry-after`; a requested wait over 60 s is not slept: `DrexError` is raised at once). A request over Drex's 4 MiB body limit is refused before sending; the scorer does not upload files. TypeScript: `apiKey`, `timeoutMs`, `maxRetries`
+
+TypeScript takes the same options in camelCase (`yesIs`, `stateFields`, `baseUrl`, `timeoutMs`, `maxRetries`) and `DrexError` carries `requestId`.
+
+**Score Range:** 0-1, higher is better.
+
+- `noul`: probability of yes (or of no with `yes_is="fail"`)
+- `choice`: probability-weighted sum of the `scores` you give each label
+- `score`: expected level divided by the top level (`reverse` flips it); the raw level and legend stay in `metadata`
+
+`metadata` holds `probabilities`, `request_id`, `model`, `usage` (`input_tokens`, `image_tokens`, `output_tokens`), `evaluation_time_ms` and the unthresholded `raw_value`. `usage` is attached only to the first score of a request; the others carry `usage: null`, and `usage_counted_on` names the score that holds it. API failures (401, 402, 422, 429/529 after retries, timeouts) raise `DrexError` (`status`, `request_id`) and are never a low score. Invalid arguments are caught before any request and raise `ValueError` (TypeScript `Error`). Answer several questions about one case in a single request with `eval_many` / `DrexClassifierMany`.
+
+**Example:**
+
+```python
+from autoevals.drex import DrexClassifier, DrexQuestion
+
+grounded = DrexClassifier(DrexQuestion.noul("Is every claim in the output supported by the context?"), name="Grounded")
+result = grounded.eval("Paris is the capital of France.", context="France's capital is Paris.")
+print(result.score, result.metadata["probabilities"])
+```
+
+```typescript
+import { DrexClassifier, drexQuestion } from "autoevals";
+
+const grounded = DrexClassifier.partial({
+  name: "Grounded",
+  question: drexQuestion.noul(
+    "Is every claim in the output supported by the context?",
+  ),
+});
+const result = await grounded({
+  output: "Paris is the capital of France.",
+  context: "France's capital is Paris.",
+});
+```
+
+See [`examples/drex`](examples/drex) for a Braintrust experiment.
 
 ---
 

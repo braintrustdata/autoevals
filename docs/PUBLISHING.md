@@ -6,8 +6,8 @@ actions from [`braintrustdata/sdk-actions`](https://github.com/braintrustdata/sd
 
 ## Versioning
 
-`package.json` and `py/autoevals/version.py` must hold the same version; `version-sync.yaml` (CI)
-enforces it on PRs. The release publishes the **committed** version — bump both and merge first.
+`package.json`, `py/autoevals/version.py` and `js/version.ts` must hold the same version; `version-sync.yaml` (CI)
+enforces it on PRs. The release publishes the **committed** version — bump all three and merge first.
 
 ## Releasing
 
@@ -26,7 +26,7 @@ One approval releases both packages; if either lane fails before the gate, neith
 
 ### Steps
 
-1. Bump `package.json` + `py/autoevals/version.py` together and merge to `main`.
+1. Bump `package.json` + `py/autoevals/version.py` + `js/version.ts` together and merge to `main`.
 2. Run `publish` with `release_type=stable`, `sha=<merged commit>`.
 3. Approve the `publish` environment when the run parks at the gate.
 

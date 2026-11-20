@@ -1341,7 +1341,11 @@ def extract_correctness_request(question, answer, ground_truth, **extra_args):
 
 def compute_f1_score(factuality):
     tp, fp, fn = len(factuality["TP"]), len(factuality["FP"]), len(factuality["FN"])
-    return tp / (tp + 0.5 * (fp + fn))
+    denominator = tp + 0.5 * (fp + fn)
+    # A judge can classify nothing at all (an answer with no checkable claims,
+    # or an empty classification). Score that 0 rather than dividing by zero,
+    # matching the guard in ContextRecall._postprocess.
+    return tp / denominator if denominator > 0 else 0
 
 
 class AnswerCorrectness(OpenAILLMScorer):

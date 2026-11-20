@@ -125,6 +125,7 @@ asyncio.run(evaluate_qa())
 See individual module documentation for detailed usage and options.
 """
 
+from .consistency import *
 from .json import *
 from .list import *
 from .litellm import AsyncLiteLLMClient, LiteLLMClient

@@ -1,7 +1,10 @@
+import pytest
 from pytest import approx
 
 from autoevals.list import ListContains
 from autoevals.number import NumericDiff
+from autoevals.partial import ScorerWithPartial
+from autoevals.score import Score
 from autoevals.string import LevenshteinScorer
 from autoevals.value import ExactMatch
 
@@ -78,6 +81,32 @@ def test_list_contains():
     assert (
         ListContains(pairwise_evaluator=LevenshteinScorer(), allow_extra_entities=True)(["a", "b"], ["a"]).score == 1
     )
+
+
+@pytest.mark.parametrize("run_async", [False, True])
+@pytest.mark.parametrize("as_class", [False, True])
+@pytest.mark.asyncio
+async def test_list_contains_partial_pairwise_scorer(run_async, as_class):
+    class CaseMatch(ScorerWithPartial):
+        def _run_eval_sync(self, output, expected=None, ignore_case=False, **kwargs):
+            if ignore_case:
+                output, expected = output.casefold(), expected.casefold()
+            return Score(name=self._name(), score=float(output == expected))
+
+    pairwise_scorer = CaseMatch.partial(ignore_case=True)
+    scorer = ListContains(pairwise_scorer=pairwise_scorer if as_class else pairwise_scorer())
+    output = ["PARIS", "Rome", "extra"]
+    expected = ["rome", "paris"]
+
+    if run_async:
+        assert (await pairwise_scorer().eval_async("PARIS", "paris")).score == 1
+        result = await scorer.eval_async(output=output, expected=expected)
+    else:
+        assert pairwise_scorer().eval("PARIS", "paris").score == 1
+        result = scorer.eval(output=output, expected=expected)
+
+    assert result.score == approx(2 / 3)
+    assert result.metadata["pairs"] == [("PARIS", "paris", 1), ("Rome", "rome", 1)]
 
 
 def test_exact_match():

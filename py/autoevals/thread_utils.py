@@ -23,8 +23,8 @@ THREAD_VARIABLE_NAMES = [
     "human_ai_pairs",
 ]
 
-# Match variables after "{{" or "{%" (e.g., {{thread}}, {{ thread }}, {% if thread %}).
-THREAD_VARIABLE_PATTERN = re.compile(r"\{[\{%]\s*(" + "|".join(THREAD_VARIABLE_NAMES) + r")")
+# Match thread references, including Mustache sections and unescaped variables.
+THREAD_VARIABLE_PATTERN = re.compile(r"\{[\{%]\s*(?:[#^&]\s*)?(" + "|".join(THREAD_VARIABLE_NAMES) + r")")
 
 
 def template_uses_thread_variables(template: str) -> bool:

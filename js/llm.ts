@@ -46,14 +46,15 @@ export const THREAD_VARIABLE_NAMES = [
   "human_ai_pairs",
 ];
 
-// Pattern to match thread variables in template syntax: {{thread, {{ thread, {%...thread, etc.
+// Match thread references, including Mustache sections and unescaped variables.
 export const THREAD_VARIABLE_PATTERN = new RegExp(
-  `\\{[\\{%]\\s*(${THREAD_VARIABLE_NAMES.join("|")})`,
+  `\\{[\\{%]\\s*(?:[#^&]\\s*)?(${THREAD_VARIABLE_NAMES.join("|")})`,
 );
 
 /**
  * Check if a template string might use thread-related template variables.
- * This is a heuristic - looks for variable names after `{{` or `{%` syntax.
+ * This is a heuristic - looks for variable names after `{{` or `{%` syntax,
+ * allowing Mustache section and unescaped-variable prefixes.
  */
 export function templateUsesThreadVariables(template: string): boolean {
   return THREAD_VARIABLE_PATTERN.test(template);

@@ -134,6 +134,9 @@ class _FakeTrace:
         del options
         return self._thread
 
+    async def get_trajectory(self):
+        return [{"turns": [{"request": self._thread}]}]
+
 
 def test_llm_classifier_request_args_keep_thread_filtered_and_thread_with_system_unfiltered():
     system_marker = "PY_AUTOEVALS_SYSTEM_MARKER"
@@ -186,6 +189,17 @@ async def test_llm_classifier_request_args_async_keep_thread_filtered_and_thread
     assert "Hi there" in filtered_thread
     assert system_marker not in filtered_thread
     assert system_marker in full_thread
+
+
+def test_llm_classifier_request_args_explicit_arg_overrides_trace_var():
+    trace = _FakeTrace([{"role": "user", "content": "Hello"}])
+    classifier = LLMClassifier("test", "{{trajectory}}", {"Yes": 1, "No": 0}, use_cot=False)
+
+    request_args = classifier._request_args(output="", expected="", trace=trace, trajectory="My custom transcript")
+
+    content = request_args["messages"][0]["content"]
+    assert content.startswith("My custom transcript\n")
+    assert "Hello" not in content
 
 
 def test_openai():

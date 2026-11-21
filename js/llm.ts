@@ -18,6 +18,11 @@ import {
   computeThreadTemplateVars,
   type ThreadTemplateVars,
 } from "./thread-utils";
+import {
+  computeTrajectoryTemplateVars,
+  templateUsesTrajectoryVariables,
+} from "./trajectory-utils";
+import { type Recording, templateUsesRecording } from "./recording-utils";
 
 /**
  * Minimal interface for a Trace object that can provide thread data.
@@ -25,6 +30,8 @@ import {
  */
 export interface TraceForScorer {
   getThread(options?: { preprocessor?: string }): Promise<unknown[]>;
+  getTrajectory?(): Promise<unknown[]>;
+  getRecording?(): Promise<Recording | null>;
 }
 
 // Thread-related template variable names that require preprocessor invocation
@@ -343,6 +350,25 @@ export function LLMClassifierFromTemplate<RenderArgs>({
         threadVars[name] = computed[name as keyof ThreadTemplateVars];
       }
     }
+    if (
+      runtimeArgs.trace?.getTrajectory &&
+      templateUsesTrajectoryVariables(promptTemplate)
+    ) {
+      Object.assign(
+        threadVars,
+        computeTrajectoryTemplateVars(await runtimeArgs.trace.getTrajectory()),
+      );
+    }
+    if (templateUsesRecording(promptTemplate)) {
+      if (!runtimeArgs.trace?.getRecording) {
+        throw new Error("{{recording}} requires trace.getRecording()");
+      }
+      const recording = await runtimeArgs.trace.getRecording();
+      if (!recording) {
+        return { name, score: null, metadata: { recording_empty: true } };
+      }
+      threadVars.recording = recording;
+    }
 
     const prompt =
       promptTemplate + "\n" + (useCoT ? COT_SUFFIX : NO_COT_SUFFIX);
@@ -493,3 +519,35 @@ export const Translation = buildLLMClassifier<{
   language: string;
   input: string;
 }>("Translation", "translation");
+
+/**
+ * Test whether a voice agent completed the task the call was for.
+ */
+export const VoiceTaskCompletion = buildLLMClassifier<{}>(
+  "VoiceTaskCompletion",
+  "voice_task_completion",
+);
+
+/**
+ * Test whether speech-to-text kept the meaning of what the user said.
+ */
+export const VoiceTranscriptionAccuracy = buildLLMClassifier<{}>(
+  "VoiceTranscriptionAccuracy",
+  "voice_transcription_accuracy",
+);
+
+/**
+ * Test whether a voice agent avoided dead air: silence that left the user unsure it was still there.
+ */
+export const VoiceDeadAir = buildLLMClassifier<{}>(
+  "VoiceDeadAir",
+  "voice_dead_air",
+);
+
+/**
+ * Test whether a voice agent let the user finish speaking and stopped when the user broke in.
+ */
+export const VoiceInterruptions = buildLLMClassifier<{}>(
+  "VoiceInterruptions",
+  "voice_interruptions",
+);

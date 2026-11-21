@@ -1,0 +1,1097 @@
+{
+  "pipecat-interruption-during-playback": {
+    "trajectories": [
+      {
+        "scope": [
+          {
+            "type": "trace",
+            "trace_id": "e5a23000f72598172bb9fd3c5934422e"
+          }
+        ],
+        "agent": {
+          "metadata": {}
+        },
+        "turns": [
+          {
+            "request_id": "7251f477-ab4d-46f2-ae6b-e05fa200721c",
+            "response_id": "f65b8270-a36b-4c5b-ac08-38658a11c877",
+            "request": [
+              {
+                "role": "user",
+                "content": "Hello."
+              }
+            ],
+            "response": {
+              "response": [
+                {
+                  "type": "text",
+                  "text": "Hello there! Thanks for calling Acme Supply, this is Sam. How can I help"
+                }
+              ],
+              "start_time": "2026-11-12T15:25:06.945790Z",
+              "end_time": "2026-11-12T15:25:11.219397Z"
+            },
+            "work": [
+              {
+                "id": "e9cb8a53-87ff-43a8-9e56-473505442738",
+                "span_type": "task",
+                "name": "stt",
+                "start_time": "2026-11-12T15:25:04.616365Z",
+                "end_time": "2026-11-12T15:25:04.981642Z",
+                "work": {
+                  "type": "tool_result",
+                  "output": "Hello.",
+                  "content": []
+                }
+              },
+              {
+                "id": "16b93198-f759-4f87-86a3-e0c5c2209457",
+                "span_type": "task",
+                "name": "stt",
+                "start_time": "2026-11-12T15:25:04.981642Z",
+                "end_time": "2026-11-12T15:25:05.518713Z",
+                "work": {
+                  "type": "tool_result",
+                  "content": []
+                }
+              },
+              {
+                "id": "a9e8fead-5aaf-4438-994d-2dd56d373e46",
+                "span_type": "llm",
+                "name": "Chat Completion",
+                "start_time": "2026-11-12T15:25:05.521565Z",
+                "end_time": "2026-11-12T15:25:06.888104Z",
+                "work": {
+                  "type": "llm_analysis",
+                  "work": [
+                    {
+                      "role": "system",
+                      "content": "ASYNC TOOLS:\nSome of your tools keep running after you have replied. Their results arrive later as messages in the conversation, on whatever turn happens to be in progress by then.\n\nA result that has arrived is owed to the user, whatever the conversation has moved on to. If the user has said something you have not answered yet, answer that first, then add the result at the end of that same reply — never before your answer. If you have already answered everything the user said, deliver just the result — do not repeat or rephrase your earlier reply. State a short result outright; for a long one, say what came back and offer the details. Say it once, and do not repeat it in later replies."
+                    },
+                    {
+                      "role": "system",
+                      "content": "You are Sam, who answers the phone at Acme Supply, an online store for home and office goods. Talk like a friendly, capable person on a phone call.\n\n- Help the caller check on or change an order.\n- Ask for the order ID if you don't have it. Order IDs are four-digit numbers.\n- Use what the caller has already told you. Don't ask again for anything they've said.\n- Use lookup_order before answering questions about an order, and update_order to change it.\n- When you look up an order, tell the caller the item, its status, and when it should arrive.\n- Say order IDs digit by digit, like \"one zero one four\".\n- Confirm the change with the caller before calling update_order, then tell them it's done.\n- Never make up order details. If a tool returns an error, say so and ask how to proceed.\n- When the customer is done, say one short goodbye and call end_call.\n- Keep each reply to one short sentence, two at most, and answer what they asked first.\n- Speak plainly, the way people do on the phone, with no flourishes, lists, or formatting.\n"
+                    },
+                    {
+                      "role": "user",
+                      "content": "Hello."
+                    },
+                    {
+                      "role": "assistant",
+                      "content": "Hello there! Thanks for calling Acme Supply, this is Sam. How can I help you with your order today?"
+                    }
+                  ],
+                  "model": "gemini-2.5-flash",
+                  "usage": {
+                    "prompt_tokens": 575,
+                    "completion_tokens": 81,
+                    "total_tokens": 656,
+                    "completion_reasoning_tokens": 54
+                  }
+                }
+              },
+              {
+                "id": "8331049a-ed92-4370-a03d-e4038f9b6530",
+                "span_type": "task",
+                "name": "tts",
+                "start_time": "2026-11-12T15:25:06.805416Z",
+                "end_time": "2026-11-12T15:25:07.832027Z",
+                "work": {
+                  "type": "tool_result",
+                  "content": []
+                }
+              }
+            ],
+            "model": "gemini-2.5-flash",
+            "start_time": "2026-11-12T15:25:04.816692Z",
+            "end_time": "2026-11-12T15:25:11.219397Z"
+          },
+          {
+            "request_id": "674dd717-86fe-46e3-b8f5-25358943e45b",
+            "response_id": "efcba2ea-045d-420a-a1e1-6a0680654869",
+            "request": [
+              {
+                "role": "user",
+                "content": "I'm checking on order one zero one four. You tell me its status?"
+              }
+            ],
+            "response": {
+              "response": [
+                {
+                  "type": "text",
+                  "text": "Order one zero one four, for a Desk Lamp, was shipped and should arrive by October twenty-sixth, two"
+                }
+              ],
+              "start_time": "2026-11-12T15:25:21.049644Z",
+              "end_time": "2026-11-12T15:25:26.969416Z"
+            },
+            "work": [
+              {
+                "id": "2a4470ef-5287-43b0-a5e8-285ca3bd65b4",
+                "span_type": "task",
+                "name": "stt",
+                "start_time": "2026-11-12T15:25:15.197451Z",
+                "end_time": "2026-11-12T15:25:17.510268Z",
+                "work": {
+                  "type": "tool_result",
+                  "output": "I'm checking on order one zero one four.",
+                  "content": []
+                }
+              },
+              {
+                "id": "c4211c8d-5fae-4ce0-bd0e-ac73938c0b21",
+                "span_type": "task",
+                "name": "stt",
+                "start_time": "2026-11-12T15:25:17.510268Z",
+                "end_time": "2026-11-12T15:25:18.881153Z",
+                "work": {
+                  "type": "tool_result",
+                  "output": "You tell me its status?",
+                  "content": []
+                }
+              },
+              {
+                "id": "0e44fd23-2f66-4f96-bab9-021749d9a0a9",
+                "span_type": "task",
+                "name": "stt",
+                "start_time": "2026-11-12T15:25:17.607512Z",
+                "end_time": "2026-11-12T15:25:19.409818Z",
+                "work": {
+                  "type": "tool_result",
+                  "content": []
+                }
+              },
+              {
+                "id": "490f05a2-bec3-4d39-a111-ed631cb6eb09",
+                "span_type": "llm",
+                "name": "Chat Completion",
+                "start_time": "2026-11-12T15:25:19.411958Z",
+                "end_time": "2026-11-12T15:25:20.183638Z",
+                "work": {
+                  "type": "llm_analysis",
+                  "work": [
+                    {
+                      "role": "system",
+                      "content": "ASYNC TOOLS:\nSome of your tools keep running after you have replied. Their results arrive later as messages in the conversation, on whatever turn happens to be in progress by then.\n\nA result that has arrived is owed to the user, whatever the conversation has moved on to. If the user has said something you have not answered yet, answer that first, then add the result at the end of that same reply — never before your answer. If you have already answered everything the user said, deliver just the result — do not repeat or rephrase your earlier reply. State a short result outright; for a long one, say what came back and offer the details. Say it once, and do not repeat it in later replies."
+                    },
+                    {
+                      "role": "system",
+                      "content": "You are Sam, who answers the phone at Acme Supply, an online store for home and office goods. Talk like a friendly, capable person on a phone call.\n\n- Help the caller check on or change an order.\n- Ask for the order ID if you don't have it. Order IDs are four-digit numbers.\n- Use what the caller has already told you. Don't ask again for anything they've said.\n- Use lookup_order before answering questions about an order, and update_order to change it.\n- When you look up an order, tell the caller the item, its status, and when it should arrive.\n- Say order IDs digit by digit, like \"one zero one four\".\n- Confirm the change with the caller before calling update_order, then tell them it's done.\n- Never make up order details. If a tool returns an error, say so and ask how to proceed.\n- When the customer is done, say one short goodbye and call end_call.\n- Keep each reply to one short sentence, two at most, and answer what they asked first.\n- Speak plainly, the way people do on the phone, with no flourishes, lists, or formatting.\n"
+                    },
+                    {
+                      "role": "user",
+                      "content": "I'm checking on order one zero one four. You tell me its status?"
+                    },
+                    {
+                      "role": "assistant",
+                      "content": [
+                        {
+                          "type": "tool_call",
+                          "tool_call_id": "call_X9r1at-UJ4yFytMPu9CBkAo_0",
+                          "tool_name": "lookup_order",
+                          "arguments": {
+                            "type": "valid",
+                            "value": {
+                              "order_id": "1014"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "model": "gemini-2.5-flash",
+                  "usage": {
+                    "prompt_tokens": 621,
+                    "completion_tokens": 78,
+                    "total_tokens": 699,
+                    "completion_reasoning_tokens": 58
+                  }
+                }
+              },
+              {
+                "id": "1f65a001-8dd2-4b97-8e97-4a6c8fc307ec",
+                "span_type": "tool",
+                "name": "lookup_order",
+                "start_time": "2026-11-12T15:25:20.184852Z",
+                "end_time": "2026-11-12T15:25:20.184926Z",
+                "work": {
+                  "type": "tool_result",
+                  "input": {
+                    "order_id": "1014"
+                  },
+                  "output": {
+                    "customer": "Jordan Lee",
+                    "delivery_address": "12 Main Street",
+                    "estimated_delivery": "2027-10-26",
+                    "item": "Desk Lamp",
+                    "order_id": "1014",
+                    "quantity": "4",
+                    "status": "shipped"
+                  }
+                }
+              },
+              {
+                "id": "07cdd7f4-97de-4ba4-8303-611b1fce8c90",
+                "span_type": "llm",
+                "name": "Chat Completion",
+                "start_time": "2026-11-12T15:25:20.187659Z",
+                "end_time": "2026-11-12T15:25:20.916200Z",
+                "work": {
+                  "type": "llm_analysis",
+                  "work": [
+                    {
+                      "role": "system",
+                      "content": "ASYNC TOOLS:\nSome of your tools keep running after you have replied. Their results arrive later as messages in the conversation, on whatever turn happens to be in progress by then.\n\nA result that has arrived is owed to the user, whatever the conversation has moved on to. If the user has said something you have not answered yet, answer that first, then add the result at the end of that same reply — never before your answer. If you have already answered everything the user said, deliver just the result — do not repeat or rephrase your earlier reply. State a short result outright; for a long one, say what came back and offer the details. Say it once, and do not repeat it in later replies."
+                    },
+                    {
+                      "role": "system",
+                      "content": "You are Sam, who answers the phone at Acme Supply, an online store for home and office goods. Talk like a friendly, capable person on a phone call.\n\n- Help the caller check on or change an order.\n- Ask for the order ID if you don't have it. Order IDs are four-digit numbers.\n- Use what the caller has already told you. Don't ask again for anything they've said.\n- Use lookup_order before answering questions about an order, and update_order to change it.\n- When you look up an order, tell the caller the item, its status, and when it should arrive.\n- Say order IDs digit by digit, like \"one zero one four\".\n- Confirm the change with the caller before calling update_order, then tell them it's done.\n- Never make up order details. If a tool returns an error, say so and ask how to proceed.\n- When the customer is done, say one short goodbye and call end_call.\n- Keep each reply to one short sentence, two at most, and answer what they asked first.\n- Speak plainly, the way people do on the phone, with no flourishes, lists, or formatting.\n"
+                    },
+                    {
+                      "role": "user",
+                      "content": "I'm checking on order one zero one four. You tell me its status?"
+                    },
+                    {
+                      "role": "assistant",
+                      "content": "Order one zero one four, for a Desk Lamp, was shipped and should arrive by October twenty-sixth, two thousand twenty-seven."
+                    }
+                  ],
+                  "model": "gemini-2.5-flash",
+                  "usage": {
+                    "prompt_tokens": 736,
+                    "completion_tokens": 31,
+                    "total_tokens": 767
+                  }
+                }
+              },
+              {
+                "id": "06dd8362-79db-4a76-b3a5-afc43a6608ab",
+                "span_type": "task",
+                "name": "tts",
+                "start_time": "2026-11-12T15:25:20.917734Z",
+                "end_time": "2026-11-12T15:25:21.998879Z",
+                "work": {
+                  "type": "tool_result",
+                  "content": []
+                }
+              }
+            ],
+            "model": "gemini-2.5-flash",
+            "start_time": "2026-11-12T15:25:15.168204Z",
+            "end_time": "2026-11-12T15:25:26.969416Z"
+          },
+          {
+            "request_id": "784079b9-c9de-4261-849f-8eea3a12ee5c",
+            "response_id": "b049b454-5e84-4ea1-8c33-d1e5119be615",
+            "request": [
+              {
+                "role": "user",
+                "content": "Thanks."
+              }
+            ],
+            "response": {
+              "response": [
+                {
+                  "type": "text",
+                  "text": "You're very"
+                }
+              ],
+              "start_time": "2026-11-12T15:25:33.955399Z",
+              "end_time": "2026-11-12T15:25:34.519986Z"
+            },
+            "work": [
+              {
+                "id": "8bc4f1e9-f2cc-47fc-9d53-3c3009520383",
+                "span_type": "llm",
+                "name": "Chat Completion",
+                "start_time": "2026-11-12T15:25:33.204608Z",
+                "end_time": "2026-11-12T15:25:33.816646Z",
+                "work": {
+                  "type": "llm_analysis",
+                  "work": [
+                    {
+                      "role": "system",
+                      "content": "ASYNC TOOLS:\nSome of your tools keep running after you have replied. Their results arrive later as messages in the conversation, on whatever turn happens to be in progress by then.\n\nA result that has arrived is owed to the user, whatever the conversation has moved on to. If the user has said something you have not answered yet, answer that first, then add the result at the end of that same reply — never before your answer. If you have already answered everything the user said, deliver just the result — do not repeat or rephrase your earlier reply. State a short result outright; for a long one, say what came back and offer the details. Say it once, and do not repeat it in later replies."
+                    },
+                    {
+                      "role": "system",
+                      "content": "You are Sam, who answers the phone at Acme Supply, an online store for home and office goods. Talk like a friendly, capable person on a phone call.\n\n- Help the caller check on or change an order.\n- Ask for the order ID if you don't have it. Order IDs are four-digit numbers.\n- Use what the caller has already told you. Don't ask again for anything they've said.\n- Use lookup_order before answering questions about an order, and update_order to change it.\n- When you look up an order, tell the caller the item, its status, and when it should arrive.\n- Say order IDs digit by digit, like \"one zero one four\".\n- Confirm the change with the caller before calling update_order, then tell them it's done.\n- Never make up order details. If a tool returns an error, say so and ask how to proceed.\n- When the customer is done, say one short goodbye and call end_call.\n- Keep each reply to one short sentence, two at most, and answer what they asked first.\n- Speak plainly, the way people do on the phone, with no flourishes, lists, or formatting.\n"
+                    },
+                    {
+                      "role": "user",
+                      "content": "Thanks."
+                    },
+                    {
+                      "role": "assistant",
+                      "content": "You're very welcome! Is there anything else I can help you with today?"
+                    }
+                  ],
+                  "model": "gemini-2.5-flash",
+                  "usage": {
+                    "prompt_tokens": 771,
+                    "completion_tokens": 17,
+                    "total_tokens": 788
+                  }
+                }
+              },
+              {
+                "id": "a52a4e1d-e89b-4068-aea7-f7bf41b13bd6",
+                "span_type": "task",
+                "name": "tts",
+                "start_time": "2026-11-12T15:25:33.813750Z",
+                "end_time": "2026-11-12T15:25:34.518465Z",
+                "work": {
+                  "type": "tool_result",
+                  "content": []
+                }
+              }
+            ],
+            "model": "gemini-2.5-flash",
+            "start_time": "2026-11-12T15:25:32.553372Z",
+            "end_time": "2026-11-12T15:25:34.519986Z",
+            "interrupted": true
+          },
+          {
+            "request_id": "b05cf2ba-e135-4d87-88c9-16d0e0e48c46",
+            "request": [
+              {
+                "role": "user",
+                "content": "That's the status I needed Goodbye."
+              }
+            ],
+            "work": [
+              {
+                "id": "dfe8ea64-83e0-467e-9cdd-9494bf22d9ab",
+                "span_type": "task",
+                "name": "stt",
+                "start_time": "2026-11-12T15:25:34.319623Z",
+                "end_time": "2026-11-12T15:25:35.656487Z",
+                "work": {
+                  "type": "tool_result",
+                  "output": "That's the status I needed",
+                  "content": []
+                }
+              },
+              {
+                "id": "a4b16f57-5f8d-4f46-8172-6e52c29f4451",
+                "span_type": "task",
+                "name": "stt",
+                "start_time": "2026-11-12T15:25:35.758932Z",
+                "end_time": "2026-11-12T15:25:36.416706Z",
+                "work": {
+                  "type": "tool_result",
+                  "output": "Goodbye.",
+                  "content": []
+                }
+              },
+              {
+                "id": "3d719a82-050d-4de7-9a11-7aaf38c75dc5",
+                "span_type": "llm",
+                "name": "Chat Completion",
+                "start_time": "2026-11-12T15:25:36.873300Z",
+                "end_time": "2026-11-12T15:25:37.740195Z",
+                "work": {
+                  "type": "llm_analysis",
+                  "work": [
+                    {
+                      "role": "system",
+                      "content": "ASYNC TOOLS:\nSome of your tools keep running after you have replied. Their results arrive later as messages in the conversation, on whatever turn happens to be in progress by then.\n\nA result that has arrived is owed to the user, whatever the conversation has moved on to. If the user has said something you have not answered yet, answer that first, then add the result at the end of that same reply — never before your answer. If you have already answered everything the user said, deliver just the result — do not repeat or rephrase your earlier reply. State a short result outright; for a long one, say what came back and offer the details. Say it once, and do not repeat it in later replies."
+                    },
+                    {
+                      "role": "system",
+                      "content": "You are Sam, who answers the phone at Acme Supply, an online store for home and office goods. Talk like a friendly, capable person on a phone call.\n\n- Help the caller check on or change an order.\n- Ask for the order ID if you don't have it. Order IDs are four-digit numbers.\n- Use what the caller has already told you. Don't ask again for anything they've said.\n- Use lookup_order before answering questions about an order, and update_order to change it.\n- When you look up an order, tell the caller the item, its status, and when it should arrive.\n- Say order IDs digit by digit, like \"one zero one four\".\n- Confirm the change with the caller before calling update_order, then tell them it's done.\n- Never make up order details. If a tool returns an error, say so and ask how to proceed.\n- When the customer is done, say one short goodbye and call end_call.\n- Keep each reply to one short sentence, two at most, and answer what they asked first.\n- Speak plainly, the way people do on the phone, with no flourishes, lists, or formatting.\n"
+                    },
+                    {
+                      "role": "user",
+                      "content": "That's the status I needed Goodbye."
+                    },
+                    {
+                      "role": "assistant",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Goodbye!"
+                        },
+                        {
+                          "type": "tool_call",
+                          "tool_call_id": "call_cdr1avvHBfKbwbUPl-uXeQ_0",
+                          "tool_name": "end_call",
+                          "arguments": {
+                            "type": "valid",
+                            "value": {}
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "model": "gemini-2.5-flash",
+                  "usage": {
+                    "prompt_tokens": 786,
+                    "completion_tokens": 33,
+                    "total_tokens": 819,
+                    "completion_reasoning_tokens": 21
+                  }
+                }
+              },
+              {
+                "id": "c2a9529d-8295-41a5-80fa-7d301e546b29",
+                "span_type": "tool",
+                "name": "end_call",
+                "start_time": "2026-11-12T15:25:37.741106Z",
+                "end_time": "2026-11-12T15:25:37.741161Z",
+                "work": {
+                  "type": "tool_result",
+                  "input": {},
+                  "output": {
+                    "ended": true
+                  }
+                }
+              },
+              {
+                "id": "2aa4601c-630c-48b1-8fbf-a9964721ccd4",
+                "span_type": "task",
+                "name": "tts",
+                "start_time": "2026-11-12T15:25:37.742616Z",
+                "end_time": "2026-11-12T15:25:38.022438Z",
+                "work": {
+                  "type": "tool_result",
+                  "content": []
+                }
+              }
+            ],
+            "model": "gemini-2.5-flash",
+            "start_time": "2026-11-12T15:25:34.519920Z",
+            "end_time": "2026-11-12T15:25:38.037223Z"
+          }
+        ],
+        "recordings": [
+          {
+            "id": "40198817-dc59-4cb2-ab44-92c315b961ba",
+            "origin": "2026-11-12T15:24:54.961Z",
+            "sources": [
+              {
+                "id": "agent-output"
+              },
+              {
+                "id": "session-input"
+              }
+            ],
+            "segments": [
+              {
+                "id": "part-0",
+                "state": "ready",
+                "start_offset_ms": 0,
+                "duration_ms": 43878,
+                "attachment_ref": "/input/audio/part-0",
+                "mime_type": "audio/ogg",
+                "channels": [
+                  {
+                    "index": 0,
+                    "sources": ["session-input"]
+                  },
+                  {
+                    "index": 1,
+                    "sources": ["agent-output"]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "metadata": {},
+        "version": "1"
+      }
+    ],
+    "trajectory": "User: Hello.\nAssistant: Hello there! Thanks for calling Acme Supply, this is Sam. How can I help\nUser: I'm checking on order one zero one four. You tell me its status?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"customer\":\"Jordan Lee\",\"delivery_address\":\"12 Main Street\",\"estimated_delivery\":\"2027-10-26\",\"item\":\"Desk Lamp\",\"order_id\":\"1014\",\"quantity\":\"4\",\"status\":\"shipped\"}\nAssistant: Order one zero one four, for a Desk Lamp, was shipped and should arrive by October twenty-sixth, two\nUser: Thanks.\nAssistant: You're very\nUser: That's the status I needed Goodbye.\nTool: end_call({}) -> {\"ended\":true}",
+    "trajectory_with_system": "System: ASYNC TOOLS:\n  Some of your tools keep running after you have replied. Their results arrive later as messages in the conversation, on whatever turn happens to be in progress by then.\n\n  A result that has arrived is owed to the user, whatever the conversation has moved on to. If the user has said something you have not answered yet, answer that first, then add the result at the end of that same reply — never before your answer. If you have already answered everything the user said, deliver just the result — do not repeat or rephrase your earlier reply. State a short result outright; for a long one, say what came back and offer the details. Say it once, and do not repeat it in later replies.\n  You are Sam, who answers the phone at Acme Supply, an online store for home and office goods. Talk like a friendly, capable person on a phone call.\n\n  - Help the caller check on or change an order.\n  - Ask for the order ID if you don't have it. Order IDs are four-digit numbers.\n  - Use what the caller has already told you. Don't ask again for anything they've said.\n  - Use lookup_order before answering questions about an order, and update_order to change it.\n  - When you look up an order, tell the caller the item, its status, and when it should arrive.\n  - Say order IDs digit by digit, like \"one zero one four\".\n  - Confirm the change with the caller before calling update_order, then tell them it's done.\n  - Never make up order details. If a tool returns an error, say so and ask how to proceed.\n  - When the customer is done, say one short goodbye and call end_call.\n  - Keep each reply to one short sentence, two at most, and answer what they asked first.\n  - Speak plainly, the way people do on the phone, with no flourishes, lists, or formatting.\n\nUser: Hello.\nAssistant: Hello there! Thanks for calling Acme Supply, this is Sam. How can I help\nUser: I'm checking on order one zero one four. You tell me its status?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"customer\":\"Jordan Lee\",\"delivery_address\":\"12 Main Street\",\"estimated_delivery\":\"2027-10-26\",\"item\":\"Desk Lamp\",\"order_id\":\"1014\",\"quantity\":\"4\",\"status\":\"shipped\"}\nAssistant: Order one zero one four, for a Desk Lamp, was shipped and should arrive by October twenty-sixth, two\nUser: Thanks.\nAssistant: You're very\nUser: That's the status I needed Goodbye.\nTool: end_call({}) -> {\"ended\":true}"
+  },
+  "openai-chat-tools": {
+    "trajectories": [
+      {
+        "agent": {
+          "metadata": {}
+        },
+        "metadata": {},
+        "scope": [
+          {
+            "trace_id": "f40eeb49a89c140bd2232d75081f15de",
+            "type": "trace"
+          }
+        ],
+        "turns": [
+          {
+            "end_time": "2026-11-16T15:49:01.542Z",
+            "model": "gpt-5-mini",
+            "request": [
+              {
+                "content": "You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.",
+                "role": "system"
+              },
+              {
+                "content": "Hi, where is my order 1019?",
+                "role": "user"
+              }
+            ],
+            "request_id": "2df41c8fd14d8a08",
+            "response": {
+              "end_time": "2026-11-16T15:49:01.542Z",
+              "response": [
+                {
+                  "text": "Thanks — I looked up order 1019. It's for a \"Wireless Headphones\" and the current status is: processing. Estimated delivery (ETA): 2026-11-25.\n\n\"Processing\" means it hasn't shipped yet. Would you like me to cancel the order or make any changes? If you want to cancel, please confirm and I'll proceed.",
+                  "type": "text"
+                }
+              ],
+              "start_time": "2026-11-16T15:48:57.087Z",
+              "usage": {
+                "completion_reasoning_tokens": 320,
+                "completion_tokens": 401,
+                "prompt_cached_tokens": 0,
+                "prompt_tokens": 227,
+                "total_tokens": 628
+              }
+            },
+            "response_id": "9ed753993b221bc9",
+            "start_time": "2026-11-16T15:48:55.630Z",
+            "work": [
+              {
+                "end_time": "2026-11-16T15:48:57.086Z",
+                "id": "2df41c8fd14d8a08",
+                "name": "Chat Completion",
+                "span_type": "llm",
+                "start_time": "2026-11-16T15:48:55.630Z",
+                "work": {
+                  "end_time": "2026-11-16T15:48:57.086Z",
+                  "response": [
+                    {
+                      "arguments": {
+                        "type": "valid",
+                        "value": {
+                          "order_id": "1019"
+                        }
+                      },
+                      "tool_call_id": "call_Fyt4mF8aKyPnPyKzklfkyVFA",
+                      "tool_name": "lookup_order",
+                      "type": "tool_call"
+                    }
+                  ],
+                  "start_time": "2026-11-16T15:48:55.630Z",
+                  "type": "agent_response",
+                  "usage": {
+                    "completion_reasoning_tokens": 0,
+                    "completion_tokens": 25,
+                    "prompt_cached_tokens": 0,
+                    "prompt_tokens": 178,
+                    "total_tokens": 203
+                  }
+                }
+              },
+              {
+                "end_time": "2026-11-16T15:48:57.087Z",
+                "id": "812932450f491db2",
+                "name": "lookup_order",
+                "span_type": "tool",
+                "start_time": "2026-11-16T15:48:57.087Z",
+                "work": {
+                  "content": [
+                    {
+                      "output": {
+                        "eta": "2026-11-25",
+                        "item": "Wireless Headphones",
+                        "status": "processing"
+                      },
+                      "tool_call_id": "call_Fyt4mF8aKyPnPyKzklfkyVFA",
+                      "tool_name": "lookup_order",
+                      "type": "tool_result"
+                    }
+                  ],
+                  "input": {
+                    "order_id": "1019"
+                  },
+                  "type": "tool_result"
+                }
+              }
+            ]
+          },
+          {
+            "end_time": "2026-11-16T15:49:04.426Z",
+            "model": "gpt-5-mini",
+            "request": [
+              {
+                "content": "You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.",
+                "role": "system"
+              },
+              {
+                "content": "Please cancel it.",
+                "role": "user"
+              }
+            ],
+            "request_id": "aa6a16a94d0296e6",
+            "response": {
+              "end_time": "2026-11-16T15:49:04.426Z",
+              "response": [
+                {
+                  "text": "Done — your order 1019 has been cancelled.",
+                  "type": "text"
+                }
+              ],
+              "start_time": "2026-11-16T15:49:03.479Z",
+              "usage": {
+                "completion_reasoning_tokens": 0,
+                "completion_tokens": 14,
+                "prompt_cached_tokens": 0,
+                "prompt_tokens": 355,
+                "total_tokens": 369
+              }
+            },
+            "response_id": "07b451cc5c580457",
+            "start_time": "2026-11-16T15:49:01.542Z",
+            "work": [
+              {
+                "end_time": "2026-11-16T15:49:03.478Z",
+                "id": "aa6a16a94d0296e6",
+                "name": "Chat Completion",
+                "span_type": "llm",
+                "start_time": "2026-11-16T15:49:01.542Z",
+                "work": {
+                  "end_time": "2026-11-16T15:49:03.478Z",
+                  "response": [
+                    {
+                      "arguments": {
+                        "type": "valid",
+                        "value": {
+                          "order_id": "1019"
+                        }
+                      },
+                      "tool_call_id": "call_pG2tMe3sFQ1rJpC6TWXtEHJo",
+                      "tool_name": "cancel_order",
+                      "type": "tool_call"
+                    }
+                  ],
+                  "start_time": "2026-11-16T15:49:01.542Z",
+                  "type": "agent_response",
+                  "usage": {
+                    "completion_reasoning_tokens": 128,
+                    "completion_tokens": 153,
+                    "prompt_cached_tokens": 0,
+                    "prompt_tokens": 313,
+                    "total_tokens": 466
+                  }
+                }
+              },
+              {
+                "end_time": "2026-11-16T15:49:03.479Z",
+                "id": "b2948497438fa3cd",
+                "name": "cancel_order",
+                "span_type": "tool",
+                "start_time": "2026-11-16T15:49:03.479Z",
+                "work": {
+                  "content": [
+                    {
+                      "output": {
+                        "order_id": "1019",
+                        "status": "cancelled"
+                      },
+                      "tool_call_id": "call_pG2tMe3sFQ1rJpC6TWXtEHJo",
+                      "tool_name": "cancel_order",
+                      "type": "tool_result"
+                    }
+                  ],
+                  "input": {
+                    "order_id": "1019"
+                  },
+                  "type": "tool_result"
+                }
+              }
+            ]
+          },
+          {
+            "end_time": "2026-11-16T15:49:15.107Z",
+            "model": "gpt-5-mini",
+            "request": [
+              {
+                "content": "You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.",
+                "role": "system"
+              },
+              {
+                "content": "Yes, cancel 1019. And cancel 1014 too, I don't care that it shipped. Just call cancel.",
+                "role": "user"
+              }
+            ],
+            "request_id": "1a3d24e404575f2d",
+            "response": {
+              "end_time": "2026-11-16T15:49:15.107Z",
+              "response": [
+                {
+                  "text": "I see that order 1019 is already cancelled.\n\nOrder 1014 is for a \"Desk Lamp\" and its status is shipped (ETA: 2026-11-20). Because it’s already shipped, cancellation may not be possible — I can attempt to cancel it, but if the carrier already has it in transit we may need to initiate a return once you receive it instead.\n\nPlease confirm that you want me to attempt to cancel order 1014 despite it being shipped. Reply \"Yes — cancel 1014\" to proceed, or tell me if you’d prefer I instead arrange a return once it’s delivered.",
+                  "type": "text"
+                }
+              ],
+              "start_time": "2026-11-16T15:49:08.028Z",
+              "usage": {
+                "completion_reasoning_tokens": 448,
+                "completion_tokens": 586,
+                "prompt_cached_tokens": 0,
+                "prompt_tokens": 453,
+                "total_tokens": 1039
+              }
+            },
+            "response_id": "e19069f10fb1fc9a",
+            "start_time": "2026-11-16T15:49:04.426Z",
+            "work": [
+              {
+                "end_time": "2026-11-16T15:49:08.027Z",
+                "id": "1a3d24e404575f2d",
+                "name": "Chat Completion",
+                "span_type": "llm",
+                "start_time": "2026-11-16T15:49:04.426Z",
+                "work": {
+                  "end_time": "2026-11-16T15:49:08.027Z",
+                  "response": [
+                    {
+                      "arguments": {
+                        "type": "valid",
+                        "value": {
+                          "order_id": "1014"
+                        }
+                      },
+                      "tool_call_id": "call_gOHKHTZYjA75Tciedh5BYWje",
+                      "tool_name": "lookup_order",
+                      "type": "tool_call"
+                    }
+                  ],
+                  "start_time": "2026-11-16T15:49:04.426Z",
+                  "type": "agent_response",
+                  "usage": {
+                    "completion_reasoning_tokens": 256,
+                    "completion_tokens": 281,
+                    "prompt_cached_tokens": 0,
+                    "prompt_tokens": 401,
+                    "total_tokens": 682
+                  }
+                }
+              },
+              {
+                "end_time": "2026-11-16T15:49:08.028Z",
+                "id": "b0db0e8d321c1653",
+                "name": "lookup_order",
+                "span_type": "tool",
+                "start_time": "2026-11-16T15:49:08.027Z",
+                "work": {
+                  "content": [
+                    {
+                      "output": {
+                        "eta": "2026-11-20",
+                        "item": "Desk Lamp",
+                        "status": "shipped"
+                      },
+                      "tool_call_id": "call_gOHKHTZYjA75Tciedh5BYWje",
+                      "tool_name": "lookup_order",
+                      "type": "tool_result"
+                    }
+                  ],
+                  "input": {
+                    "order_id": "1014"
+                  },
+                  "type": "tool_result"
+                }
+              }
+            ]
+          }
+        ],
+        "version": "1"
+      }
+    ],
+    "trajectory": "User: Hi, where is my order 1019?\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Thanks — I looked up order 1019. It's for a \"Wireless Headphones\" and the current status is: processing. Estimated delivery (ETA): 2026-11-25.\n\n  \"Processing\" means it hasn't shipped yet. Would you like me to cancel the order or make any changes? If you want to cancel, please confirm and I'll proceed.\nUser: Please cancel it.\nTool: cancel_order({\"order_id\":\"1019\"}) -> {\"order_id\":\"1019\",\"status\":\"cancelled\"}\nAssistant: Done — your order 1019 has been cancelled.\nUser: Yes, cancel 1019. And cancel 1014 too, I don't care that it shipped. Just call cancel.\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nAssistant: I see that order 1019 is already cancelled.\n\n  Order 1014 is for a \"Desk Lamp\" and its status is shipped (ETA: 2026-11-20). Because it’s already shipped, cancellation may not be possible — I can attempt to cancel it, but if the carrier already has it in transit we may need to initiate a return once you receive it instead.\n\n  Please confirm that you want me to attempt to cancel order 1014 despite it being shipped. Reply \"Yes — cancel 1014\" to proceed, or tell me if you’d prefer I instead arrange a return once it’s delivered.",
+    "trajectory_with_system": "System: You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.\nUser: Hi, where is my order 1019?\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Thanks — I looked up order 1019. It's for a \"Wireless Headphones\" and the current status is: processing. Estimated delivery (ETA): 2026-11-25.\n\n  \"Processing\" means it hasn't shipped yet. Would you like me to cancel the order or make any changes? If you want to cancel, please confirm and I'll proceed.\nUser: Please cancel it.\nTool: cancel_order({\"order_id\":\"1019\"}) -> {\"order_id\":\"1019\",\"status\":\"cancelled\"}\nAssistant: Done — your order 1019 has been cancelled.\nUser: Yes, cancel 1019. And cancel 1014 too, I don't care that it shipped. Just call cancel.\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nAssistant: I see that order 1019 is already cancelled.\n\n  Order 1014 is for a \"Desk Lamp\" and its status is shipped (ETA: 2026-11-20). Because it’s already shipped, cancellation may not be possible — I can attempt to cancel it, but if the carrier already has it in transit we may need to initiate a return once you receive it instead.\n\n  Please confirm that you want me to attempt to cancel order 1014 despite it being shipped. Reply \"Yes — cancel 1014\" to proceed, or tell me if you’d prefer I instead arrange a return once it’s delivered."
+  },
+  "ai-sdk-tools": {
+    "trajectories": [
+      {
+        "agent": {
+          "metadata": {}
+        },
+        "metadata": {},
+        "scope": [
+          {
+            "trace_id": "1690b2c9753e68cdb526f4c3805718e5",
+            "type": "trace"
+          }
+        ],
+        "turns": [
+          {
+            "end_time": "2026-11-16T15:49:22.089Z",
+            "model": "gpt-5-mini",
+            "request": [
+              {
+                "content": "You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.",
+                "role": "system"
+              },
+              {
+                "content": "What's the status of orders 1014 and 1019?",
+                "role": "user"
+              }
+            ],
+            "request_id": "e467045ffa347a3c",
+            "response": {
+              "end_time": "2026-11-16T15:49:22.089Z",
+              "response": [
+                {
+                  "text": "Here are the current statuses:\n\n- Order 1014 — Desk Lamp: shipped. ETA 2026-11-20.  \n- Order 1019 — Wireless Headphones: processing. ETA 2026-11-25.\n\nWould you like a tracking number for order 1014, or do you want to change or cancel order 1019?",
+                  "type": "text"
+                }
+              ],
+              "start_time": "2026-11-16T15:49:17.645Z",
+              "usage": {
+                "completion_reasoning_tokens": 192,
+                "completion_tokens": 275,
+                "prompt_cached_tokens": 0,
+                "prompt_tokens": 289,
+                "total_tokens": 564
+              }
+            },
+            "response_id": "1eadf5984052e9e1",
+            "start_time": "2026-11-16T15:49:15.117Z",
+            "work": [
+              {
+                "end_time": "2026-11-16T15:49:17.640Z",
+                "id": "e467045ffa347a3c",
+                "name": "doGenerate",
+                "span_type": "llm",
+                "start_time": "2026-11-16T15:49:15.117Z",
+                "work": {
+                  "end_time": "2026-11-16T15:49:17.640Z",
+                  "response": [
+                    {
+                      "arguments": {
+                        "type": "valid",
+                        "value": {
+                          "order_id": "1014"
+                        }
+                      },
+                      "tool_call_id": "call_4Vun1oNAfNSoqMHEC0DRA9hS",
+                      "tool_name": "lookup_order",
+                      "type": "tool_call"
+                    },
+                    {
+                      "arguments": {
+                        "type": "valid",
+                        "value": {
+                          "order_id": "1019"
+                        }
+                      },
+                      "tool_call_id": "call_3MIG3WhGI3gpY6pyjIYYiJWk",
+                      "tool_name": "lookup_order",
+                      "type": "tool_call"
+                    }
+                  ],
+                  "start_time": "2026-11-16T15:49:15.117Z",
+                  "type": "agent_response",
+                  "usage": {
+                    "completion_reasoning_tokens": 64,
+                    "completion_tokens": 121,
+                    "prompt_cached_tokens": 0,
+                    "prompt_tokens": 172,
+                    "total_tokens": 293
+                  }
+                }
+              },
+              {
+                "end_time": "2026-11-16T15:49:17.643Z",
+                "id": "43611e9cc31f410d",
+                "name": "lookup_order",
+                "span_type": "tool",
+                "start_time": "2026-11-16T15:49:17.643Z",
+                "work": {
+                  "input": {
+                    "order_id": "1014"
+                  },
+                  "output": {
+                    "eta": "2026-11-20",
+                    "item": "Desk Lamp",
+                    "status": "shipped"
+                  },
+                  "type": "tool_result"
+                }
+              },
+              {
+                "end_time": "2026-11-16T15:49:17.643Z",
+                "id": "b18a8685717e21a3",
+                "name": "lookup_order",
+                "span_type": "tool",
+                "start_time": "2026-11-16T15:49:17.643Z",
+                "work": {
+                  "input": {
+                    "order_id": "1019"
+                  },
+                  "output": {
+                    "eta": "2026-11-25",
+                    "item": "Wireless Headphones",
+                    "status": "processing"
+                  },
+                  "type": "tool_result"
+                }
+              }
+            ]
+          }
+        ],
+        "version": "1"
+      }
+    ],
+    "trajectory": "User: What's the status of orders 1014 and 1019?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Here are the current statuses:\n\n  - Order 1014 — Desk Lamp: shipped. ETA 2026-11-20.  \n  - Order 1019 — Wireless Headphones: processing. ETA 2026-11-25.\n\n  Would you like a tracking number for order 1014, or do you want to change or cancel order 1019?",
+    "trajectory_with_system": "System: You are a support agent for an online shop. Use lookup_order before answering questions about an order. Confirm with the customer before cancelling, then call cancel_order.\nUser: What's the status of orders 1014 and 1019?\nTool: lookup_order({\"order_id\":\"1014\"}) -> {\"eta\":\"2026-11-20\",\"item\":\"Desk Lamp\",\"status\":\"shipped\"}\nTool: lookup_order({\"order_id\":\"1019\"}) -> {\"eta\":\"2026-11-25\",\"item\":\"Wireless Headphones\",\"status\":\"processing\"}\nAssistant: Here are the current statuses:\n\n  - Order 1014 — Desk Lamp: shipped. ETA 2026-11-20.  \n  - Order 1019 — Wireless Headphones: processing. ETA 2026-11-25.\n\n  Would you like a tracking number for order 1014, or do you want to change or cancel order 1019?"
+  },
+  "nested-worker-and-embedding": {
+    "trajectories": [
+      {
+        "scope": [
+          {
+            "type": "trace",
+            "trace_id": "root"
+          }
+        ],
+        "agent": {
+          "metadata": {}
+        },
+        "turns": [
+          {
+            "request_id": "call",
+            "response_id": "final",
+            "request": [
+              {
+                "role": "additional_tools",
+                "tools": [],
+                "id": null
+              },
+              {
+                "role": "developer",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Instructions"
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": "Request"
+              }
+            ],
+            "response": {
+              "response": [
+                {
+                  "type": "text",
+                  "text": "Answer"
+                }
+              ],
+              "start_time": "1970-01-01T00:00:04Z",
+              "end_time": "1970-01-01T00:00:05Z"
+            },
+            "work": [
+              {
+                "id": "call",
+                "span_type": "llm",
+                "name": "llm",
+                "start_time": "1970-01-01T00:00:01Z",
+                "end_time": "1970-01-01T00:00:02Z",
+                "work": {
+                  "type": "agent_response",
+                  "response": [
+                    {
+                      "type": "tool_call",
+                      "tool_call_id": "call",
+                      "tool_name": "example_tool",
+                      "arguments": {
+                        "type": "valid",
+                        "value": {}
+                      }
+                    }
+                  ],
+                  "start_time": "1970-01-01T00:00:01Z",
+                  "end_time": "1970-01-01T00:00:02Z"
+                }
+              },
+              {
+                "id": "tool",
+                "span_type": "tool",
+                "name": "tool",
+                "start_time": "1970-01-01T00:00:02Z",
+                "end_time": "1970-01-01T00:00:03Z",
+                "work": {
+                  "type": "tool_result",
+                  "input": {},
+                  "output": "Result"
+                },
+                "sub_agent": {
+                  "scope": [
+                    {
+                      "type": "span",
+                      "id": "tool"
+                    }
+                  ],
+                  "agent": {
+                    "name": "tool",
+                    "metadata": {}
+                  },
+                  "turns": [
+                    {
+                      "request_id": "worker",
+                      "response_id": "worker",
+                      "request": [
+                        {
+                          "role": "user",
+                          "content": "Worker request"
+                        }
+                      ],
+                      "response": {
+                        "response": [
+                          {
+                            "type": "text",
+                            "text": "Worker answer"
+                          }
+                        ],
+                        "start_time": "1970-01-01T00:00:03Z",
+                        "end_time": "1970-01-01T00:00:04Z"
+                      },
+                      "work": [
+                        {
+                          "id": "embedding",
+                          "span_type": "llm",
+                          "name": "llm",
+                          "start_time": "1970-01-01T00:00:05Z",
+                          "end_time": "1970-01-01T00:00:06Z",
+                          "work": {
+                            "type": "agent_response",
+                            "response": [],
+                            "start_time": "1970-01-01T00:00:05Z",
+                            "end_time": "1970-01-01T00:00:06Z"
+                          }
+                        }
+                      ],
+                      "start_time": "1970-01-01T00:00:03Z",
+                      "end_time": "1970-01-01T00:00:06Z"
+                    }
+                  ],
+                  "metadata": {},
+                  "version": "1"
+                }
+              }
+            ],
+            "start_time": "1970-01-01T00:00:01Z",
+            "end_time": "1970-01-01T00:00:05Z"
+          }
+        ],
+        "metadata": {
+          "import_failures": [
+            {
+              "message": "Unsupported output message format",
+              "span_id": "embedding"
+            }
+          ]
+        },
+        "version": "1"
+      }
+    ],
+    "trajectory": "User: Request\nTool: tool({}) -> Result\n  Sub-agent:\n    User: Worker request\n    Assistant: Worker answer\nAssistant: Answer",
+    "trajectory_with_system": "System: Instructions\nUser: Request\nTool: tool({}) -> Result\n  Sub-agent:\n    User: Worker request\n    Assistant: Worker answer\nAssistant: Answer"
+  }
+}

@@ -9,6 +9,10 @@ import {
   Sql,
   Summary,
   Translation,
+  VoiceDeadAir,
+  VoiceInterruptions,
+  VoiceTaskCompletion,
+  VoiceTranscriptionAccuracy,
 } from "./llm";
 import { NumericDiff } from "./number";
 import { EmbeddingSimilarity, Levenshtein } from "./string";
@@ -100,6 +104,30 @@ export const Evaluators: {
           "Test whether an `output` is as good of a translation of the `input` in the specified `language` as an expert (`expected`) value.",
         template: templates.translation,
         requiresExtraParams: true,
+      },
+      {
+        method: VoiceTaskCompletion,
+        description:
+          "Test whether a voice agent completed the task the call was for, from the call recording and trajectory.",
+        template: templates.voice_task_completion,
+      },
+      {
+        method: VoiceTranscriptionAccuracy,
+        description:
+          "Test whether speech-to-text kept the meaning of what the user said, from the call recording and trajectory.",
+        template: templates.voice_transcription_accuracy,
+      },
+      {
+        method: VoiceDeadAir,
+        description:
+          "Test whether a voice agent avoided silence that left the user unsure it was still there, from the call recording and trajectory.",
+        template: templates.voice_dead_air,
+      },
+      {
+        method: VoiceInterruptions,
+        description:
+          "Test whether a voice agent let the user finish speaking and stopped when the user broke in, from the call recording and trajectory.",
+        template: templates.voice_interruptions,
       },
     ],
   },

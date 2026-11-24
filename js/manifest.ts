@@ -105,6 +105,11 @@ export const Evaluators: {
         template: templates.translation,
         requiresExtraParams: true,
       },
+    ],
+  },
+  {
+    label: "Voice",
+    methods: [
       {
         method: VoiceTaskCompletion,
         description:

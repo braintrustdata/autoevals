@@ -280,6 +280,8 @@ class OpenAILLMClassifier(OpenAILLMScorer):
 
     def _postprocess_response(self, resp):
         if len(resp["choices"]) > 0:
+            if resp["choices"][0].get("finish_reason") == "content_filter":
+                raise ValueError("Model refused to respond (finish_reason=content_filter)")
             return self._process_response(resp["choices"][0]["message"])
         else:
             raise ValueError("Empty response from OpenAI")

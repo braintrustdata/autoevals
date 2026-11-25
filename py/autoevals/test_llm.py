@@ -12,6 +12,7 @@ from autoevals import init
 from autoevals.llm import (
     DEFAULT_MODEL,
     Battle,
+    ClosedQA,
     Factuality,
     LLMClassifier,
     OpenAILLMClassifier,
@@ -792,3 +793,36 @@ def test_llm_classifier_does_not_fetch_thread_when_template_does_not_use_it():
     classifier.eval(output="x", expected="y", trace=trace)
 
     assert trace.calls == 0
+
+
+@respx.mock
+def test_llm_classifier_raises_on_refusal():
+    respx.route(method="POST", path__regex=r".*/chat/completions$").respond(
+        json={
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "created": 1734029028,
+            "model": "claude-haiku-5-5",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_test",
+                                "type": "function",
+                                "function": {"name": "select_choice", "arguments": "{}"},
+                            }
+                        ],
+                    },
+                    "finish_reason": "content_filter",
+                }
+            ],
+        }
+    )
+
+    llm = ClosedQA(model="claude-haiku-5-5", client=OpenAI(api_key="test"))
+    with pytest.raises(ValueError, match="finish_reason=content_filter"):
+        llm.eval(input="Is 2+2 four?", output="Yes, 4.", criteria="The answer says 4.")

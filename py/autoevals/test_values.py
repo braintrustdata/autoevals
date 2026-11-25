@@ -17,6 +17,10 @@ def test_levenshtein():
         ("ac", "bc", 0.5),
         ("abc", "axc", 0.66667),
         ("xabxcdxxefxgx", "1ab2cd34ef5g6", 0.53846),
+        # Characters outside the BMP count as one character, not two (matches the TypeScript scorer).
+        ("\U0001f600", "\U0001f601", 0),
+        ("a\U0001f600", "a\U0001f601", 0.5),
+        ("\U0001f600\U0001f600", "\U0001f600", 0.5),
     ]
 
     evaluator = LevenshteinScorer()

@@ -15,6 +15,10 @@ test("Levenshtein Test", async () => {
     { a: "ac", b: "bc", expected: 0.5 },
     { a: "abc", b: "axc", expected: 0.6666666666666667 },
     { a: "xabxcdxxefxgx", b: "1ab2cd34ef5g6", expected: 0.5384615384615384 },
+    // Characters outside the BMP count as one character, not two (matches the Python scorer).
+    { a: "\u{1F600}", b: "\u{1F601}", expected: 0 },
+    { a: "a\u{1F600}", b: "a\u{1F601}", expected: 0.5 },
+    { a: "\u{1F600}\u{1F600}", b: "\u{1F600}", expected: 0.5 },
   ];
 
   for (const { a, b, expected } of cases) {

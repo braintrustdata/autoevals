@@ -73,7 +73,7 @@ const NO_COT_SUFFIX =
   "Answer the question by calling `select_choice` with a single choice from {{__choices}}.";
 
 const COT_SUFFIX =
-  "Answer the question by calling `select_choice` with your reasoning in a step-by-step manner to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a single choice by setting the `choice` parameter to a single choice from {{__choices}}.";
+  "Answer the question by calling `select_choice` with a justification that cites the evidence, to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset. Select a single choice by setting the `choice` parameter to a single choice from {{__choices}}.";
 
 export type LLMArgs = {
   maxTokens?: number;
@@ -108,7 +108,7 @@ const COT_RESPONSE_SCHEMA = {
   properties: {
     reasons: {
       description:
-        "Write out in a step by step manner your reasoning to be sure that your conclusion is correct. Avoid simply stating the correct answer at the outset.",
+        "A justification for your conclusion that cites the evidence, to be sure that it is correct. Avoid simply stating the correct answer at the outset.",
       title: "Reasoning",
       type: "string",
     },

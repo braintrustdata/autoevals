@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import {
   Battle,
   buildClassificationTools,
+  ClosedQA,
   DEFAULT_MODEL,
   LLMClassifierFromTemplate,
   OpenAIClassifier,
@@ -665,5 +666,51 @@ Issue Description: {{page_content}}
 
     // Reset for other tests
     init({ client });
+  });
+
+  test("llm classifier raises on refusal", async () => {
+    server.use(
+      http.post("https://api.openai.com/v1/chat/completions", () =>
+        HttpResponse.json({
+          id: "chatcmpl-test",
+          object: "chat.completion",
+          created: 1234567890,
+          model: "claude-haiku-5-5",
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                content: null,
+                tool_calls: [
+                  {
+                    id: "call_test",
+                    type: "function",
+                    function: { name: "select_choice", arguments: "{}" },
+                  },
+                ],
+              },
+              finish_reason: "content_filter",
+            },
+          ],
+        }),
+      ),
+    );
+
+    init({
+      client: new OpenAI({
+        apiKey: "test-api-key",
+        baseURL: "https://api.openai.com/v1",
+      }),
+    });
+
+    await expect(
+      ClosedQA({
+        input: "Is 2+2 four?",
+        output: "Yes, 4.",
+        criteria: "The answer says 4.",
+        model: "claude-haiku-5-5",
+      }),
+    ).rejects.toThrow("finish_reason=content_filter");
   });
 });

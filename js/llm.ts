@@ -247,6 +247,11 @@ export async function OpenAIClassifier<RenderArgs, Output>(
   );
 
   if (resp.choices.length > 0) {
+    if (resp.choices[0].finish_reason === "content_filter") {
+      throw new Error(
+        "Model refused to respond (finish_reason=content_filter)",
+      );
+    }
     return {
       name,
       ...parseResponse(resp.choices[0].message!, choiceScores),

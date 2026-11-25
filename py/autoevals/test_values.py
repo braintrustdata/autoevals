@@ -1,4 +1,4 @@
-from pytest import approx
+from pytest import approx, mark
 
 from autoevals.list import ListContains
 from autoevals.number import NumericDiff
@@ -105,3 +105,11 @@ def test_exact_match():
             expected,
             expected_score,
         )
+
+
+@mark.parametrize("reference", [{"amount": 100}, [100]])
+@mark.parametrize("non_json", [None, True, 100, 1.5])
+def test_exact_match_json_and_non_json_values(reference, non_json):
+    evaluator = ExactMatch()
+    assert evaluator(output=non_json, expected=reference).score == 0
+    assert evaluator(output=reference, expected=non_json).score == 0

@@ -22,9 +22,16 @@ print(result.score)  # 1.0 for exact match
 # Object comparison (automatically normalized)
 result = scorer.eval(
     output={"name": "John", "age": 30},
-    expected='{"age": 30, "name": "John"}'  # Different order but same content
+    expected='{"name": "John", "age": 30}'  # JSON string or dict both work
 )
 print(result.score)  # 1.0 for equivalent JSON
+
+# Key order matters; use JSONDiff to ignore key order
+result = scorer.eval(
+    output={"name": "John", "age": 30},
+    expected='{"age": 30, "name": "John"}'
+)
+print(result.score)  # 0, keys are in a different order
 
 # Array comparison
 result = scorer.eval(

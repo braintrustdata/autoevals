@@ -13,12 +13,17 @@ export const Levenshtein: ScorerWithPartial<string, {}> = makePartial(
       throw new Error("LevenshteinScorer requires an expected value");
     }
 
-    const [output, expected] = [`${args.output}`, `${args.expected}`];
+    // Compare by Unicode code point, like the Python scorer, so a character
+    // outside the BMP (an emoji, say) counts as one edit rather than two.
+    const [output, expected] = [
+      Array.from(`${args.output}`),
+      Array.from(`${args.expected}`),
+    ];
     const maxLen = Math.max(output.length, expected.length);
 
     let score = 1;
     if (maxLen > 0) {
-      score = 1 - levenshtein(output, expected) / maxLen;
+      score = 1 - codePointLevenshtein(output, expected) / maxLen;
     }
 
     return {
@@ -29,6 +34,29 @@ export const Levenshtein: ScorerWithPartial<string, {}> = makePartial(
 
   "Levenshtein",
 );
+
+// js-levenshtein only accepts strings and compares UTF-16 code units. Map each
+// distinct code point to a single code unit so that it compares code points.
+function codePointLevenshtein(a: string[], b: string[]): number {
+  const codes = new Map<string, string>();
+  const encode = (chars: string[]) =>
+    chars
+      .map((c) => {
+        let code = codes.get(c);
+        if (code === undefined) {
+          code = String.fromCharCode(codes.size);
+          codes.set(c, code);
+        }
+        return code;
+      })
+      .join("");
+  const [ea, eb] = [encode(a), encode(b)];
+  // More than 65536 distinct code points cannot fit in code units; that is far
+  // beyond real text, so fall back to comparing the original UTF-16 strings.
+  return codes.size > 0x10000
+    ? levenshtein(a.join(""), b.join(""))
+    : levenshtein(ea, eb);
+}
 
 // For back-compat
 export const LevenshteinScorer: ScorerWithPartial<string, {}> = Levenshtein;

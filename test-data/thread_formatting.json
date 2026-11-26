@@ -1,0 +1,60 @@
+{
+  "tool_call_and_result_with_non_ascii_json": {
+    "messages": [
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_call",
+            "tool_call_id": "c1",
+            "tool_name": "weather",
+            "arguments": { "type": "valid", "value": { "city": "Zürich", "days": 3 } }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_call_id": "c1",
+            "tool_name": "weather",
+            "output": { "type": "json", "value": { "temp": 21, "sky": "☀" } }
+          }
+        ]
+      }
+    ],
+    "text": "Tool (weather):\n  Args:\n    {\"city\":\"Zürich\",\"days\":3}\n  Result:\n    {\"type\":\"json\",\"value\":{\"temp\":21,\"sky\":\"☀\"}}"
+  },
+  "unparsed_tool_arguments_object": {
+    "messages": [
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_call",
+            "tool_call_id": "c2",
+            "tool_name": "search",
+            "arguments": { "type": "invalid", "value": { "q": "café", "n": [1, 2] } }
+          }
+        ]
+      },
+      {
+        "role": "tool",
+        "content": [
+          { "type": "tool_result", "tool_call_id": "c2", "output": "ok" }
+        ]
+      }
+    ],
+    "text": "Tool (search):\n  Args:\n    {\"q\":\"café\",\"n\":[1,2]}\n  Result:\n    ok"
+  },
+  "single_message_with_structured_content": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [{ "type": "image", "name": "café" }]
+      }
+    ],
+    "message_text": "user: [{\"type\":\"image\",\"name\":\"café\"}]"
+  }
+}

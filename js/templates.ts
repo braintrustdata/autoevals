@@ -10,6 +10,7 @@ import security from "../templates/security.yaml";
 import sql from "../templates/sql.yaml";
 import summary from "../templates/summary.yaml";
 import translation from "../templates/translation.yaml";
+import voice_conversational_quality from "../templates/voice_conversational_quality.yaml";
 import voice_dead_air from "../templates/voice_dead_air.yaml";
 import voice_interruptions from "../templates/voice_interruptions.yaml";
 import voice_task_completion from "../templates/voice_task_completion.yaml";
@@ -36,6 +37,7 @@ const templateStrings = {
   sql,
   summary,
   translation,
+  voice_conversational_quality,
   voice_dead_air,
   voice_interruptions,
   voice_task_completion,

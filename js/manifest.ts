@@ -9,6 +9,7 @@ import {
   Sql,
   Summary,
   Translation,
+  VoiceConversationalQuality,
   VoiceDeadAir,
   VoiceInterruptions,
   VoiceTaskCompletion,
@@ -133,6 +134,12 @@ export const Evaluators: {
         description:
           "Test whether a voice agent let the user finish speaking and stopped when the user broke in, from the call recording and trajectory.",
         template: templates.voice_interruptions,
+      },
+      {
+        method: VoiceConversationalQuality,
+        description:
+          "Test whether a voice agent spoke naturally and responded to the caller with an appropriate tone, from the call recording and trajectory.",
+        template: templates.voice_conversational_quality,
       },
     ],
   },

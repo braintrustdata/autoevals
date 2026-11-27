@@ -9,8 +9,8 @@ import {
   Sql,
   Summary,
   Translation,
-  VoiceConversationalQuality,
   VoiceDeadAir,
+  VoiceDelivery,
   VoiceInterruptions,
   VoiceTaskCompletion,
   VoiceTranscriptionAccuracy,
@@ -136,10 +136,10 @@ export const Evaluators: {
         template: templates.voice_interruptions,
       },
       {
-        method: VoiceConversationalQuality,
+        method: VoiceDelivery,
         description:
           "Test whether a voice agent spoke naturally and responded to the caller with an appropriate tone, from the call recording and trajectory.",
-        template: templates.voice_conversational_quality,
+        template: templates.voice_delivery,
       },
     ],
   },

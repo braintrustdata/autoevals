@@ -554,7 +554,7 @@ export const VoiceInterruptions = buildLLMClassifier<{}>(
 /**
  * Test whether a voice agent spoke naturally and responded to the caller with an appropriate tone.
  */
-export const VoiceConversationalQuality = buildLLMClassifier<{}>(
-  "VoiceConversationalQuality",
-  "voice_conversational_quality",
+export const VoiceDelivery = buildLLMClassifier<{}>(
+  "VoiceDelivery",
+  "voice_delivery",
 );

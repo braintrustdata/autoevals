@@ -16,7 +16,7 @@ const RECORDING_MARKER = "\u0000recording\u0000";
  * - Single messages are formatted with role and content
  * - Other values are JSON-stringified
  */
-function escapeValue(v: unknown): string {
+export function escapeValue(v: unknown): string {
   if (typeof v === "string") {
     return v;
   }

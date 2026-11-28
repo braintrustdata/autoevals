@@ -43,6 +43,13 @@ def filter_system_messages_from_thread(thread: list[Any]) -> list[Any]:
     return [message for message in thread if not (isinstance(message, Mapping) and message.get("role") == "system")]
 
 
+def _json_dumps(value: Any) -> str:
+    # Match JavaScript's JSON.stringify: compact separators and raw non-ASCII characters.
+    # The default json.dumps would emit `{"a": 1}` and `\u00fc`, so the same thread would
+    # render differently in the Python and TypeScript scorers.
+    return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+
+
 def _indent(text: str, prefix: str = "  ") -> str:
     return "\n".join(prefix + line for line in text.split("\n"))
 
@@ -86,13 +93,13 @@ def _extract_tool_calls(content: list[Any]) -> dict[str, _PendingToolCall]:
         args_obj = part.get("arguments")
         if isinstance(args_obj, Mapping):
             if args_obj.get("type") == "valid":
-                args = json.dumps(args_obj.get("value"))
+                args = _json_dumps(args_obj.get("value"))
             else:
                 value = args_obj.get("value")
                 if isinstance(value, str):
                     args = value
                 else:
-                    args = json.dumps(value)
+                    args = _json_dumps(value)
 
         tool_calls[tool_call_id] = _PendingToolCall(name=tool_name, args=args)
 
@@ -122,7 +129,7 @@ def _unwrap_content(content: Any) -> str:
     if isinstance(content, Mapping) and isinstance(content.get("text"), str):
         return _unwrap_content(content["text"])
 
-    return content if isinstance(content, str) else json.dumps(content)
+    return content if isinstance(content, str) else _json_dumps(content)
 
 
 def _format_tool_result(
@@ -223,7 +230,7 @@ class RenderableMessage(dict[str, Any]):
     def __str__(self) -> str:
         role = self.get("role", "")
         content = self.get("content")
-        content_str = content if isinstance(content, str) else json.dumps(content)
+        content_str = content if isinstance(content, str) else _json_dumps(content)
         return f"{role}: {content_str}"
 
 

@@ -995,7 +995,7 @@ class Faithfulness(OpenAILLMScorer):
 
         return Score(
             name=self._name(),
-            score=sum([s["verdict"] for s in faithfulness]) / len(faithfulness),
+            score=(sum([s["verdict"] for s in faithfulness]) / len(faithfulness)) if faithfulness else 0,
             metadata={
                 "statements": statements,
                 "faithfulness": faithfulness,
@@ -1017,7 +1017,7 @@ class Faithfulness(OpenAILLMScorer):
 
         return Score(
             name=self._name(),
-            score=sum([s["verdict"] for s in faithfulness]) / len(faithfulness),
+            score=(sum([s["verdict"] for s in faithfulness]) / len(faithfulness)) if faithfulness else 0,
             metadata={
                 "statements": statements,
                 "faithfulness": faithfulness,
